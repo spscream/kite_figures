@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-pair",
+  "number": 10,
+  "name": "Parallel Boxes",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 108, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Два одинаковых прямоугольника, сдвинутых на двадцать единиц: взлёт, поворот влево и обход по часовой стрелке — левая сторона и верх носом вперёд, правая сторона и остаток низа задом — с поворотом на 90° в каждом углу и посадкой там же, откуда кайт взлетел.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-10, 10], "sync": "a"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 10], "sync": "b"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-40, 70], "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [20, 70], "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [20, 10], "nose": "backward", "sync": "e"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-10, 10], "nose": "backward", "sync": "f"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-10, 0], "nose": "backward", "sync": "g"},
+              {"kind": "mark", "mark": "landing", "sync": "g"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [10, 10], "sync": "a"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-20, 10], "sync": "b"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-20, 70], "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 70], "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [40, 10], "nose": "backward", "sync": "e"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [10, 10], "nose": "backward", "sync": "f"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [10, 0], "nose": "backward", "sync": "g"},
+              {"kind": "mark", "mark": "landing", "sync": "g"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Кайты на схеме не пронумерованы. Здесь «1» — кайт, возле старта которого стоит подпись In (на схеме он зелёный), «2» — второй (красный).",
+      "Углы поворотов подписаны на схеме по одному разу на оба кайта; стороны — по стрелкам на схеме и по пояснению. Подпись 90° у высоты 10 возле центра относится и к повороту после взлёта, и к повороту перед посадкой.",
+      "Куда смотрит нос, снято со значков кайта на схеме: прямая сторона значка — передняя кромка. Значки читались глазами по увеличенной схеме. Значок в углу показывает кайт после поворота: внизу слева — носом вверх, вверху слева — носом вправо, вверху справа — носом вверх, внизу справа — носом вправо. Отсюда правая сторона и остаток низа — полёт задом.",
+      "Взлёт и посадка записаны на уровне земли (y = 0). Вид посадки страница не называет; значок на земле стоит носом вверх.",
+      "Метки sync стоят на шагах, концы которых схема показывает значками обоих кайтов в парных положениях; словами одновременность страница не называет."
+    ]
+  }
+}

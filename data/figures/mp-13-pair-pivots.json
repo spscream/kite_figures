@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-pair",
+  "number": 13,
+  "name": "Pair Pivots",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 111, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты рядом поднимаются слева до высоты 30 и идут вправо четырьмя равными отрезками, каждый раз в новой ориентации — носом вниз, задом, носом вверх, носом вперёд — с остановкой и поворотом на месте между отрезками, а в конце спускаются и одновременно садятся на переднюю кромку.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-65, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-65, 30], "sync": "a", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "a"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-30, 30], "nose": 180, "sync": "b"},
+              {"kind": "mark", "mark": "stall", "sync": "b"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [5, 30], "nose": "backward", "sync": "c", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 30], "nose": 0, "sync": "d"},
+              {"kind": "mark", "mark": "stall", "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [75, 30], "sync": "e", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "e"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [75, 0], "sync": "f", "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "f"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-75, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-75, 30], "sync": "a", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "a"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 30], "nose": 180, "sync": "b"},
+              {"kind": "mark", "mark": "stall", "sync": "b"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-5, 30], "nose": "backward", "sync": "c", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [30, 30], "nose": 0, "sync": "d"},
+              {"kind": "mark", "mark": "stall", "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [65, 30], "sync": "e", "basis": "measured"},
+              {"kind": "mark", "mark": "stall", "sync": "e"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [65, 0], "sync": "f", "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "f"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Номера кайтов — как на схеме: «1» идёт правее, «2» — левее.",
+      "Длина горизонтальных отрезков на схеме — 35 единиц: остановки стоят на x = −30, 5, 40 и 75 у кайта «1» и на −40, −5, 30 и 65 у кайта «2». Пояснение на странице называет 30. Записано по схеме: по разделу IV книги размер и место фигуры задаёт схема.",
+      "На подписанные линии сетки попадают только остановки на −30 и 40 у кайта «1» и на −40 и 30 у кайта «2». Остальные точки сняты замером: вертикали на −75,2, −65,2, 65,5 и 75,4, значки в середине пути на −5,2 и 4,9; точность — около половины единицы.",
+      "Остановки, повороты, полёт назад и посадка на переднюю кромку — по пояснению на странице; значки на схеме с ним согласуются.",
+      "Путь начинается на уровне земли; взлёт страница не называет. Посадка записана на уровне земли (y = 0).",
+      "Метки sync стоят на шагах, концы которых схема показывает значками обоих кайтов в парных положениях. Словами пояснение называет только одновременность посадки."
+    ]
+  }
+}

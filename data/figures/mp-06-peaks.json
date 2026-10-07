@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-pair",
+  "number": 6,
+  "name": "Peaks",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 104, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Зеркальная пара: взлёт у центра, диагональ наружу и вверх без смены ориентации, разворот на 180° на вершине и спуск по вертикали в три приёма — носом вниз, боком и задом, с поворотами на 90° на высотах 30 и 10 — до посадки.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [10, 10], "sync": "a"},
+              {"kind": "line", "to": [50, 60], "nose": 0, "sync": "b"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "line", "to": [50, 30], "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [50, 10], "nose": 90, "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [50, 0], "nose": "backward", "sync": "e"},
+              {"kind": "mark", "mark": "landing", "sync": "e"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-10, 10], "sync": "a"},
+              {"kind": "line", "to": [-50, 60], "nose": 0, "sync": "b"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-50, 30], "sync": "c"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-50, 10], "nose": 270, "sync": "d"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-50, 0], "nose": "backward", "sync": "e"},
+              {"kind": "mark", "mark": "landing", "sync": "e"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Кайты на схеме не пронумерованы. Здесь «1» — кайт, возле старта которого стоит подпись In (на схеме он зелёный), «2» — второй (красный).",
+      "Куда смотрит нос, снято со значков кайта на схеме: прямая сторона значка — передняя кромка. Значки читались глазами по увеличенной схеме. На диагонали нос смотрит вверх; после разворота кайт спускается носом вниз, от 30 до 10 — носом наружу, от 10 до земли — носом вверх.",
+      "Взлёт и посадка записаны на уровне земли (y = 0). Вид посадки страница не называет; значок на земле стоит носом вверх.",
+      "Метки sync стоят на шагах, концы которых схема показывает значками обоих кайтов в парных положениях; словами одновременность страница не называет."
+    ]
+  }
+}

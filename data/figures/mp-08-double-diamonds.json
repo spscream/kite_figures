@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-pair",
+  "number": 8,
+  "name": "Double Diamonds",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 106, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Два одинаковых ромба, сдвинутых на двадцать единиц: взлёт, обход ромба через левую вершину, верхнюю и правую с поворотом на месте в каждой вершине и посадка там же, откуда кайт взлетел.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [10, 10], "sync": "a"},
+              {"kind": "rotate", "degrees": 45, "direction": "ccw"},
+              {"kind": "line", "to": [-20, 40], "sync": "b"},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [10, 70], "sync": "c"},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [40, 40], "sync": "d"},
+              {"kind": "rotate", "degrees": 450, "direction": "cw"},
+              {"kind": "line", "to": [10, 10], "sync": "e"},
+              {"kind": "rotate", "degrees": 135, "direction": "cw"},
+              {"kind": "line", "to": [10, 0], "nose": "backward", "sync": "f"},
+              {"kind": "mark", "mark": "landing", "sync": "f"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-10, 10], "sync": "a"},
+              {"kind": "rotate", "degrees": 45, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 40], "sync": "b"},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [-10, 70], "sync": "c"},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [20, 40], "sync": "d"},
+              {"kind": "rotate", "degrees": 450, "direction": "cw"},
+              {"kind": "line", "to": [-10, 10], "sync": "e"},
+              {"kind": "rotate", "degrees": 135, "direction": "cw"},
+              {"kind": "line", "to": [-10, 0], "nose": "backward", "sync": "f"},
+              {"kind": "mark", "mark": "landing", "sync": "f"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Кайты на схеме не пронумерованы. Здесь «1» — кайт, возле старта которого стоит подпись In (на схеме он зелёный), «2» — второй (красный).",
+      "Подписи Out на схеме нет. Конец оцениваемой части записан в точке посадки: пояснение называет поворот на высоте 10 перед посадкой, а других линий после неё схема не показывает.",
+      "Углы поворотов подписаны на схеме по одному разу на оба кайта: 45° и 135° у высоты 10, 270° у левых вершин, 270° у верхних, 450° у правых. Стороны поворота — по стрелкам на схеме и по пояснению.",
+      "Стороны ромба записаны полётом носом вперёд: это следует из цепочки поворотов от взлёта носом вверх. Значки на сторонах стоят поперёк пути и с этим согласуются, но сами по себе перёд от зада на таком увеличении не отличают.",
+      "Взлёт и посадка записаны на уровне земли (y = 0). Вид посадки страница не называет; значок на земле стоит носом вверх.",
+      "Метки sync стоят на шагах, концы которых схема показывает значками обоих кайтов в парных положениях; словами одновременность страница не называет."
+    ]
+  }
+}
