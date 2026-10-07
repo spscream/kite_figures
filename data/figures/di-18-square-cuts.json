@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 18,
+  "name": "Square Cuts",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 29, "read_on": "2026-10-07", "page_version": "2006-06-29"},
+  "summary": "Зигзаг из прямых углов вдоль центра окна сверху вниз: четыре вертикальных отрезка по 20 единиц, смещённые поочерёдно влево и вправо на 10 от центра. Вход поверху справа, выход понизу слева.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [50, 90]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-10, 90]},
+              {"kind": "line", "to": [-10, 70]},
+              {"kind": "line", "to": [10, 70]},
+              {"kind": "line", "to": [10, 50]},
+              {"kind": "line", "to": [-10, 50]},
+              {"kind": "line", "to": [-10, 30]},
+              {"kind": "line", "to": [10, 30]},
+              {"kind": "line", "to": [10, 10]},
+              {"kind": "line", "to": [-50, 10]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

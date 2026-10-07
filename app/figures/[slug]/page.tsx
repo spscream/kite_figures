@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getFigure, listFigures } from "@/lib/figures";
+import { figureTitle, getFigure, listFigures } from "@/lib/figures";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +16,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const figure = getFigure((await params).slug);
-  return figure ? { title: figure.title, description: figure.summary } : {};
+  return figure ? { title: figureTitle(figure), description: figure.summary } : {};
 }
 
 export default async function FigurePage({ params }: Props) {
@@ -26,13 +26,15 @@ export default async function FigurePage({ params }: Props) {
   }
   return (
     <article>
-      <h1>{figure.title}</h1>
-      {figure.fictional && (
-        <p className="fictional">
-          Вымышленная запись: она проверяет шаблон страницы и не описывает фигуру из правил.
-        </p>
-      )}
+      <h1>{figureTitle(figure)}</h1>
       <p>{figure.summary}</p>
+      <p className="note">
+        Точная формулировка и официальная схема —{" "}
+        <a className="source" href={figure.sourceUrl} rel="noreferrer">
+          в первоисточнике, страница {figure.source.page}
+        </a>
+        .
+      </p>
       <p>
         <Link href="/">Все фигуры</Link>
       </p>

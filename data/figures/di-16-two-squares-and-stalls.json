@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 16,
+  "name": "Two Squares and Stalls",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 27, "read_on": "2026-10-07", "page_version": "2006-06-29"},
+  "summary": "Два квадрата со стороной 30, оба против часовой стрелки: нижний левый замыкается полностью, от верхнего правого пролетаются три стороны. Перед первым квадратом и после второго — по остановке.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-10, 10]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [-10, 40]},
+              {"kind": "line", "to": [-40, 40]},
+              {"kind": "line", "to": [-40, 10]},
+              {"kind": "line", "to": [-10, 10]},
+              {"kind": "line", "to": [30, 10]},
+              {"kind": "line", "to": [30, 80]},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [30, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [30, 90]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отрезок по правой вертикали между высотами 50 и 80 кайт пролетает дважды: сначала как сторону второго квадрата, затем на пути к выходу."
+    ]
+  }
+}

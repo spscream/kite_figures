@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 13,
+  "name": "Steps",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 24, "read_on": "2026-10-07", "page_version": "2005-08-01"},
+  "summary": "Лестница из четырёх одинаковых ступеней, по которой кайт спускается справа налево: вход поверху справа, выход понизу слева.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [70, 90]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [30, 90]},
+              {"kind": "line", "to": [30, 70]},
+              {"kind": "line", "to": [10, 70]},
+              {"kind": "line", "to": [10, 50]},
+              {"kind": "line", "to": [-10, 50]},
+              {"kind": "line", "to": [-10, 30]},
+              {"kind": "line", "to": [-30, 30]},
+              {"kind": "line", "to": [-30, 10]},
+              {"kind": "line", "to": [-70, 10]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

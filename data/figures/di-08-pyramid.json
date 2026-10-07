@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 8,
+  "name": "Pyramid",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 20, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Равнобедренный треугольник с вершиной на верхней горизонтали. Кайт входит по этой горизонтали слева, с вершины спускается по правой стороне, проходит основание справа налево, поднимается по левой стороне и уходит по той же горизонтали вправо.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-40, 80]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "line", "to": [40, 10]},
+              {"kind": "line", "to": [-40, 10]},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "line", "to": [40, 80]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

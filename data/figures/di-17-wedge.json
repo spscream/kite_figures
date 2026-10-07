@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 17,
+  "name": "Wedge",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 28, "read_on": "2026-10-07", "page_version": "2006-06-29"},
+  "summary": "Прямоугольный клин во всю ширину фигуры: вертикаль вниз, основание вправо, вертикаль вверх и диагональ обратно в левый нижний угол, где фигура и заканчивается.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-60, 90]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-60, 10]},
+              {"kind": "line", "to": [60, 10]},
+              {"kind": "line", "to": [60, 90]},
+              {"kind": "line", "to": [-60, 10]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

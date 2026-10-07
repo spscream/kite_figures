@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 19,
+  "name": "Launch, Circle, and Land 2P",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 30, "read_on": "2026-10-07", "page_version": "2006-06-29"},
+  "summary": "Взлёт слева, вертикаль вверх, горизонтальный проход вправо с полным кругом под ним посередине, вертикаль вниз и посадка на оба конца крыла.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-50, 40]},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "arc", "to": [0, 40], "center": [0, 22.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "line", "to": [50, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Размер круга на схеме не подписан: подписана только высота прохода (40), которого круг касается сверху. Радиус 17,5 снят замером по схеме — крайние точки круга на x ≈ ±17,4, нижняя на высоте около 5; точность — около половины единицы сетки.",
+      "Взлёт и посадка записаны на уровне земли (y = 0)."
+    ]
+  }
+}

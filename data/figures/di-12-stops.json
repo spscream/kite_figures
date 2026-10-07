@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 12,
+  "name": "Stops",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 23, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Взлёт из центра окна и вертикаль вверх с двумя остановками, полукруг справа от вертикали и горизонтальный проход влево с двумя остановками рывком (snap stall); вторая из них — в точке выхода.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "line", "to": [0, 80], "unmarked": true},
+              {"kind": "arc", "to": [0, 40], "center": [0, 60], "direction": "cw", "sweep": 180, "unmarked": true},
+              {"kind": "line", "to": [-30, 40]},
+              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "line", "to": [-60, 40]},
+              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Направление обхода петли из вертикали от 40 до 80 и полукруга на схеме не показано: ни на дуге, ни на этой части вертикали стрелки нет, пояснение о нём молчит. Оба шага помечены «unmarked». Записан порядок «вертикаль вверх, затем дуга вниз»; обратный — дуга вверх, затем вертикаль вниз — страница не исключает.",
+      "Взлёт записан на уровне земли (y = 0). Вид остановок: на вертикали — по пояснению на странице, на горизонтали — по подписям на схеме и по пояснению."
+    ]
+  }
+}

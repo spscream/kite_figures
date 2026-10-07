@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 15,
+  "name": "LSI",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 26, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Три буквы подряд одной линией: «L» — вертикаль вниз и основание вправо, «S» — два встречных полукруга снизу вверх, «I» — горизонталь вправо и вертикаль вниз.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-30, 70]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-30, 10]},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "arc", "to": [0, 40], "center": [0, 25], "direction": "ccw", "sweep": 180},
+              {"kind": "arc", "to": [0, 70], "center": [0, 55], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [30, 70]},
+              {"kind": "line", "to": [30, 10]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

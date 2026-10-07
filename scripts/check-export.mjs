@@ -10,6 +10,19 @@ import path from "node:path";
 const root = process.cwd();
 const out = path.join(root, "out");
 const figuresDir = path.join(root, "data", "figures");
+const { documents } = JSON.parse(fs.readFileSync(path.join(root, "data", "sources.json"), "utf8"));
+
+// Префиксы разделов — те же, что `DISCIPLINES` в lib/figures.ts. Они повторены
+// здесь намеренно: скрипт сверяет собранную страницу с файлом данных, а не с
+// тем, что из него вычитал проверяемый код.
+const PREFIXES = {
+  "dual-line-individual": "DI",
+  "dual-line-pair": "DP",
+  "dual-line-team": "DT",
+  "multi-line-individual": "MI",
+  "multi-line-pair": "MP",
+  "multi-line-team": "MT",
+};
 
 const problems = [];
 
@@ -49,8 +62,12 @@ if (slugs.length === 0) {
 
 const home = page("");
 for (const slug of slugs) {
-  const { title, summary, fictional } = JSON.parse(
+  const { discipline, number, name, summary, source } = JSON.parse(
     fs.readFileSync(path.join(figuresDir, `${slug}.json`), "utf8"),
+  );
+  const title = `${PREFIXES[discipline]} ${String(number).padStart(2, "0")} — ${name}`;
+  const document = documents.find(
+    (item) => item.id === source.document && item.version === source.version,
   );
   const html = page(path.join("figures", slug));
   if (html !== null) {
@@ -62,8 +79,11 @@ for (const slug of slugs) {
     if (!html.includes(`<p>${escapeHtml(summary)}</p>`)) {
       problems.push(`на странице figures/${slug}/ нет описания`);
     }
-    if (html.includes('class="fictional"') !== (fictional === true)) {
-      problems.push(`на странице figures/${slug}/ плашка вымышленной записи не совпадает с данными`);
+    // Ссылка на первоисточник — одно из четырёх правил docs/sources.md: она
+    // ведёт на официальный документ, открытый на странице этой фигуры.
+    const href = escapeHtml(`${document?.url}#page=${source.page}`);
+    if (!html.includes(`href="${href}"`)) {
+      problems.push(`на странице figures/${slug}/ нет ссылки на первоисточник (${href})`);
     }
   }
   if (home !== null && !home.includes(`href="/figures/${slug}/"`)) {
