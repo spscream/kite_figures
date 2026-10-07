@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Search } from "@/components/Search";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <header className="site-header">
           <Link href="/">Фигуры для спортивных кайтов</Link>
+          <Search />
         </header>
         <main>{children}</main>
       </body>
