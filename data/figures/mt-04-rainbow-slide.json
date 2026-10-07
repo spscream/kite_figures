@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-team",
+  "number": 4,
+  "name": "Rainbow Slide",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 117, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Четыре вложенные полуокружности от земли справа до земли слева с общим центром на земле посередине окна. Кайты взлетают со стойки на законцовке крыла и скользят по дуге носом наружу; в вершине все одновременно разворачиваются на пол-оборота, останавливаются и идут вторую половину дуги носом к центру.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "team_size": 4,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [45, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "arc", "to": [0, 45], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "arc", "to": [-45, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [60, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "arc", "to": [0, 60], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "arc", "to": [-60, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [75, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "arc", "to": [0, 75], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "arc", "to": [-75, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [90, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "arc", "to": [0, 90], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "arc", "to": [-90, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Дуги кайтов 1 и 3 (радиусы 45 и 75) проходят между подписанными линиями сетки; радиусы сняты замером по вершинам дуг и по точкам, где дуги приходят к земле, точность — около половины единицы. Дуги кайтов 2 и 4 (60 и 90) стоят на подписанных линиях.",
+      "Начало и конец дуг записаны на уровне земли (y = 0): метки стоят на нижнем крае сетки, дуги нарисованы до него. Взлёт назван в пояснении на странице; посадку страница не называет, поэтому отметки «landing» в конце нет.",
+      "По пояснению развороты в вершине выполняются всеми разом и кончаются остановкой. Формат не ставит метку одновременности на сам поворот, поэтому она стоит на шагах вокруг него: «top» — приход в вершину, «turned» — остановка после разворота.",
+      "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка.",
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+    ]
+  }
+}

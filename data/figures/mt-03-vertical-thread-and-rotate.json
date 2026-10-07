@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-team",
+  "number": 3,
+  "name": "Vertical Thread and Rotate",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 116, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Четыре параллельные вертикали, кайты через одного идут навстречу: первый и третий — сверху вниз, второй и четвёртый — снизу вверх. На средней высоте каждый останавливается, двумя отдельными четвертями оборота разворачивается на месте и проходит вторую половину вертикали задом.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "team_size": 4,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [30, 90]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [30, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [30, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [10, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [10, 90], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-10, 90]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-10, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [-10, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-30, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-30, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [-30, 90], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Нижние концы вертикалей записаны на уровне земли (y = 0): метки кайтов 2 и 4 в начале и кайтов 1 и 3 в конце нарисованы стоящими на нижнем крае сетки, их передняя кромка — на высоте около 3, и линии кончаются на метках. Ни взлёта, ни посадки страница не называет, поэтому отметок «launch» и «landing» в данных нет.",
+      "Остановки записаны до и после каждого из двух поворотов — так говорит пояснение на странице; вид остановок страницей не назван.",
+      "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка. Вторая половина вертикали — полёт задом: нос смотрит туда, откуда кайт пришёл.",
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+    ]
+  }
+}

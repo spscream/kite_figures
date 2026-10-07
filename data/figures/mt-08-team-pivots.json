@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-team",
+  "number": 8,
+  "name": "Team Pivots",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 121, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты стоят в ряд на земле, параллельно поднимаются с неё и идут вправо вдоль одной горизонтали четырьмя равными отрезками: носом вниз, задом, носом вверх и носом вперёд. Между отрезками — остановка и поворот на месте, все кайты поворачиваются одновременно; в конце — параллельный спуск и общая посадка на переднюю кромку.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "team_size": 4,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-55, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-55, 30], "sync": "turn-1", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-20, 30], "nose": 180, "sync": "turn-2"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [15, 30], "nose": "backward", "sync": "turn-3", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [50, 30], "nose": 0, "sync": "turn-4"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [85, 30], "sync": "turn-5", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [85, 0], "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-65, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-65, 30], "sync": "turn-1", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-30, 30], "nose": 180, "sync": "turn-2"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [5, 30], "nose": "backward", "sync": "turn-3", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 30], "nose": 0, "sync": "turn-4"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [75, 30], "sync": "turn-5", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [75, 0], "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-75, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-75, 30], "sync": "turn-1", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 30], "nose": 180, "sync": "turn-2"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-5, 30], "nose": "backward", "sync": "turn-3", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [30, 30], "nose": 0, "sync": "turn-4"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [65, 30], "sync": "turn-5", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [65, 0], "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-85, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-85, 30], "sync": "turn-1", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-50, 30], "nose": 180, "sync": "turn-2"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-15, 30], "nose": "backward", "sync": "turn-3", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [20, 30], "nose": 0, "sync": "turn-4"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [55, 30], "sync": "turn-5", "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [55, 0], "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "style": "leading-edge", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Высота горизонтали записана по схеме — она стоит на подписанной линии 30 (замер: 30,2). Пояснение на той же странице называет высоту 35; какое из двух значений верно, книга не говорит.",
+      "Вертикали взлёта (−55, −65, −75, −85) и посадки (55, 65, 75, 85) и остановки на ±5 и ±15 проходят между подписанными линиями сетки. Значения вычислены из подписанных остановок (−50…−20 и 20…50) и шага 35, который называет пояснение; замер по меткам даёт те же числа с точностью до половины единицы.",
+      "Начало и конец пути записаны на уровне земли (y = 0): метки стоят на нижнем крае сетки, их передняя кромка нарисована на высоте около 3. Посадку страница называет словом; взлёт — нет, хотя в момент входа кайты нарисованы стоящими на земле, поэтому отметки «launch» в данных нет.",
+      "Метки sync: по пояснению все повороты выполняются всеми кайтами одновременно, посадка — тоже общая.",
+      "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка.",
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+    ]
+  }
+}
