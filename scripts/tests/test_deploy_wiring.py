@@ -21,6 +21,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 DEPLOY_LABEL = "kites-deploy"
+# Довоз (catchup.yml) — второй и последний воркфлоу с джобой на раннере
+# выката: она читает с хоста выложенную ревизию. Что кода репозитория в ней
+# нет, держит test_catchup_wiring.py.
+CATCHUP = "catchup.yml"
 HEAD_ONLY = "steps.head.outputs.deploy == 'true'"
 
 
@@ -71,20 +75,30 @@ class DeployWiringCase(unittest.TestCase):
         self.assertEqual(len(found), 1, title)
         return "\n".join(found[0])
 
-    def test_only_the_deploy_workflow_leaves_hosted_runners(self):
+    def test_only_the_deploy_and_the_catch_up_leave_hosted_runners(self):
         self.assertIn(self.path, workflows())
-        for path in workflows():
-            expected = f"[{DEPLOY_LABEL}]" if path == self.path else "ubuntu-latest"
-            mentions = [line for line in code(path) if "runs-on" in line]
-            self.assertTrue(mentions, path.name)
-            for line in mentions:
-                # Только однострочная форма: список меток на следующих строках
-                # этот тест не прочитал бы.
-                self.assertRegex(line, rf"^    runs-on: {re.escape(expected)}$", path.name)
-
-    def test_the_label_is_named_nowhere_else(self):
+        own = f"    runs-on: [{DEPLOY_LABEL}]"
+        hosted = "    runs-on: ubuntu-latest"
         for path in workflows():
             if path == self.path:
+                expected = [own]
+            elif path.name == CATCHUP:
+                expected = [own, hosted]
+            else:
+                expected = None
+            # Только однострочная форма: список меток на следующих строках
+            # этот тест не прочитал бы.
+            mentions = [line for line in code(path) if "runs-on" in line]
+            self.assertTrue(mentions, path.name)
+            if expected is None:
+                self.assertEqual(set(mentions), {hosted}, path.name)
+            else:
+                self.assertEqual(mentions, expected, path.name)
+
+    def test_the_label_is_named_nowhere_else(self):
+        self.assertIn(CATCHUP, [path.name for path in workflows()])
+        for path in workflows():
+            if path == self.path or path.name == CATCHUP:
                 continue
             text = "\n".join(code(path))
             self.assertNotIn(DEPLOY_LABEL, text, path.name)
@@ -106,20 +120,24 @@ class DeployWiringCase(unittest.TestCase):
             "  workflow_dispatch:",
         ])
 
-    def test_the_job_takes_only_a_green_push_run_of_this_repository(self):
+    def test_the_job_takes_only_a_green_run_of_main_of_this_repository(self):
         start = self.lines.index("    if: >-")
         end = self.lines.index(f"    runs-on: [{DEPLOY_LABEL}]")
         self.assertLess(start, end)
         condition = " ".join(" ".join(self.lines[start + 1:end]).split())
         # Условия одного пути связаны через `&&`: `||` между ними пустил бы
-        # прогон по PR. Единственное `||` — между ручным путём и автоматическим.
+        # прогон по PR. `||` — между ручным путём и автоматическим и внутри
+        # скобок с перечнем событий CI: пуш в main и запуск CI на main вручную
+        # (им довозит коммит авто-мержа catchup.yml). pull_request в перечне
+        # нет и появиться не должен.
         self.assertEqual(
             condition,
             "(github.event_name == 'workflow_dispatch' && "
             "github.ref_name == github.event.repository.default_branch) || "
             "(github.event_name == 'workflow_run' && "
             "github.event.workflow_run.conclusion == 'success' && "
-            "github.event.workflow_run.event == 'push' && "
+            "(github.event.workflow_run.event == 'push' || "
+            "github.event.workflow_run.event == 'workflow_dispatch') && "
             "github.event.workflow_run.head_repository.full_name == github.repository)",
         )
 
@@ -170,7 +188,11 @@ class DeployWiringCase(unittest.TestCase):
 
     def test_a_manual_run_needs_a_green_ci_run_on_main(self):
         manual = self.step("name: Ручной запуск — у коммита есть зелёный прогон CI")
-        self.assertIn("actions/runs?head_sha=${DEPLOY_SHA}&status=success", manual)
+        # Прогоны самого CI, страницей в 100: в общем списке на этом sha
+        # зелёный CI вытеснили бы прогоны довоза, авто-мержа и выката.
+        self.assertIn(
+            '"repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs'
+            '?head_sha=${DEPLOY_SHA}&status=success&per_page=100"', manual)
         self.assertIn(r'select(.name == \"CI\" and .head_branch == \"${DEFAULT_BRANCH}\")', manual)
         self.assertRegex(manual, r'if \[ "\$\{green:-0\}" = "0" \]; then\n.*\n\s+exit 1\n\s+fi')
 

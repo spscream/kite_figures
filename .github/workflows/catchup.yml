@@ -1,0 +1,143 @@
+# Довоз: голова main доезжает до сайта и тогда, когда её туда никто не повёз.
+#
+# Зачем. Выкат (deploy.yml) слушает завершение CI на main. Коммит, влитый
+# авто-мержем, такого прогона не получает: мерж делает токен Actions, а
+# событие, порождённое этим токеном, воркфлоу не запускает. Шесть PR подряд
+# были влиты и не выкатились — сайт поехал только с прямого пуша.
+#
+# Как. Из того правила у GitHub два исключения — workflow_dispatch и
+# repository_dispatch: запуск воркфлоу тем же токеном прогон создаёт. Довоз
+# сверяет голову main с ревизией, выложенной на хосте, и при расхождении
+# запускает CI на main; зелёное завершение этого CI запускает выкат обычным
+# путём. Секрет для этого не нужен. Решение — в scripts/catchup.py (функция
+# `decide`) с тестами в scripts/tests/; здесь только проводка.
+#
+# Когда запускается:
+#   - после каждого успешного прогона Automerge — это и есть обычный путь:
+#     влитый коммит едет на сайт сразу, а не ждёт расписания;
+#   - вручную, с ветки по умолчанию. Так же, ручным запуском, его раз в час
+#     зовёт catchup-schedule.yml — страховка на случай, когда событие
+#     потерялось или цепочка оборвалась посередине.
+# Расписания в этом файле нет, и появляться оно не должно: воркфлоу с
+# расписанием GitHub отключает целиком после 60 дней без активности в
+# репозитории, и вместе с расписанием умер бы запуск после Automerge.
+#
+# Две джобы, и разделены они по тому, кому что можно:
+#   - `state` идёт на раннере выката, потому что выложенная ревизия читается
+#     только оттуда. Кода репозитория в ней нет вовсе: ни чекаута, ни action,
+#     ни данных события в командах. Токен — только на чтение. Когда на сайте
+#     уже голова main, на этом всё и кончается: одна сверка, и выход;
+#   - `dispatch` идёт на ubuntu-latest и на машину выката не попадает. Право
+#     запускать воркфлоу (actions: write) есть только у неё.
+#
+# Запуск после Automerge приходит по событию workflow_run, а оно берёт
+# воркфлоу из ветки по умолчанию: правка этого файла на PR не исполняется, и
+# на раннер выката код из PR этим путём не попадает.
+#
+# Имя «Automerge» — то, под которым automerge.yml знает GitHub. Переименование
+# молча оставит от довоза одну почасовую страховку; совпадение держит тест
+# scripts/tests/test_catchup_wiring.py.
+name: Catch-up
+
+on:
+  workflow_run:
+    workflows: [Automerge]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  state:
+    # Automerge завершается и тогда, когда его джоба пропущена (красный CI,
+    # CI не по PR, PR из форка), — такой прогон несёт conclusion `skipped` и
+    # сюда не проходит. Ручной запуск — только с ветки по умолчанию.
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
+    runs-on: [kites-deploy]
+    timeout-minutes: 5
+    # Если раннер не поднят, почасовые запуски не копятся: из ждущих GitHub
+    # держит только самый новый, а он прочитает то же состояние. Группа своя,
+    # не общая с выкатом: в общей эта джоба вытесняла бы ждущий выкат.
+    concurrency:
+      group: catch-up-state
+      cancel-in-progress: false
+    outputs:
+      stale: ${{ steps.compare.outputs.stale }}
+      deployed: ${{ steps.compare.outputs.deployed }}
+    steps:
+      # Ревизия читается той же командой и разбирается так же, как в
+      # последнем шаге deploy.yml: сбой чтения роняет шаг сам, а не
+      # превращается в «на сайте не та ревизия», и ревизия должна прийти ровно
+      # одна: две строки (два хоста с разными ревизиями) в `[[ =~ ]]` не
+      # проходят, там `$` — конец всего значения, а не строки. Ничего не
+      # прочитали — прогон красный, выката нет.
+      - name: Голова main и ревизия на хосте
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch=$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')
+          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${branch}" --jq '.sha')
+          inv="${KITES_INVENTORY_DIR:?на раннере не задан каталог инфраструктуры}"
+          cd "${inv}"
+          answer=$(docker compose run --rm -T inventory ansible kites_site \
+            -i inventory/hosts.yml -b -m ansible.builtin.command \
+            -a 'cat {{ kites_root }}/.deployed-revision')
+          deployed=$(printf '%s\n' "${answer}" | tr -d '\r' | { grep -Ex '[0-9a-f]{40}' || true; } | sort -u)
+          if ! [[ "${head}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::голова ${branch} не прочитана"
+            exit 1
+          fi
+          if ! [[ "${deployed}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::ревизия на хосте не прочитана"
+            exit 1
+          fi
+          if [ "${deployed}" = "${head}" ]; then
+            stale=false
+          else
+            stale=true
+          fi
+          {
+            echo "stale=${stale}"
+            echo "deployed=${deployed}"
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo "### Сверка"
+            echo
+            echo "- голова \`${branch}\`: \`${head}\`"
+            echo "- на хосте: \`${deployed}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "голова ${branch} ${head}, на хосте ${deployed}, довозить: ${stale}"
+
+  dispatch:
+    needs: state
+    if: needs.state.outputs.stale == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    # По одному: два довоза разом (два PR влиты подряд) оба не нашли бы у
+    # головы прогона CI и запустили бы его дважды. Второй, дождавшись
+    # первого, увидит CI уже идущим. Состояние читается внутри очереди.
+    concurrency:
+      group: catch-up-dispatch
+      cancel-in-progress: false
+    steps:
+      # На обоих событиях этот воркфлоу идёт с ветки по умолчанию, и
+      # чекаут без `ref` берёт её же: токен с правом запуска исполняет только
+      # то, что уже лежит в main.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Довезти голову main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYED_REVISION: ${{ needs.state.outputs.deployed }}
+        run: python3 -m scripts.catchup
