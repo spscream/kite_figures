@@ -172,6 +172,21 @@ class CatchupWiringCase(unittest.TestCase):
         self.assertIn("    needs: state", self.dispatch)
         self.assertIn("    if: needs.state.outputs.stale == 'true'", self.dispatch)
 
+    def test_the_launching_job_outlives_the_ci_run_it_waits_for(self):
+        # Скрипт ждёт запущенный им CI; джоба, которую GitHub снимет раньше,
+        # чем у CI выйдет его собственное время, бросит голову на полпути.
+        def minutes(lines):
+            found = [int(line.split(": ")[1]) for line in lines if "timeout-minutes" in line]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        ci_limit = minutes(code(WORKFLOWS / catchup.CI_WORKFLOW_FILE))
+        parser_defaults = (WORKFLOWS.parents[1] / "scripts" / "catchup.py").read_text("utf-8")
+        attempts = int(re.search(r'"--attempts", type=int, default=(\d+)', parser_defaults).group(1))
+        interval = float(re.search(r'"--interval", type=float, default=([\d.]+)', parser_defaults).group(1))
+        self.assertGreaterEqual(attempts * interval, ci_limit * 60)
+        self.assertGreater(minutes(self.dispatch) * 60, attempts * interval)
+
     def test_the_runner_job_queues_apart_from_the_deploy(self):
         # В одной группе с выкатом сверка вытесняла бы ждущий выкат.
         self.assertIn(
@@ -291,16 +306,16 @@ class ChainCase(unittest.TestCase):
     def test_the_script_looks_for_ci_under_the_name_the_workflow_carries(self):
         self.assertEqual(workflow_name(catchup.CI_WORKFLOW_FILE), catchup.CI_WORKFLOW_NAME)
 
-    def test_the_deploy_listens_to_that_ci_and_takes_a_manually_launched_run(self):
+    def test_the_script_stands_back_only_for_ci_the_deploy_itself_listens_to(self):
+        # За каким CI довоз не следит, решает одно событие — то, которое
+        # принимает условие джобы выката. Разойдись они: либо CI зеленеет, а
+        # выката нет (довоз ждал, что выкатит событие), либо ревизия едет
+        # дважды (выкатили оба).
         lines = code(WORKFLOWS / catchup.DEPLOY_WORKFLOW_FILE)
-        triggers = top_level_block(lines, "on")
-        self.assertIn(f"    workflows: [{catchup.CI_WORKFLOW_NAME}]", triggers)
-        text = "\n".join(lines)
-        # CI, запущенный довозом, приходит событием workflow_dispatch: без
-        # этой строки он зеленеет, а выкат его пропускает.
-        self.assertIn("github.event.workflow_run.event == 'workflow_dispatch'", text)
-        for event in catchup.BRANCH_EVENTS:
-            self.assertIn(f"github.event.workflow_run.event == '{event}'", text)
+        self.assertIn(f"    workflows: [{catchup.CI_WORKFLOW_NAME}]", top_level_block(lines, "on"))
+        events = re.findall(r"github\.event\.workflow_run\.event == '([a-z_]+)'", "\n".join(lines))
+        self.assertEqual(events, [catchup.SELF_DEPLOYING_EVENT])
+        self.assertIn(catchup.SELF_DEPLOYING_EVENT, catchup.BRANCH_EVENTS)
 
     def test_the_deploy_accepts_the_ci_run_the_script_calls_green(self):
         # Ручной выкат, которым довозит скрипт, сам ищет зелёный CI на main —

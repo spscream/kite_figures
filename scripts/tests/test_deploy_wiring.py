@@ -120,24 +120,20 @@ class DeployWiringCase(unittest.TestCase):
             "  workflow_dispatch:",
         ])
 
-    def test_the_job_takes_only_a_green_run_of_main_of_this_repository(self):
+    def test_the_job_takes_only_a_green_push_run_of_this_repository(self):
         start = self.lines.index("    if: >-")
         end = self.lines.index(f"    runs-on: [{DEPLOY_LABEL}]")
         self.assertLess(start, end)
         condition = " ".join(" ".join(self.lines[start + 1:end]).split())
         # Условия одного пути связаны через `&&`: `||` между ними пустил бы
-        # прогон по PR. `||` — между ручным путём и автоматическим и внутри
-        # скобок с перечнем событий CI: пуш в main и запуск CI на main вручную
-        # (им довозит коммит авто-мержа catchup.yml). pull_request в перечне
-        # нет и появиться не должен.
+        # прогон по PR. Единственное `||` — между ручным путём и автоматическим.
         self.assertEqual(
             condition,
             "(github.event_name == 'workflow_dispatch' && "
             "github.ref_name == github.event.repository.default_branch) || "
             "(github.event_name == 'workflow_run' && "
             "github.event.workflow_run.conclusion == 'success' && "
-            "(github.event.workflow_run.event == 'push' || "
-            "github.event.workflow_run.event == 'workflow_dispatch') && "
+            "github.event.workflow_run.event == 'push' && "
             "github.event.workflow_run.head_repository.full_name == github.repository)",
         )
 

@@ -9,10 +9,11 @@ import unittest
 from unittest import mock
 
 from scripts import catchup
-from scripts.catchup import NOTHING, RUN_CI, RUN_DEPLOY, STUCK, WAIT, decide
+from scripts.catchup import FOLLOW, NOTHING, RUN_CI, RUN_DEPLOY, STUCK, WAIT, decide
 
 HEAD = "a" * 40
 OLD = "b" * 40
+NEXT = "c" * 40
 
 
 def ci_run(event="workflow_dispatch", status="completed", conclusion="success",
@@ -26,6 +27,10 @@ def ci_run(event="workflow_dispatch", status="completed", conclusion="success",
         "head_branch": branch,
         "head_sha": HEAD,
     }
+
+
+def running(**kwargs) -> dict:
+    return ci_run(status="in_progress", conclusion=None, **kwargs)
 
 
 def listing(*runs: dict) -> dict:
@@ -78,17 +83,29 @@ class DecideCase(unittest.TestCase):
         runs = listing(ci_run(conclusion="failure", run_id=1), ci_run(run_id=2))
         self.assertEqual(self.decide(runs=runs).action, RUN_DEPLOY)
 
-    def test_running_ci_is_waited_for(self):
+    def test_running_ci_of_a_push_is_left_alone(self):
+        # Его завершение запускает выкат обычным путём.
+        for status in ("queued", "in_progress", "waiting", "requested", "pending"):
+            with self.subTest(status=status):
+                runs = listing(ci_run(event="push", status=status, conclusion=None))
+                self.assertEqual(self.decide(runs=runs).action, WAIT)
+
+    def test_running_ci_launched_by_hand_is_followed(self):
+        # Его завершение выката не запустит: не проследи довоз за ним сам,
+        # CI позеленеет, а сайт останется на старой ревизии.
         for status in ("queued", "in_progress", "waiting", "requested", "pending"):
             with self.subTest(status=status):
                 runs = listing(ci_run(status=status, conclusion=None))
-                self.assertEqual(self.decide(runs=runs).action, WAIT)
+                self.assertEqual(self.decide(runs=runs).action, FOLLOW)
+
+    def test_one_run_that_deploys_by_itself_is_enough_to_stand_back(self):
+        runs = listing(running(run_id=1), running(event="push", run_id=2))
+        self.assertEqual(self.decide(runs=runs).action, WAIT)
 
     def test_ci_is_not_started_twice_while_a_red_twin_is_finished(self):
-        runs = listing(
-            ci_run(conclusion="failure", run_id=1),
-            ci_run(status="in_progress", conclusion=None, run_id=2),
-        )
+        runs = listing(ci_run(conclusion="failure", run_id=1), running(run_id=2))
+        self.assertEqual(self.decide(runs=runs).action, FOLLOW)
+        runs = listing(ci_run(conclusion="failure", run_id=1), running(event="push", run_id=2))
         self.assertEqual(self.decide(runs=runs).action, WAIT)
 
     def test_red_ci_on_main_is_stuck_and_never_restarted(self):
@@ -145,89 +162,173 @@ class DecideCase(unittest.TestCase):
         self.assertEqual(self.decide(head="main").action, STUCK)
 
 
-class MainCase(unittest.TestCase):
-    """`main` доводит вердикт до запуска нужного воркфлоу — и только до него."""
+CI_LAUNCH = ["gh", "workflow", "run", "ci.yml", "--repo", "octo/repo", "--ref", "main"]
+DEPLOY_LAUNCH = ["gh", "workflow", "run", "deploy.yml", "--repo", "octo/repo", "--ref", "main"]
 
-    def run_main(self, runs, deploys=None, argv=(), launch_code=0, head=HEAD):
-        answers = {
-            "repos/octo/repo": {"default_branch": "main"},
-            "repos/octo/repo/commits/main": {"sha": head},
-            f"repos/octo/repo/actions/workflows/ci.yml/runs?head_sha={head}&per_page=100": runs,
-            "repos/octo/repo/actions/workflows/deploy.yml/runs?per_page=30":
-                listing(deploy_run()) if deploys is None else deploys,
-        }
+
+class MainCase(unittest.TestCase):
+    """`main` доводит голову до запуска выката: запускает, следит и не лишнего."""
+
+    def run_main(self, *polls, deploys=None, argv=(), launch_code=0, head=HEAD):
+        """`polls` — что отвечает GitHub на каждом опросе: список прогонов CI,
+        пара (голова, список) или исключение. Последний ответ повторяется."""
+        seen = {"poll": -1, "sleeps": 0}
+
+        def current():
+            poll = polls[min(seen["poll"], len(polls) - 1)]
+            if isinstance(poll, Exception):
+                raise poll
+            return poll if isinstance(poll, tuple) else (head, poll)
 
         def gh_json(*args):
             self.assertEqual(args[0], "api")
-            return answers[args[1]]
+            path = args[1]
+            if path == "repos/octo/repo":
+                return {"default_branch": "main"}
+            if path == "repos/octo/repo/commits/main":
+                seen["poll"] += 1
+                return {"sha": current()[0]}
+            now, runs = current()
+            if path == f"repos/octo/repo/actions/workflows/ci.yml/runs?head_sha={now}&per_page=100":
+                return runs
+            self.assertEqual(path, "repos/octo/repo/actions/workflows/deploy.yml/runs?per_page=30")
+            if isinstance(deploys, list):
+                # По ответу на опрос; последний повторяется.
+                return deploys[min(seen["poll"], len(deploys) - 1)]
+            return listing(deploy_run()) if deploys is None else deploys
+
+        def sleep(seconds):
+            seen["sleeps"] += 1
 
         launched = mock.Mock(return_value=subprocess.CompletedProcess([], launch_code, "", "нет"))
         out = io.StringIO()
         with mock.patch.object(catchup, "gh_json", gh_json), \
                 mock.patch.object(catchup.subprocess, "run", launched), \
+                mock.patch.object(catchup.time, "sleep", sleep), \
                 mock.patch.dict("os.environ", {}, clear=True), \
                 contextlib.redirect_stdout(out):
             code = catchup.main(["--repo", "octo/repo", "--deployed", OLD, *argv])
-        return code, launched, out.getvalue()
+        self.sleeps = seen["sleeps"]
+        return code, [call.args[0] for call in launched.call_args_list], out.getvalue()
 
-    def test_a_head_without_ci_launches_ci_on_main(self):
-        code, launched, _ = self.run_main(listing())
-        self.assertEqual(code, 0)
-        launched.assert_called_once()
-        self.assertEqual(
-            launched.call_args.args[0],
-            ["gh", "workflow", "run", "ci.yml", "--repo", "octo/repo", "--ref", "main"],
+    def test_a_head_without_ci_gets_ci_and_then_the_deploy(self):
+        # Путь коммита авто-мержа целиком: CI запущен, в списке появился не
+        # сразу, шёл два опроса, позеленел — выкат запущен этим же заходом.
+        code, launched, _ = self.run_main(
+            listing(),
+            listing(),
+            listing(running()),
+            listing(running()),
+            listing(ci_run()),
         )
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [CI_LAUNCH, DEPLOY_LAUNCH])
+        self.assertEqual(self.sleeps, 4)
+
+    def test_ci_already_launched_by_the_token_is_followed_to_the_deploy(self):
+        code, launched, _ = self.run_main(listing(running()), listing(ci_run()))
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [DEPLOY_LAUNCH])
+
+    def test_a_deploy_of_an_older_commit_is_outwaited_once_ci_is_followed(self):
+        # CI довели до зелёного, а в очереди ещё выкат прежнего коммита: уйди
+        # довоз на этом, голову до расписания никто бы не повёз.
+        idle = listing(deploy_run())
+        busy = listing(deploy_run(status="in_progress", conclusion=None))
+        code, launched, _ = self.run_main(
+            listing(), listing(running()), listing(ci_run()),
+            deploys=[idle, idle, busy, busy, idle])
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [CI_LAUNCH, DEPLOY_LAUNCH])
+        self.assertEqual(self.sleeps, 4)
 
     def test_a_green_head_launches_the_deploy_on_main(self):
         code, launched, _ = self.run_main(listing(ci_run()))
         self.assertEqual(code, 0)
-        self.assertEqual(
-            launched.call_args.args[0],
-            ["gh", "workflow", "run", "deploy.yml", "--repo", "octo/repo", "--ref", "main"],
-        )
+        self.assertEqual(launched, [DEPLOY_LAUNCH])
+        self.assertEqual(self.sleeps, 0)
+
+    def test_ci_that_turns_red_fails_the_run_without_a_deploy(self):
+        code, launched, out = self.run_main(
+            listing(), listing(running()), listing(ci_run(conclusion="failure")))
+        self.assertEqual(code, 1)
+        self.assertEqual(launched, [CI_LAUNCH])
+        self.assertIn("не зелёный", out)
+
+    def test_ci_that_never_ends_fails_the_run_without_a_deploy(self):
+        code, launched, out = self.run_main(
+            listing(), listing(running()), argv=["--attempts", "5"])
+        self.assertEqual(code, 1)
+        self.assertEqual(launched, [CI_LAUNCH])
+        self.assertEqual(self.sleeps, 4)
+        self.assertIn("за 5 опросов CI не завершился", out)
+
+    def test_ci_that_never_shows_up_is_not_launched_again(self):
+        code, launched, _ = self.run_main(listing(), argv=["--attempts", "6"])
+        self.assertEqual(code, 1)
+        self.assertEqual(launched, [CI_LAUNCH])
+
+    def test_a_head_that_moved_on_is_left_to_the_next_catch_up(self):
+        # Пока шёл CI, влит следующий PR: выкатывать прежнюю голову незачем,
+        # а CI новой запустит её собственный довоз.
+        code, launched, out = self.run_main(
+            listing(), listing(running()), (NEXT, listing()))
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [CI_LAUNCH])
+        self.assertIn("довезёт следующий довоз", out)
+
+    def test_a_hiccup_of_the_api_does_not_drop_the_head(self):
+        hiccup = subprocess.CalledProcessError(1, "gh", stderr="HTTP 502")
+        code, launched, _ = self.run_main(
+            listing(), hiccup, listing(running()), hiccup, listing(ci_run()))
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [CI_LAUNCH, DEPLOY_LAUNCH])
 
     def test_nothing_is_launched_when_there_is_nothing_to_do(self):
-        waiting = listing(ci_run(status="in_progress", conclusion=None))
         for runs, deploys, head in (
             (listing(), None, OLD),
-            (waiting, None, HEAD),
+            (listing(running(event="push")), None, HEAD),
             (listing(ci_run()), listing(deploy_run(status="queued", conclusion=None)), HEAD),
         ):
             with self.subTest(runs=runs, head=head):
-                code, launched, _ = self.run_main(runs, deploys, head=head)
+                code, launched, _ = self.run_main(runs, deploys=deploys, head=head)
                 self.assertEqual(code, 0)
-                launched.assert_not_called()
+                self.assertEqual(launched, [])
+                self.assertEqual(self.sleeps, 0)
 
     def test_red_ci_fails_the_run_and_launches_nothing(self):
         code, launched, out = self.run_main(listing(ci_run(conclusion="failure")))
         self.assertEqual(code, 1)
-        launched.assert_not_called()
+        self.assertEqual(launched, [])
         self.assertIn("не зелёный", out)
 
-    def test_a_dry_run_launches_nothing(self):
-        code, launched, out = self.run_main(listing(), argv=["--dry-run"])
-        self.assertEqual(code, 0)
-        launched.assert_not_called()
-        self.assertIn("ci.yml не запущен", out)
+    def test_a_dry_run_launches_nothing_and_does_not_poll(self):
+        for runs, needle in (
+            (listing(), "ci.yml не запущен"),
+            (listing(ci_run()), "deploy.yml не запущен"),
+            (listing(running()), "опроса нет"),
+        ):
+            with self.subTest(needle=needle):
+                code, launched, out = self.run_main(runs, argv=["--dry-run"])
+                self.assertEqual(code, 0)
+                self.assertEqual(launched, [])
+                self.assertEqual(self.sleeps, 0)
+                self.assertIn(needle, out)
 
     def test_a_refused_launch_fails_the_run(self):
-        code, _, out = self.run_main(listing(), launch_code=1)
-        self.assertEqual(code, 1)
-        self.assertIn("отклонён", out)
+        for runs in (listing(), listing(ci_run())):
+            with self.subTest(runs=runs):
+                code, launched, out = self.run_main(runs, launch_code=1)
+                self.assertEqual(code, 1)
+                self.assertEqual(len(launched), 1)
+                self.assertIn("отклонён", out)
 
     def test_a_silent_api_fails_the_run(self):
-        def gh_json(*args):
-            raise subprocess.CalledProcessError(1, "gh", stderr="HTTP 502")
-
-        launched = mock.Mock()
-        with mock.patch.object(catchup, "gh_json", gh_json), \
-                mock.patch.object(catchup.subprocess, "run", launched), \
-                mock.patch.dict("os.environ", {}, clear=True), \
-                contextlib.redirect_stdout(io.StringIO()):
-            code = catchup.main(["--repo", "octo/repo", "--deployed", OLD])
+        silent = subprocess.CalledProcessError(1, "gh", stderr="HTTP 502")
+        code, launched, out = self.run_main(silent, argv=["--attempts", "3"])
         self.assertEqual(code, 1)
-        launched.assert_not_called()
+        self.assertEqual(launched, [])
+        self.assertIn("HTTP 502", out)
 
 
 if __name__ == "__main__":
