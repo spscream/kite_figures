@@ -18,7 +18,7 @@
               {"kind": "start", "at": [50, 20]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [5, 20], "basis": "text", "sync": "a"},
-              {"kind": "mark", "mark": "stall", "sync": "a"},
+              {"kind": "mark", "mark": "stall", "sync": "a", "nose": {"status": "not_found", "reason": "На схеме (стр. 112, прочитана 2026-10-07) в точке остановки метки кайта нет."}},
               {"kind": "arc", "to": [5, 70], "center": [5, 45], "direction": "ccw", "sweep": 180, "nose": "backward", "basis": "text", "sync": "b"},
               {"kind": "line", "to": [50, 70], "sync": "c"},
               {"kind": "mark", "mark": "out"}
@@ -30,13 +30,14 @@
               {"kind": "start", "at": [-50, 20]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-5, 20], "basis": "text", "sync": "a"},
-              {"kind": "mark", "mark": "stall", "sync": "a"},
+              {"kind": "mark", "mark": "stall", "sync": "a", "nose": {"status": "not_found", "reason": "На схеме (стр. 112, прочитана 2026-10-07) в точке остановки метки кайта нет."}},
               {"kind": "arc", "to": [-5, 70], "center": [-5, 45], "direction": "cw", "sweep": 180, "nose": "backward", "basis": "text", "sync": "b"},
               {"kind": "line", "to": [-50, 70], "sync": "c"},
               {"kind": "mark", "mark": "out"}
             ]
           }
-        ]
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 112, прочитана 2026-10-07) вспомогательных линий нет."}
       }
     ],
     "notes": [

@@ -100,7 +100,13 @@ function head(step: Step): string {
         : `Дуга ${num(step.sweep)}°${turn} вокруг ${point(step.center)} до ${point(step.to)}${nose(step)}`;
     }
     case "mark":
-      return MARK[step.mark] + (step.style ? STYLE[step.style] : "");
+      return (
+        MARK[step.mark] +
+        (step.style ? STYLE[step.style] : "") +
+        // Курс метки, которой книга рисует кайт в остановке; где метки нет,
+        // строка о носе молчит.
+        (typeof step.nose === "number" ? `, на схеме книги кайт носом ${COURSE[step.nose] ?? `по курсу ${num(step.nose)}°`}` : "")
+      );
     case "rotate":
       return `поворот на ${num(step.degrees)}° ${DIRECTION[step.direction]}${ABOUT[step.about]}`;
   }

@@ -21,6 +21,9 @@ const SHAPE_TEXT: Record<Shape, string> = {
 // двухстропного — ещё и направление: он летит носом вперёд.
 const PASS_TEXT_DELTA = "кайт в пути: летит туда, куда смотрит нос, если рядом нет стрелки";
 
+// Вспомогательная линия книги — не путь: по ней никто не летит.
+const GUIDE_TEXT = "вспомогательная линия книги: на ней кайты стоят в один момент";
+
 // Слои схемы снизу вверх: пустой выход лежит под залитым входом и остановкой.
 const LAYERS: Shape[] = ["out", "pass", "in", "stall", "turn", "axel", "derived", "measured"];
 
@@ -92,6 +95,14 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
             : "направление движения (стрелка идёт рядом с линией)"}
         </li>
       )}
+      {drawing.guides && (
+        <li>
+          <svg className="d-icon d-icon-line" viewBox="0 -6 24 12" aria-hidden="true">
+            <path className="d-guide" d="M0 0h24" />
+          </svg>
+          {GUIDE_TEXT}
+        </li>
+      )}
       {words.map((word) => (
         <li key={word} className="d-word">
           <b>{word}</b>
@@ -122,6 +133,8 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
           {y}
         </text>
       ))}
+      {/* Вспомогательная линия книги — под путями: она их не перечёркивает. */}
+      {drawing.guides && <path className="d-guide" d={drawing.guides} />}
       {drawing.tracks.map((track, index) => (
         <path key={track.id} className={trackClass(index, many)} d={track.d} />
       ))}

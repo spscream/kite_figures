@@ -19,15 +19,15 @@
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [25, 20], "basis": "measured"},
-              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "mark", "mark": "stall", "style": "push", "nose": 0},
               {"kind": "line", "to": [25, 40], "basis": "measured"},
-              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "mark", "mark": "stall", "style": "push", "nose": 0},
               {"kind": "line", "to": [25, 80], "basis": "measured"},
               {"kind": "arc", "to": [25, 40], "center": [25, 60], "direction": "ccw", "sweep": 180, "basis": "measured"},
               {"kind": "line", "to": [40, 40]},
-              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "mark", "mark": "stall", "style": "snap", "nose": 0},
               {"kind": "line", "to": [60, 40]},
-              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "mark", "mark": "stall", "style": "snap", "nose": 0},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
           },
@@ -38,19 +38,20 @@
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [-25, 20], "basis": "measured"},
-              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "mark", "mark": "stall", "style": "push", "nose": 0},
               {"kind": "line", "to": [-25, 40], "basis": "measured"},
-              {"kind": "mark", "mark": "stall", "style": "push"},
+              {"kind": "mark", "mark": "stall", "style": "push", "nose": 0},
               {"kind": "line", "to": [-25, 80], "basis": "measured"},
               {"kind": "arc", "to": [-25, 40], "center": [-25, 60], "direction": "cw", "sweep": 180, "basis": "measured"},
               {"kind": "line", "to": [-40, 40]},
-              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "mark", "mark": "stall", "style": "snap", "nose": 0},
               {"kind": "line", "to": [-60, 40]},
-              {"kind": "mark", "mark": "stall", "style": "snap"},
+              {"kind": "mark", "mark": "stall", "style": "snap", "nose": 0},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
           }
-        ]
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 40, прочитана 2026-10-07) вспомогательных линий нет."}
       }
     ],
     "notes": [
@@ -58,7 +59,8 @@
       "Направление полукруга показано меткой кайта на дуге: сверху вниз, выпуклостью к центру окна. Значит, вертикаль от 40 до 80 кайт проходит вверх до дуги.",
       "Взлёт записан на уровне земли (y = 0). Вид остановок: на вертикали (высоты 20 и 40) — по пояснению на странице, на горизонтали (x = ±40 и ±60) — по подписям на схеме и по пояснению.",
       "Номеров кайтов на схеме нет. Здесь №1 — кайт, нарисованный зелёным (у него подписан вход), №2 — красный: на тех схемах раздела, где номера стоят (DP 06, 14, 18 и 19), зелёным нарисован именно №1. Это соглашение каталога, а не слова книги.",
-      "Отметки «in» и «out» у обоих кайтов стоят на концах их линий, где схема рисует метки кайтов. Они связаны метками «sync», потому что команды IN и OUT общие для пары; что обе метки на схеме показывают один и тот же момент — допущение каталога, страница этого не говорит."
+      "Отметки «in» и «out» у обоих кайтов стоят на концах их линий, где схема рисует метки кайтов. Они связаны метками «sync», потому что команды IN и OUT общие для пары; что обе метки на схеме показывают один и тот же момент — допущение каталога, страница этого не говорит.",
+      "Курс носа в остановках («nose» у отметки «stall») снят с меток кайта на схеме (стр. 40, прочитана 2026-10-07): метка кайта в каждой точке остановки у обоих кайтов нарисована носом вверх."
     ]
   }
 }

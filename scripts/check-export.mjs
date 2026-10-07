@@ -14,18 +14,11 @@ const out = path.join(root, "out");
 const figuresDir = path.join(root, "data", "figures");
 const { documents } = JSON.parse(fs.readFileSync(path.join(root, "data", "sources.json"), "utf8"));
 
-// Префиксы разделов — те же, что `DISCIPLINES` в lib/figures.ts. Они повторены
-// здесь намеренно: скрипт сверяет собранную страницу с файлом данных, а не с
-// тем, что из него вычитал проверяемый код. По той же причине ниже повторены
-// название раздела и склонение числа фигур.
-const PREFIXES = {
-  "dual-line-individual": "DI",
-  "dual-line-pair": "DP",
-  "dual-line-team": "DT",
-  "multi-line-individual": "MI",
-  "multi-line-pair": "MP",
-  "multi-line-team": "MT",
-};
+// Разделы книги и их префиксы — из того же файла, что читает lib/figures.ts:
+// список один, и своей копии у скрипта нет. Название раздела и склонение числа
+// фигур ниже повторены намеренно: скрипт сверяет собранную страницу с файлом
+// данных, а не с тем, что из него вычитал проверяемый код.
+const PREFIXES = JSON.parse(fs.readFileSync(path.join(root, "lib", "disciplines.json"), "utf8"));
 const ORDER = Object.keys(PREFIXES);
 
 const STATUSES = [
@@ -124,7 +117,7 @@ function expectLinks(where, actual, expected) {
 
 const count = (text, pattern) => (text.match(pattern) ?? []).length;
 
-// Подписи легенды повторены здесь намеренно, как и префиксы разделов: скрипт
+// Подписи легенды повторены здесь намеренно: скрипт
 // сверяет страницу с данными, а не с таблицей проверяемого компонента.
 const LEGEND = {
   in: "вход (In): кайт носом по курсу, координата — по носу",
@@ -169,6 +162,36 @@ const GLOSS = {
   "½ Axel": "половина акселя",
 };
 
+// Вспомогательная линия книги в легенде — тоже повторена.
+const GUIDE = "вспомогательная линия книги: на ней кайты стоят в один момент";
+
+// Метки кайта в остановках, которые обязаны быть на схеме: по одной на каждый
+// курс носа, записанный с метки книги, в каждой точке у каждого кайта. Где
+// книга метки не рисует («not_found»), нет её и на схеме.
+// Как шаги называют курс носа по сторонам окна.
+const COURSE_WORDS = { 0: "вверх", 90: "вправо", 180: "вниз", 270: "влево" };
+
+function expectedStalls(variant) {
+  const seen = new Set();
+  variant.kites.forEach((kite, order) => {
+    let here = null;
+    for (const step of kite.path) {
+      if (step.kind === "start") {
+        here = step.at;
+      } else if (isMove(step)) {
+        here = step.to;
+      } else if (step.kind === "mark" && step.mark === "stall" && typeof step.nose === "number") {
+        // Курс сверяется до градуса: так же схема решает, одна метка в точке или две.
+        seen.add(`${order} ${here.join(" ")} ${Math.round(step.nose) % 360}`);
+      }
+    }
+  });
+  return [...seen].map((key) => {
+    const [, x, y, nose] = key.split(" ").map(Number);
+    return { x, y, nose };
+  });
+}
+
 // Какие значки обязаны быть на схеме варианта — по его данным.
 function expectedShapes(variant) {
   const steps = variant.kites.flatMap((kite) => kite.path);
@@ -176,7 +199,7 @@ function expectedShapes(variant) {
   return {
     in: true,
     out: true,
-    stall: mark("stall"),
+    stall: expectedStalls(variant).length > 0,
     turn: steps.some((step) => step.kind === "rotate"),
     axel: mark("axel", "half-axel"),
     derived: steps.some((step) => step.basis === "derived"),
@@ -204,7 +227,9 @@ function expectedWords(variant, rev) {
   return [...words];
 }
 
-const isMove = (step) => step.kind === "line" || step.kind === "arc";
+function isMove(step) {
+  return step.kind === "line" || step.kind === "arc";
+}
 
 // Схема на странице сверяется с файлом данных, а не с тем, что насчитал
 // lib/diagram.ts. На каждый вариант — свой блок: схема, её легенда и шаги.
@@ -301,11 +326,31 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
       }));
     const total = (name) => glyphs(name).reduce((sum, item) => sum + item.parts.length, 0);
     const passes = total("pass");
-    const stalls = kites.flatMap((kite) => kite.path).filter((step) => step.kind === "mark" && step.mark === "stall").length;
-    for (const [name, needed] of [["in", kites.length], ["out", kites.length], ["stall", stalls]]) {
+    const stalls = expectedStalls(variant);
+    for (const [name, needed] of [["in", kites.length], ["out", kites.length], ["stall", stalls.length]]) {
       if (total(name) !== needed) {
         say(`значков «${name}» ${total(name)}, а по данным нужно ${needed}`);
       }
+    }
+    // Метка остановки стоит носом в точке и смотрит по курсу, записанному с
+    // метки книги: у дельты нос — первая вершина, у четырёхстропного —
+    // середина передней кромки, первых двух вершин; вырез хвоста — напротив.
+    const stood = glyphs("stall").flatMap(({ parts }) =>
+      parts.map((part) => {
+        const points = [...part.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])]);
+        const front = rev ? [(points[0][0] + points[1][0]) / 2, (points[0][1] + points[1][1]) / 2] : points[0];
+        const notch = rev ? points[3] : points[2];
+        const nose = (Math.atan2(front[0] - notch[0], notch[1] - front[1]) * 180) / Math.PI;
+        return { x: front[0], y: 100 - front[1], nose: (Math.round(nose) + 360) % 360 };
+      }),
+    );
+    const key = (item) => `(${Math.round(item.x * 10) / 10}; ${Math.round(item.y * 10) / 10}) нос ${item.nose}°`;
+    // Кайт у самой земли поднят на неё целиком: его точка на схеме выше записанной.
+    const lifted = (item) => stalls.some((want) => want.nose === item.nose && Math.abs(want.x - item.x) < 0.05 && item.y - want.y >= -0.05 && item.y - want.y < 7 && want.y < 7);
+    const placed = (item) => stalls.some((want) => want.nose === item.nose && Math.abs(want.x - item.x) < 0.06 && Math.abs(want.y - item.y) < 0.06);
+    const strayed = stood.filter((item) => !placed(item) && !lifted(item));
+    if (strayed.length > 0) {
+      say(`метки остановки стоят не по данным: ${strayed.map(key).join(", ")}; по данным — ${stalls.map(key).join(", ")}`);
     }
     for (const name of ["in", "out", "stall", "pass"]) {
       for (const { tone, parts } of glyphs(name)) {
@@ -374,6 +419,21 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
     if (told("pass", rev ? PASS.rev : PASS.delta) !== passes > 0 || told("pass", rev ? PASS.delta : PASS.rev)) {
       say("легенда расходится со схемой в значке кайта в пути");
     }
+    // Вспомогательная линия книги: на схеме ровно та, что записана в данных, и
+    // тогда же она названа в легенде; у варианта без неё нет ни того, ни другого.
+    const num = (value) => String(Math.round(value * 100) / 100);
+    const guide =
+      variant.guides.status === "ok"
+        ? variant.guides.lines.map(({ from, to }) => `M${num(from[0])} ${num(100 - from[1])}L${num(to[0])} ${num(100 - to[1])}`).join("")
+        : "";
+    const guidePaths = [...svg.matchAll(/<path class="d-guide" d="([^"]*)"/g)].map((match) => match[1]);
+    if (guidePaths.join("|") !== guide) {
+      say(`вспомогательные линии [${guidePaths.join("|")}], а по данным нужны [${guide}]`);
+    }
+    const guideTold = block.includes(`<path class="d-guide" d="M0 0h24"></path></svg>${GUIDE}</li>`);
+    if (guideTold !== (guide !== "") || count(block, /class="d-guide"/g) !== (guide !== "" ? 2 : 0)) {
+      say("легенда расходится со схемой во вспомогательной линии");
+    }
     const coloured = arrowPaths.some((match) => match[1] !== "mid");
     const arrowText = `направление движения (стрелка идёт рядом с линией${coloured ? "; зелёная — от входа, красная — к выходу" : ""})</li>`;
     if (block.includes(arrowText) !== arrows > 0 || count(block, /направление движения \(/g) !== (arrows > 0 ? 1 : 0)) {
@@ -423,13 +483,15 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
         say(`остановки подписаны [${shown.join()}], а по данным нужны [${needed.join()}]`);
       }
     }
-    // В легенде нет строк сверх названных: кайты, значки, стрелка, слова.
+    // В легенде нет строк сверх названных: кайты, значки, стрелка,
+    // вспомогательная линия, слова.
     const legend = block.match(/<ul class="d-legend">[\s\S]*?<\/ul>/)?.[0] ?? "";
     const rows =
       (many ? kites.length : 0) +
       Object.values(expectedShapes(variant)).filter(Boolean).length +
       (passes > 0 ? 1 : 0) +
       (arrows > 0 ? 1 : 0) +
+      (guide !== "" ? 1 : 0) +
       words.length;
     if (count(legend, /<li/g) !== rows) {
       say(`в легенде строк ${count(legend, /<li/g)}, а по данным нужно ${rows}`);
@@ -463,6 +525,17 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
       const lines = count(lists[order], /<li>[^<]/g);
       if (lines !== own.length + 1) {
         say(`у кайта ${kite.id} строк шагов ${lines}, а нужно ${own.length + 1}`);
+      }
+      // Курс метки книги в остановке назван в шагах — у каждой остановки, где
+      // книга метку рисует.
+      // Сверяется и сам курс, по порядку остановок: «вверх» у каждой
+      // остановки сошлось бы по числу и при неверных словах.
+      const noses = [...lists[order].matchAll(/, на схеме книги кайт носом (вверх|вправо|вниз|влево|по курсу [\d,]+°)/g)].map((match) => match[1]);
+      const shown = kite.path
+        .filter((step) => step.kind === "mark" && step.mark === "stall" && typeof step.nose === "number")
+        .map((step) => COURSE_WORDS[step.nose] ?? `по курсу ${String(step.nose).replace(".", ",")}°`);
+      if (noses.join("; ") !== shown.join("; ")) {
+        say(`у кайта ${kite.id} курс носа в остановках назван «${noses.join("; ")}», а по данным — «${shown.join("; ")}»`);
       }
       const flagged = count(lists[order], / <strong class="unmarked">направление в книге не показано<\/strong>/g);
       const unmarked = own.filter((step) => step.unmarked === true).length;
@@ -504,6 +577,13 @@ function checkStyles() {
   if (new Set(dashes).size !== dashes.length) {
     problems.push("в стилях у двух кайтов один и тот же штрих линии");
   }
+  // Вспомогательная линия книги от линии сетки отличается штрихом: без него
+  // в печати она слилась бы с сеткой.
+  const guideDash = css.match(/\.d-guide\{[^}]*stroke-dasharray:([^;}]*)/)?.[1];
+  const gridDash = css.match(/\.d-grid,\.d-mid\{[^}]*stroke-dasharray:([^;}]*)/)?.[1];
+  if (guideDash === undefined || guideDash === "none" || guideDash === gridDash) {
+    problems.push("в стилях у вспомогательной линии (.d-guide) нет своего штриха");
+  }
   if (css.includes("url(")) {
     problems.push("стили подключают внешний файл через url(): схемы рисуются из данных, без картинок");
   }
@@ -527,6 +607,14 @@ if (slugs.length === 0) {
 const records = new Map(
   slugs.map((slug) => [slug, JSON.parse(fs.readFileSync(path.join(figuresDir, `${slug}.json`), "utf8"))]),
 );
+
+// Раздел, которого нет в общем списке, остался бы без префикса и без места в
+// порядке книги.
+for (const [slug, record] of records) {
+  if (!Object.hasOwn(PREFIXES, record.discipline)) {
+    problems.push(`в data/figures/${slug}.json дисциплина «${record.discipline}», которой нет в lib/disciplines.json`);
+  }
+}
 
 // Разделы — дисциплины, которые встречаются в файлах данных, в порядке книги;
 // у каждой — её фигуры по номеру.

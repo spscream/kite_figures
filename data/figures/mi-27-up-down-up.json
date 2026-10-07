@@ -19,20 +19,23 @@
               {"kind": "start", "at": [30, 10]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [30, 60]},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [0, 60], "nose": 0},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [0, 10], "nose": "backward"},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [-30, 10], "nose": 0},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [-30, 60]},
               {"kind": "mark", "mark": "out"}
             ]
           }
-        ]
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 89, прочитана 2026-10-07) вспомогательных линий нет."}
       }
     ],
-    "notes": []
+    "notes": [
+      "Курс носа в остановках («nose» у отметки «stall») снят с меток кайта на схеме (стр. 89, прочитана 2026-10-07): прямая длинная сторона метки — передняя кромка; во всех четырёх точках метка нарисована носом вверх."
+    ]
   }
 }

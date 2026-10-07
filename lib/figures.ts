@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import disciplines from "./disciplines.json";
 import { type Geometry, parseGeometry, parsePage } from "./geometry";
 import { isDate, loadSources, type SourceDocument } from "./sources";
 
@@ -20,16 +21,12 @@ const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const KEYS = ["schema", "discipline", "number", "name", "level", "status", "source", "summary", "geometry"];
 const SOURCE_KEYS = ["document", "version", "page", "read_on", "page_version"];
 
-// Шесть разделов книги фигур в её порядке; значение — префикс, которым книга
-// нумерует фигуры раздела («DI 02»).
-export const DISCIPLINES = {
-  "dual-line-individual": "DI",
-  "dual-line-pair": "DP",
-  "dual-line-team": "DT",
-  "multi-line-individual": "MI",
-  "multi-line-pair": "MP",
-  "multi-line-team": "MT",
-} as const;
+// Разделы книги фигур в её порядке; значение — префикс, которым книга нумерует
+// фигуры раздела («DI 02»). Список один на весь репозиторий и лежит в
+// `lib/disciplines.json`: его же читает `scripts/check-export.mjs`, а тест
+// `lib/disciplines.test.ts` падает, когда в данных встречается раздел, которого
+// в списке нет.
+export const DISCIPLINES = disciplines;
 export type Discipline = keyof typeof DISCIPLINES;
 
 export const STATUSES = ["current", "obsolete"] as const;

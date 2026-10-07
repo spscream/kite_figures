@@ -9,9 +9,15 @@ const markIn = { kind: "mark", mark: "in" };
 const markOut = { kind: "mark", mark: "out" };
 
 // Чертёж строится по разобранной геометрии, как на странице: с умолчаниями.
+const NO_GUIDES = { status: "not_found", reason: "на схеме их нет" };
+
 function variant(...paths: unknown[][]): Variant {
+  return guided(NO_GUIDES, ...paths);
+}
+
+function guided(guides: unknown, ...paths: unknown[][]): Variant {
   const kites = paths.map((path, index) => ({ id: String(index + 1), path }));
-  const raw = { status: "ok", variants: [{ id: "main", kites }], notes: ["для теста"] };
+  const raw = { status: "ok", variants: [{ id: "main", kites, guides }], notes: ["для теста"] };
   const read = parseGeometry("g", raw, 125);
   if (read.status !== "ok") {
     throw new Error("геометрия не разобрана");
@@ -50,7 +56,9 @@ function kites(d: string, rev = false): { nose: number[]; at: number[] }[] {
 }
 
 const line = (to: number[], extra: object = {}) => ({ kind: "line", to, ...extra });
-const stall = { kind: "mark", mark: "stall" };
+// Остановка носом вверх — как книга рисует её у двухстропного.
+const stall = { kind: "mark", mark: "stall", nose: 0 };
+const stallAt = (nose: unknown) => ({ kind: "mark", mark: "stall", nose });
 
 describe("drawVariant", () => {
   it("кладёт землю вниз: y сетки переворачивается", () => {
@@ -191,21 +199,49 @@ describe("drawVariant", () => {
       expect(marks[0].nose[1]).toBeCloseTo(0);
     });
 
-    it("в точке остановки кайт показан таким, каким из неё уходит, — уже после поворота", () => {
+    it("в остановке кайт стоит по курсу метки из данных, а не по пути", () => {
+      // Пришёл вправо, уходит вправо носом вверх; книга рисует его носом влево.
       const path = [
         start,
         markIn,
         line([0, 20]),
-        stall,
+        stallAt(270),
         { kind: "rotate", degrees: 90, direction: "ccw" },
         line([40, 20], { nose: 0 }),
         markOut,
       ];
-      const [mark] = kites(drawn(drawVariant(variant(path), true).shapes, "stall"), true);
-      expect(mark.nose[1]).toBeCloseTo(1);
-      // У двухстропного значок остановки смотрит так, как кайт в неё пришёл.
-      const [delta] = kites(drawn(drawVariant(variant(path)).shapes, "stall"));
-      expect(delta.nose[0]).toBeCloseTo(1);
+      for (const rev of [true, false]) {
+        const marks = kites(drawn(drawVariant(variant(path), rev).shapes, "stall"), rev);
+        expect(marks).toHaveLength(1);
+        expect(marks[0].nose[0]).toBeCloseTo(-1);
+        expect(marks[0].nose[1]).toBeCloseTo(0);
+        // Нос метки — в самой точке остановки.
+        expect(marks[0].at[0]).toBeCloseTo(0);
+        expect(marks[0].at[1]).toBeCloseTo(80);
+      }
+    });
+
+    it("где книга метки в остановке не рисует, значка нет, а подпись остаётся", () => {
+      const missing = { status: "not_found", reason: "метки нет" };
+      const { shapes, labels } = drawVariant(variant([start, markIn, line([0, 20]), stallAt(missing), line([40, 20]), markOut]), true);
+      expect(shapes.stall).toBeUndefined();
+      expect(labels.filter((label) => label.kind === "note").map((label) => label.text)).toEqual(["Stop"]);
+    });
+
+    it("две остановки в одной точке: с одним курсом — одна метка, с разными — две", () => {
+      const twice = (first: number, second: number) => [
+        { kind: "start", at: [0, 0] },
+        markIn,
+        line([0, 20], { nose: 90 }),
+        stallAt(first),
+        { kind: "arc", to: [0, 20], center: [0, 50], direction: "ccw", sweep: 360 },
+        stallAt(second),
+        line([0, 0], { nose: 90 }),
+        markOut,
+      ];
+      const count = (path: unknown[]) => kites(drawn(drawVariant(variant(path), true).shapes, "stall"), true).length;
+      expect(count(twice(90, 90))).toBe(1);
+      expect(count(twice(270, 90))).toBe(2);
     });
   });
 
@@ -243,7 +279,7 @@ describe("drawVariant", () => {
   });
 
   it("остановки одного кайта нумерует по порядку, у четырёхстропного зовёт их Stop", () => {
-    const path = [start, markIn, line([0, 20]), stall, line([0, 60]), { kind: "mark", mark: "stall", style: "snap" }, markOut];
+    const path = [start, markIn, line([0, 20]), stall, line([0, 60]), { kind: "mark", mark: "stall", style: "snap", nose: 0 }, markOut];
     const texts = (rev: boolean) => drawVariant(variant(path), rev).labels.filter((label) => label.kind === "note").map((label) => label.text);
     expect(texts(true)).toEqual(["Stop #1", "Snap Stall #2"]);
     expect(texts(false)).toEqual(["Stall #1", "Snap Stall #2"]);
@@ -366,7 +402,7 @@ describe("drawVariant", () => {
   it("координата значка кайта — нос: у дельты остриё, у четырёхстропного передняя кромка", () => {
     const path = [start, markIn, line([0, 20]), markOut];
     // Летит вправо: кромка — вертикаль через точку входа, парус — позади.
-    expect(drawn(drawVariant(variant(path), true).shapes, "in")).toBe("M-50 75.2L-50 84.8L-53.4 83L-52.1 80L-53.4 77Z");
+    expect(drawn(drawVariant(variant(path), true).shapes, "in")).toBe("M-50 75.8L-50 84.2L-53.4 82.7L-52.1 80L-53.4 77.3Z");
     expect(drawn(drawVariant(variant(path)).shapes, "in")).toBe("M-50 80L-56 83.3L-54.5 80L-56 76.7Z");
   });
 
@@ -383,22 +419,57 @@ describe("drawVariant", () => {
       ]),
     );
     // Летел вправо; после четверти против часовой нос вверх, ещё полоборота — вниз.
-    expect(kites(drawn(shapes, "stall"))[0].nose[1]).toBeCloseTo(1);
     expect(kites(drawn(shapes, "out"))[0].nose[1]).toBeCloseTo(-1);
   });
 
-  it("остановка смотрит носом, а не по ходу шага", () => {
-    const { shapes } = drawVariant(variant([start, markIn, line([0, 20], { nose: 0 }), stall, markOut]));
-    expect(kites(drawn(shapes, "stall"))[0].nose[1]).toBeCloseTo(1);
+  it("вспомогательную линию книги рисует отдельным путём и не ставит на неё значков", () => {
+    const path = [start, markIn, line([0, 20]), markOut];
+    const plain = drawVariant(variant(path));
+    expect(plain.guides).toBe("");
+    const lines = [
+      { from: [-20, 10], to: [40, 87.5], basis: "measured" },
+      { from: [-15, 20], to: [15, 77.5] },
+    ];
+    const drawing = drawVariant(guided({ status: "ok", lines }, path));
+    expect(drawing.guides).toBe("M-20 90L40 12.5M-15 80L15 22.5");
+    // Путь кайта, значки и стрелки от неё не зависят.
+    expect(drawing.tracks).toEqual(plain.tracks);
+    expect(drawing.shapes).toEqual(plain.shapes);
+    expect(drawing.arrows).toEqual(plain.arrows);
   });
 
-  it("выход в точке входа рисует крупнее, чтобы вход остался виден", () => {
+  it("выход в точке входа обводит вход кольцом со всех сторон", () => {
     const circle = { kind: "arc", to: [0, 70], center: [0, 50], direction: "ccw", sweep: 360 };
-    const { shapes } = drawVariant(variant([{ kind: "start", at: [0, 70] }, markIn, circle, markOut]));
-    const tail = (d: string) => Math.abs(Number(d.match(/L(\S+) /)![1]));
-    // Нос влево, в точке: хвост входа в 6 единицах от неё, выхода — в 1,35 раза дальше.
-    expect(tail(drawn(shapes, "in"))).toBeCloseTo(6);
-    expect(tail(drawn(shapes, "out"))).toBeCloseTo(8.1);
+    const corners = (d: string) => [...d.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])]);
+    // Расстояние от точки до ближайшей стороны контура.
+    const toEdge = (spot: number[], outline: number[][]) =>
+      Math.min(
+        ...outline.map((a, index) => {
+          const b = outline[(index + 1) % outline.length];
+          const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+          const t = Math.max(0, Math.min(1, ((spot[0] - a[0]) * dx + (spot[1] - a[1]) * dy) / (dx * dx + dy * dy)));
+          return Math.hypot(spot[0] - a[0] - dx * t, spot[1] - a[1] - dy * t);
+        }),
+      );
+    for (const rev of [false, true]) {
+      const { shapes } = drawVariant(variant([{ kind: "start", at: [0, 70] }, markIn, circle, markOut]), rev);
+      const inner = corners(drawn(shapes, "in"));
+      const outer = corners(drawn(shapes, "out"));
+      // Кольцо между входом и выходом нигде не уже 0,8 единицы: на экране в
+      // 390 пикселей это больше пикселя, и залитый вход не сливается с обводкой.
+      for (const corner of inner) {
+        expect(toEdge(corner, outer)).toBeGreaterThanOrEqual(0.8);
+      }
+      // И выход именно снаружи: он шире и длиннее входа.
+      const span = (points: number[][], axis: number) => Math.max(...points.map((p) => p[axis])) - Math.min(...points.map((p) => p[axis]));
+      expect(span(outer, 0)).toBeGreaterThan(span(inner, 0) + 2.6);
+      expect(span(outer, 1)).toBeGreaterThan(span(inner, 1) + 2.6);
+    }
+  });
+
+  it("одинокий выход стоит носом в своей точке и в обычный размер", () => {
+    const { shapes } = drawVariant(variant([start, markIn, line([0, 20]), markOut]));
+    expect(drawn(shapes, "out")).toBe("M0 80L-6 83.3L-4.5 80L-6 76.7Z");
   });
 
   it("отметку координаты ставит за хвостом значка кайта, а не поверх него", () => {
@@ -557,5 +628,144 @@ describe("чертежи каталога", () => {
       expect(drawing.labels.filter((label) => label.kind === "name")).toHaveLength(many ? item.kites.length * 2 + 2 : 2);
       expect(JSON.stringify(drawing)).not.toMatch(/NaN|Infinity|undefined|e-\d/);
     }
+  });
+});
+
+// Расстановку значков держат числа по всему каталогу: одна фигура ничего не
+// говорит о соседней, а правка, разводящая значки в одном месте, сводит их в
+// другом. Потолки — то, что намерено на данных; меньше — можно, больше — нет.
+describe("наложения значков на схемах каталога", () => {
+  type Spot = number[];
+  const polygons = (d: string): Spot[][] =>
+    d
+      .split("Z")
+      .filter(Boolean)
+      .map((part) => [...part.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])]));
+  // Значки координат прямоугольниками: квадрат — как есть, кружок — описанный.
+  const dotBoxes = (shapes: ReturnType<typeof drawVariant>["shapes"]): Spot[][] => [
+    ...[...drawn(shapes, "measured").matchAll(/M(-?[\d.]+) (-?[\d.]+)h/g)].map((match) => {
+      const [x, y] = [Number(match[1]), Number(match[2])];
+      return [[x, y], [x + 3, y], [x + 3, y + 3], [x, y + 3]];
+    }),
+    ...[...drawn(shapes, "derived").matchAll(/M(-?[\d.]+) (-?[\d.]+)a/g)].map((match) => {
+      const [x, y] = [Number(match[1]), Number(match[2])];
+      return [[x, y - 1.7], [x + 3.4, y - 1.7], [x + 3.4, y + 1.7], [x, y + 1.7]];
+    }),
+  ];
+  const inside = (spot: Spot, poly: Spot[]) => {
+    let odd = false;
+    poly.forEach((a, index) => {
+      const b = poly[(index + 1) % poly.length];
+      if (a[1] > spot[1] !== b[1] > spot[1] && spot[0] < a[0] + ((spot[1] - a[1]) * (b[0] - a[0])) / (b[1] - a[1])) {
+        odd = !odd;
+      }
+    });
+    return odd;
+  };
+  const side = (u: Spot, v: Spot, w: Spot) => (v[0] - u[0]) * (w[1] - u[1]) - (v[1] - u[1]) * (w[0] - u[0]);
+  const overlap = (a: Spot[], b: Spot[]) =>
+    a.some((corner) => inside(corner, b)) ||
+    b.some((corner) => inside(corner, a)) ||
+    a.some((p, i) =>
+      b.some((u, j) => {
+        const [q, v] = [a[(i + 1) % a.length], b[(j + 1) % b.length]];
+        return side(p, q, u) * side(p, q, v) < 0 && side(u, v, p) * side(u, v, q) < 0;
+      }),
+    );
+  const toEdge = (spot: Spot, poly: Spot[]) =>
+    Math.min(
+      ...poly.map((a, index) => {
+        const b = poly[(index + 1) % poly.length];
+        const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+        const t = Math.max(0, Math.min(1, ((spot[0] - a[0]) * dx + (spot[1] - a[1]) * dy) / (dx * dx + dy * dy)));
+        return Math.hypot(spot[0] - a[0] - dx * t, spot[1] - a[1] - dy * t);
+      }),
+    );
+  const span = (poly: Spot[]) =>
+    Math.max(...[0, 1].map((axis) => Math.max(...poly.map((p) => p[axis])) - Math.min(...poly.map((p) => p[axis]))));
+
+  const totals = { dots: 0, origins: 0, onDot: 0, passOnPass: 0, passOnStanding: 0, angleOnDot: 0, rings: 0, openRings: 0 };
+  const where: Record<string, string[]> = { onDot: [], angleOnDot: [], openRings: [], doubled: [] };
+  for (const figure of listFigures()) {
+    if (figure.geometry.status !== "ok") {
+      continue;
+    }
+    const rev = figure.discipline.startsWith("multi-line");
+    for (const item of figure.geometry.variants) {
+      const { shapes, labels } = drawVariant(item, rev);
+      const name = `${figure.code} ${item.id}`;
+      const dots = dotBoxes(shapes);
+      const origins = new Set<string>();
+      for (const kite of item.kites) {
+        for (const step of kite.path) {
+          if ((step.kind === "start" || step.kind === "line" || step.kind === "arc") && (step.basis === "derived" || step.basis === "measured")) {
+            origins.add(`${step.basis} ${(step.kind === "start" ? step.at : step.to).join(" ")}`);
+          }
+        }
+      }
+      totals.dots += dots.length;
+      totals.origins += origins.size;
+      if (dots.length !== origins.size) {
+        where.doubled.push(name);
+      }
+      const passes = polygons(drawn(shapes, "pass"));
+      const standing = (["in", "out", "stall"] as const).flatMap((kind) => polygons(drawn(shapes, kind)));
+      for (const kite of [...passes, ...standing]) {
+        if (dots.some((dot) => overlap(kite, dot))) {
+          totals.onDot += 1;
+          where.onDot.push(name);
+        }
+      }
+      passes.forEach((a, index) => {
+        totals.passOnPass += passes.slice(index + 1).filter((b) => overlap(a, b)).length;
+        totals.passOnStanding += standing.filter((b) => overlap(a, b)).length;
+      });
+      for (const label of labels) {
+        if (label.kind === "note" && label.text.includes("°")) {
+          const half = label.text.length * 1.25;
+          const box = [[label.x - half, label.y - 3.6], [label.x + half, label.y - 3.6], [label.x + half, label.y + 0.6], [label.x - half, label.y + 0.6]];
+          if (dots.some((dot) => overlap(box, dot))) {
+            totals.angleOnDot += 1;
+            where.angleOnDot.push(name);
+          }
+        }
+      }
+      // Кольцо выхода: увеличенный вдвое выход, внутри которого целиком, с
+      // просветом, стоит вход или остановка.
+      const inner = (["in", "stall"] as const).flatMap((kind) => polygons(drawn(shapes, kind)));
+      const plain = rev ? 8.4 : 8.6;
+      for (const out of polygons(drawn(shapes, "out")).filter((poly) => span(poly) > plain * 1.8)) {
+        totals.rings += 1;
+        if (!inner.some((poly) => poly.every((corner) => inside(corner, out) && toEdge(corner, out) >= 0.75))) {
+          totals.openRings += 1;
+          where.openRings.push(name);
+        }
+      }
+    }
+  }
+
+  it("у каждой координаты не с подписей сетки ровно один значок", () => {
+    expect(where.doubled).toEqual([]);
+    expect(totals.dots).toBe(totals.origins);
+  });
+
+  it("ни один значок кайта не лежит на значке координаты", () => {
+    expect(where.onDot).toEqual([]);
+  });
+
+  it("ни один угол поворота не лежит на значке координаты", () => {
+    expect(where.angleOnDot).toEqual([]);
+  });
+
+  it("каждое кольцо выхода охватывает значок под ним с просветом", () => {
+    expect(totals.rings).toBeGreaterThan(0);
+    expect(where.openRings).toEqual([]);
+  });
+
+  it("значки в пути ложатся друг на друга и на вход, выход и остановку не чаще намеренного", () => {
+    // Остаток — общий отрезок строя, где значкам не хватает места (DP 03,
+    // DT 05 состав 5, MT 09), и шаги, где свободного места нет вовсе.
+    expect(totals.passOnPass).toBeLessThanOrEqual(5);
+    expect(totals.passOnStanding).toBeLessThanOrEqual(4);
   });
 });
