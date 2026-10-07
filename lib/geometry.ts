@@ -16,7 +16,16 @@ export type Point = readonly [number, number];
 
 // Откуда взята координата шага. Без поля — `grid`.
 export const BASES = ["grid", "text", "derived", "measured"] as const;
-export type Basis = (typeof BASES)[number];
+// `unspecified` — книга прямо объявляет величину незаданной («undefined»). Числа в
+// данных тогда нет вовсе, и это не замер: место на схеме следует из того, что
+// книга задаёт, — из размаха кайта либо из высоты, на которой он уже стоит.
+export const UNSPECIFIED = "unspecified";
+export type Basis = (typeof BASES)[number] | typeof UNSPECIFIED;
+
+// Размах четырёхстропного кайта на схеме, в единицах сетки. Книга размаха не
+// задаёт; это размах нашего значка, и на него же нос уходит при полуобороте
+// вокруг законцовки там, где книга положение после поворота не определяет.
+export const REV_SPAN = 8.4;
 
 // Куда смотрит нос кайта, пока он летит этот шаг. Без поля — `forward`.
 // Число — постоянный курс носа в градусах: 0 — вверх, 90 — вправо, 180 —
@@ -58,7 +67,9 @@ export type Missing = { status: "not_found"; reason: string };
 
 export type Step =
   | { kind: "start"; at: Point; basis: Basis }
-  | ({ kind: "line"; to: Point } & Flown)
+  // `unset` — какую из координат `to` книга объявила незаданной (0 — x, 1 — y):
+  // в данных на её месте `null`, а число здесь — то, с которым кайт пришёл.
+  | ({ kind: "line"; to: Point; unset?: 0 | 1 } & Flown)
   | ({ kind: "arc"; to: Point; center: Point; direction: "cw" | "ccw"; sweep: number } & Flown)
   // `nose` — только у остановки и у неё обязателен: курс метки, которой книга
   // рисует кайт в этой точке (0 — вверх, 90 — вправо), либо запись о том, что
@@ -184,6 +195,25 @@ export function arcPoint(from: Point, center: Point, direction: "cw" | "ccw", sw
   ];
 }
 
+// Две цифры после запятой — точность самих данных.
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+// Вектор от носа к законцовке: левая — слева от курса, если смотреть на кайт
+// носом вверх.
+function tipSide(heading: Point, about: "left-tip" | "right-tip"): Point {
+  return about === "left-tip" ? [-heading[1], heading[0]] : [heading[1], -heading[0]];
+}
+
+// Запись о том, что книга объявляет величину незаданной: причина словами, со
+// страницей и днём чтения.
+function unspecifiedBy(where: string, raw: unknown): void {
+  const value = record(where, raw, ["status", "reason"]);
+  oneOf(`${where}.status`, value.status, [UNSPECIFIED] as const);
+  text(`${where}.reason`, value.reason);
+}
+
 // Точка, вокруг которой поворот на `degrees` в сторону `direction` переводит
 // нос из `from` в `to`. Она следует из самого смещения и не зависит от того,
 // названа ли в данных законцовка.
@@ -276,15 +306,33 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
     }
     case "line": {
       const value = record(where, raw, ["kind", "to", "basis", "nose", "unmarked", "sync"]);
-      const to = point(`${where}.to`, value.to);
+      // Координата, которую книга объявила незаданной, пишется как `null`:
+      // кайт остаётся на той, с которой пришёл. Незаданной бывает одна из двух.
+      const open = Array.isArray(value.to) && value.to.length === 2 ? value.to.map((part) => part === null) : [false, false];
+      const unset = open[0] !== open[1] ? (open[0] ? 0 : 1) : undefined;
+      if ((unset !== undefined) !== (value.basis === UNSPECIFIED)) {
+        fail(
+          `${where}.basis`,
+          unset === undefined
+            ? "«unspecified» пишется только у точки, где на месте незаданной координаты стоит null"
+            : "у точки с незаданной координатой (null) обязателен basis «unspecified»",
+        );
+      }
+      if (unset !== undefined && position === null) {
+        fail(`${where}.to`, "незаданная координата берётся из текущей точки, а её нет");
+      }
+      const to = point(
+        `${where}.to`,
+        unset === undefined || position === null ? value.to : (value.to as unknown[]).map((part, axis) => (axis === unset ? position[axis] : part)),
+      );
       if (position !== null && distance(position, to) < TOLERANCE) {
         fail(where, "отрезок нулевой длины");
       }
-      const rest = flown(where, value);
+      const rest = flown(where, unset === undefined ? value : { ...value, basis: undefined });
       if (rest.nose === "out" || rest.nose === "in") {
         fail(`${where}.nose`, "«out» и «in» имеют смысл только на дуге");
       }
-      return { kind, to, ...rest };
+      return unset === undefined ? { kind, to, ...rest } : { kind, to, unset, ...rest, basis: UNSPECIFIED };
     }
     case "arc": {
       const value = record(where, raw, ["kind", "to", "center", "direction", "sweep", "basis", "nose", "unmarked", "sync"]);
@@ -391,8 +439,35 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
         }
         return step;
       }
-      const to = point(`${where}.to`, value.to);
-      const basis = value.basis === undefined ? "grid" : oneOf(`${where}.basis`, value.basis, BASES);
+      // Книга объявляет положение после поворота незаданным: оно зависит от
+      // размаха кайта. Точки в данных тогда нет — нос уходит вокруг названной
+      // законцовки на размах значка, которым кайт нарисован на схеме.
+      const open = typeof value.to === "object" && value.to !== null && !Array.isArray(value.to);
+      let to: Point;
+      let basis: Basis;
+      if (open) {
+        unspecifiedBy(`${where}.to`, value.to);
+        if (value.basis !== undefined) {
+          fail(`${where}.basis`, "у незаданного положения происхождения нет: поле не пишется");
+        }
+        if (about !== "left-tip" && about !== "right-tip") {
+          fail(`${where}.to`, "незаданное положение после поворота следует из размаха кайта — нужна названная законцовка");
+        }
+        if (position === null || heading === null) {
+          fail(`${where}.to`, "незаданное положение после поворота следует из курса носа, а он из пути не следует");
+        }
+        const side = tipSide(heading, about);
+        const pivot: Point = [position[0] + (side[0] * REV_SPAN) / 2, position[1] + (side[1] * REV_SPAN) / 2];
+        const end = arcPoint(position, pivot, direction, degrees);
+        to = [round2(end[0]), round2(end[1])];
+        if (!inGrid(to)) {
+          fail(where, "поворот выводит кайт за сетку окна");
+        }
+        basis = UNSPECIFIED;
+      } else {
+        to = point(`${where}.to`, value.to);
+        basis = value.basis === undefined ? "grid" : oneOf(`${where}.basis`, value.basis, BASES);
+      }
       if (degrees >= 360) {
         fail(`${where}.degrees`, "поворот со смещением — меньше полного оборота");
       }
@@ -436,6 +511,7 @@ function parseKite(where: string, raw: unknown): Kite {
   const path: Step[] = [];
   let position: Point | null = null;
   // Куда смотрит нос, пока это следует из пути: по нему сверяется законцовка.
+  // Шаг `unmarked` курса не задаёт: его порядок записан один из возможных.
   let heading: Point | null = null;
   // Отрезки и дуги между «in» и «out»: оцениваемая часть не бывает пустой.
   let judged = 0;
@@ -449,7 +525,7 @@ function parseKite(where: string, raw: unknown): Kite {
     if (step.kind === "start") {
       position = step.at;
     } else if (step.kind === "line" || step.kind === "arc") {
-      heading = position === null ? null : noseAfter(position, step);
+      heading = position === null || step.unmarked ? null : noseAfter(position, step);
       position = step.to;
       if (calls.join(",") === "in") {
         judged += 1;
@@ -577,7 +653,7 @@ export function parseGeometry(where: string, raw: unknown, pages: number): Geome
   if (unexplained && notes.length === 0) {
     fail(
       `${where}.notes`,
-      "есть шаги или вспомогательные линии с basis «derived» или «measured», шаги с «unmarked» либо выведенная точка поворота — нужна заметка, что именно не подписано и откуда взято значение",
+      "есть шаги или вспомогательные линии с basis «derived» или «measured», шаги с «unmarked», величина, которую книга объявила незаданной, либо выведенная точка поворота — нужна заметка, что именно не подписано и откуда взято значение",
     );
   }
   return { status, variants, notes };

@@ -127,6 +127,7 @@ const LEGEND = {
   axel: "аксель или его половина",
   derived: "координата выведена из подписей схемы, а не стоит на линии сетки (в шагах — ○)",
   measured: "координата снята замером по схеме, приблизительно (в шагах — □)",
+  unspecified: "книга объявляет положение незаданным; на схеме оно стоит по размаху значка кайта (в шагах — ◇)",
 };
 // Значок кайта в пути у двухстропного показывает и направление, у
 // четырёхстропного — только нос: тот летает и задом, и боком.
@@ -173,6 +174,91 @@ function isSwing(step) {
   return step.kind === "rotate" && Array.isArray(step.to);
 }
 
+// Размах значка четырёхстропного кайта на схеме — повторён, как и подписи.
+const REV_SPAN = 8.4;
+
+// Куда смотрит нос после отрезка или дуги: курс числом, полёт назад, нос
+// наружу или внутрь круга, иначе — по ходу.
+function noseAfter(from, step) {
+  if (typeof step.nose === "number") {
+    const angle = (step.nose * Math.PI) / 180;
+    return [Math.sin(angle), Math.cos(angle)];
+  }
+  let ahead;
+  if (step.kind === "line") {
+    const size = Math.hypot(step.to[0] - from[0], step.to[1] - from[1]);
+    ahead = [(step.to[0] - from[0]) / size, (step.to[1] - from[1]) / size];
+  } else {
+    const size = Math.hypot(step.to[0] - step.center[0], step.to[1] - step.center[1]);
+    const radial = [(step.to[0] - step.center[0]) / size, (step.to[1] - step.center[1]) / size];
+    if (step.nose === "out" || step.nose === "in") {
+      return step.nose === "out" ? radial : [-radial[0], -radial[1]];
+    }
+    ahead = step.direction === "ccw" ? [-radial[1], radial[0]] : [radial[1], -radial[0]];
+  }
+  return step.nose === "backward" ? [-ahead[0], -ahead[1]] : ahead;
+}
+
+// Величина, которую книга объявила незаданной, в данных числа не несёт: у
+// поворота «to» — запись «unspecified», у отрезка на месте координаты — null.
+// Место на схеме следует из остального: нос уходит вокруг названной законцовки
+// на размах значка, отрезок остаётся на координате, с которой пришёл. Здесь это
+// посчитано заново, своим кодом; шаги получают пометки `open` и `unset`, а
+// поворот — `seen`: известен ли перед ним курс носа (от него зависит, стоит
+// ли у поворота значок кайта).
+function resolved(geometry) {
+  if (geometry.status !== "ok") {
+    return geometry;
+  }
+  const variants = geometry.variants.map((variant) => ({
+    ...variant,
+    kites: variant.kites.map((kite) => {
+      let here = null;
+      let nose = null;
+      let seen = false;
+      const path = kite.path.map((raw) => {
+        const step = { ...raw };
+        if (step.kind === "start") {
+          here = step.at;
+        } else if (isMove(step)) {
+          if (step.kind === "line" && step.to.includes(null)) {
+            step.unset = step.to.indexOf(null);
+            step.to = step.to.map((part, axis) => (part === null ? here[axis] : part));
+          }
+          nose = step.unmarked === true ? null : noseAfter(here, step);
+          seen = step.unmarked !== true;
+          here = step.to;
+        } else if (step.kind === "rotate") {
+          const turn = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
+          if (step.to !== undefined && !Array.isArray(step.to)) {
+            const side = step.about === "left-tip" ? [-nose[1], nose[0]] : [nose[1], -nose[0]];
+            const pivot = [here[0] + (side[0] * REV_SPAN) / 2, here[1] + (side[1] * REV_SPAN) / 2];
+            const [dx, dy] = [here[0] - pivot[0], here[1] - pivot[1]];
+            // В сетке угол растёт против часовой: поворот по часовой — отрицательный.
+            step.to = [pivot[0] + dx * Math.cos(-turn) - dy * Math.sin(-turn), pivot[1] + dx * Math.sin(-turn) + dy * Math.cos(-turn)].map(
+              (part) => Math.round(part * 100) / 100 + 0,
+            );
+            step.open = true;
+          }
+          step.seen = seen && nose !== null;
+          step.from = here;
+          if (nose !== null) {
+            nose = [nose[0] * Math.cos(turn) + nose[1] * Math.sin(turn), nose[1] * Math.cos(turn) - nose[0] * Math.sin(turn)];
+          }
+          if (isSwing(step)) {
+            here = step.to;
+          }
+        }
+        return step;
+      });
+      return { ...kite, path };
+    }),
+  }));
+  return { ...geometry, variants };
+}
+
+const isOpen = (step) => step.open === true || step.unset !== undefined;
+
 // Вспомогательная линия книги в легенде — тоже повторена.
 const GUIDE = "вспомогательная линия книги: на ней кайты стоят в один момент";
 
@@ -216,6 +302,7 @@ function expectedShapes(variant) {
     axel: mark("axel", "half-axel"),
     derived: steps.some((step) => step.basis === "derived"),
     measured: steps.some((step) => step.basis === "measured"),
+    unspecified: steps.some(isOpen),
   };
 }
 
@@ -251,7 +338,8 @@ function isMove(step) {
 // получает вовсе, а в списке шагов несёт пометку «направление в книге не
 // показано». Значки, слова и легенда — ровно те, что следуют из данных.
 // Картинок на странице нет вовсе: схемы свои и рисуются из данных.
-function checkDiagrams(slug, html, geometry, documentUrl, rev) {
+function checkDiagrams(slug, html, raw, documentUrl, rev) {
+  const geometry = resolved(raw);
   const where = `на странице figures/${slug}/`;
   const bad = (message) => problems.push(`${where} ${message}`);
   if (/<img|<canvas|<image|<picture|<object|<embed|<iframe|<video|<use\b|type="image"|url\(|image-set\(/i.test(html)) {
@@ -422,8 +510,75 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
         }
       }
     }
-    if (passes > directed) {
-      say(`значков кайта в пути ${passes}, а шагов с известным направлением ${directed}`);
+    // Кайт до и после поворота со смещением стоит значком: по меткам, стоящим
+    // законцовка к законцовке, виден сам переход. Значок — в пути либо вход,
+    // выход, остановка в той же точке. Где курс носа перед поворотом из пути не
+    // следует, значка нет.
+    const fronts = ["in", "out", "stall", "pass"].flatMap((name) =>
+      glyphs(name).flatMap(({ parts }) =>
+        parts.map((part) => {
+          const points = [...part.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])]);
+          return rev ? [(points[0][0] + points[1][0]) / 2, 100 - (points[0][1] + points[1][1]) / 2] : [points[0][0], 100 - points[0][1]];
+        }),
+      ),
+    );
+    const swingSpots = new Set();
+    for (const step of swung.filter((item) => item.seen)) {
+      for (const end of [step.from, step.to]) {
+        swingSpots.add(end.join(" "));
+        if (!fronts.some((front) => Math.hypot(front[0] - end[0], front[1] - end[1]) < 0.06)) {
+          say(`у поворота со смещением в точке (${end.join("; ")}) нет значка кайта`);
+        }
+      }
+    }
+    if (passes > directed + swingSpots.size) {
+      say(`значков кайта в пути ${passes}, а шагов с известным направлением ${directed} и точек поворотов со смещением ${swingSpots.size}`);
+    }
+    // Величина, которую книга объявила незаданной, линии сетки не получает,
+    // а заданная координата того же отрезка — получает, с числом у рамки.
+    // Линии сетки читаются числами, а не подстрокой: высота вида 68,4 в
+    // разметке стоит с хвостом плавающей точки.
+    const gridPath = svg.match(/<path class="d-grid" d="([^"]*)"/)?.[1] ?? "";
+    const drawnLines = [
+      [...gridPath.matchAll(/M(-?[\d.]+) 0v100/g)].map((match) => Number(match[1])),
+      [...gridPath.matchAll(/M-100 (-?[\d.]+)h200/g)].map((match) => 100 - Number(match[1])),
+    ];
+    const drawnTicks = [
+      [...svg.matchAll(/<text class="d-tick" x="(-?[\d.]+)"/g)].map((match) => Number(match[1])),
+      [...svg.matchAll(/<text class="d-tick d-tick-y"[^>]*>([^<]*)<\/text>/g)].map((match) => Number(match[1].replace(",", ".").replace("−", "-"))),
+    ];
+    const near = (list, value, by = 0.01) => list.some((other) => Math.abs(other - value) < by);
+    const AXIS = ["x", "y"];
+    const steps = kites.flatMap((kite) => kite.path);
+    // Координаты, которые книга задаёт: у старта, у обычных шагов и заданная
+    // половина отрезка с одной незаданной координатой.
+    const given = [[], []];
+    for (const step of steps) {
+      const at = step.kind === "start" ? step.at : isMove(step) || isSwing(step) ? step.to : null;
+      for (const axis of at === null || step.open ? [] : [0, 1]) {
+        if (step.unset !== axis) {
+          given[axis].push(at[axis]);
+        }
+      }
+    }
+    for (const step of steps.filter(isOpen)) {
+      for (const axis of [0, 1]) {
+        const value = step.to[axis];
+        const free = step.open === true || step.unset === axis;
+        if (free && !near(given[axis], value) && (near(drawnLines[axis], value) || (axis === 1 && near(drawnTicks[axis], value)))) {
+          say(`линия сетки или число у рамки стоит на ${AXIS[axis]} = ${value} — величине, которую книга объявила незаданной`);
+        }
+        // Оси окна (x = 0, y = 50) и рамка рисуются отдельно от линий сетки.
+        const framed = axis === 0 ? value === 0 || Math.abs(value) >= 100 : value === 50 || value <= 0 || value >= 100;
+        if (!free && !framed && !near(drawnLines[axis], value)) {
+          say(`нет линии сетки на ${AXIS[axis]} = ${value}: она подписана в книге, не задана только вторая координата`);
+        }
+        // Число у рамки пропускается, когда рядом, ближе 9 единиц, уже стоит другое.
+        const crowded = drawnLines[0].some((other) => other !== value && Math.abs(other - value) < 9) || Math.abs(value) < 9;
+        if (!free && axis === 0 && !framed && !crowded && !near(drawnTicks[0], value)) {
+          say(`нет числа ${Math.abs(value)} у рамки на x = ${value}`);
+        }
+      }
     }
     if (svg.includes("d-ask") || svg.includes("d-launch") || svg.includes("d-landing")) {
       say("есть значок, которого в обозначениях книги нет");
@@ -582,7 +737,22 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
         );
       // Куда привёл поворот со смещением, сказано в его строке.
       const told = [...lists[order].matchAll(/<li>Поворот на [^<]*? до \(([−\d,]+); ([−\d,]+)\)/g)].map((match) => `${match[1]}; ${match[2]}`);
-      const reached = kite.path.filter(isSwing).map((step) => step.to.map((part) => String(part).replace("-", "−").replace(".", ",")).join("; "));
+      // Положение, которое книга объявила незаданным, числом в шагах не названо.
+      const reached = kite.path
+        .filter((step) => isSwing(step) && !isOpen(step))
+        .map((step) => step.to.map((part) => String(part).replace("-", "−").replace(".", ",")).join("; "));
+      const open = kite.path.filter(isOpen);
+      const openTold =
+        count(lists[order], /, положение после поворота книгой не задано ◇/g) + count(lists[order], /<li>Прямая до \((?:не задано; [−\d,]+|[−\d,]+; не задано)\)[^<◇]*◇/g);
+      if (openTold !== open.length || count(lists[order], /◇/g) !== open.length) {
+        say(`у кайта ${kite.id} пометок «не задано» ${openTold} (ромбов ${count(lists[order], /◇/g)}), а величин, объявленных книгой незаданными, ${open.length}`);
+      }
+      for (const step of open) {
+        const hidden = String(step.unset === 0 ? step.to[0] : step.to[1]).replace("-", "−").replace(".", ",");
+        if (new RegExp(`[(;] ?${hidden}[;)]`).test(lists[order].replace(/<li>Точка[^<]*/, ""))) {
+          say(`у кайта ${kite.id} в шагах названо числом ${hidden} — место на схеме, а не величина из книги`);
+        }
+      }
       if (told.join("|") !== reached.join("|")) {
         say(`у кайта ${kite.id} повороты со смещением в шагах приводят в [${told.join("|")}], а по данным — в [${reached.join("|")}]`);
       }
@@ -651,6 +821,11 @@ function checkStyles() {
   // бы чёрным.
   if (!/\.d-swing\{[^}]*fill:none/.test(css) || !/\.d-swing\{[^}]*stroke:var\(--fg\)/.test(css)) {
     problems.push("в стилях дуга поворота со смещением (.d-swing) не линия: нужны fill:none и своя обводка");
+  }
+  // Значок незаданной величины — пустой ромб, как кружок и квадрат: без своего
+  // правила он залился бы чёрным.
+  if (!/\.d-derived,\.d-measured,\.d-unspecified\{[^}]*fill:var\(--bg\)/.test(css)) {
+    problems.push("в стилях значок незаданной величины (.d-unspecified) не пустой");
   }
   if (css.includes("url(")) {
     problems.push("стили подключают внешний файл через url(): схемы рисуются из данных, без картинок");

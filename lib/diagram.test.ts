@@ -37,6 +37,13 @@ function arrowTips(arrows: { d: string }[]): { tip: number[]; back: number[] }[]
   );
 }
 
+// Контуры значков одного вида: вершины в координатах SVG.
+const polygonsOf = (d: string): number[][][] =>
+  d
+    .split("Z")
+    .filter(Boolean)
+    .map((part) => [...part.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])]));
+
 // Все значки одного вида одной строкой, без разбора по цвету.
 const drawn = (shapes: ReturnType<typeof drawVariant>["shapes"], name: keyof typeof shapes) =>
   (shapes[name] ?? []).map((item) => item.d).join("");
@@ -450,9 +457,99 @@ describe("drawVariant", () => {
       expect(angles[1].x).toBeLessThan(-5);
     });
 
-    it("стрелку и значок кайта в пути получают только пролёты", () => {
+    it("стрелку получают только пролёты", () => {
       expect(arrowTips(drawing.arrows)).toHaveLength(2);
-      expect(kites(drawn(drawing.shapes, "pass"), true).length).toBeLessThanOrEqual(2);
+    });
+
+    it("кайт до и после каждого поворота стоит значком — носом в своей точке, по курсу после поворота", () => {
+      // Пришёл носом вправо; полуоборот разворачивает нос влево, второй — снова вправо.
+      const stood = kites(drawn(drawing.shapes, "pass"), true);
+      expect(stood.map((item) => item.at.map((part) => Math.round(part * 100) / 100))).toEqual([[0, 90], [0, 80], [0, 70]]);
+      expect(stood.map((item) => Math.round(item.nose[0]))).toEqual([1, -1, 1]);
+      // Пролёты до и после лестницы второго значка не получают: у их конца уже стоит этот.
+      expect(stood).toHaveLength(3);
+    });
+
+    it("значок до поворота не дублирует вход или остановку, стоящие в той же точке с тем же носом", () => {
+      const entered = drawVariant(variant([{ kind: "start", at: [-60, 10] }, line([0, 10]), markIn, tip("ccw", "left-tip", [0, 20]), line([-60, 20]), markOut]), true);
+      expect(kites(drawn(entered.shapes, "pass"), true).map((item) => item.at.map((part) => Math.round(part)))).toEqual([[0, 80]]);
+    });
+
+    it("выход или остановка сразу за поворотом — сами значок его конца: второго в той же точке нет", () => {
+      const left = [{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), tip("ccw", "left-tip", [0, 20]), markOut];
+      const gone = drawVariant(variant(left), true);
+      expect(kites(drawn(gone.shapes, "pass"), true).filter((item) => Math.abs(item.at[1] - 80) < 0.01)).toEqual([]);
+      // Выход стоит один и потому не раздут в кольцо вокруг второго значка.
+      expect(drawn(gone.shapes, "out")).toBe(drawn(drawVariant(variant([{ kind: "start", at: [60, 20] }, markIn, line([0, 20]), markOut]), true).shapes, "out"));
+      const stall = (nose: number) => ({ kind: "mark", mark: "stall", nose });
+      const stopped = (nose: number) =>
+        kites(drawn(drawVariant(variant([{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), tip("ccw", "left-tip", [0, 20]), stall(nose), line([-60, 20]), markOut]), true).shapes, "pass"), true).filter(
+          (item) => Math.abs(item.at[0]) < 0.01 && Math.abs(item.at[1] - 80) < 0.01,
+        );
+      // Остановка носом влево — тот же курс, что после поворота.
+      expect(stopped(270)).toEqual([]);
+      // Метка книги смотрит иначе — курс после поворота показывает свой значок.
+      expect(stopped(0)).toHaveLength(1);
+    });
+
+    it("в команде значок у поворота — своего кайта и его цвета: чужой в той же точке его не заменяет", () => {
+      const path = [{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), tip("ccw", "left-tip", [0, 20]), line([-60, 20]), markOut];
+      const pair = drawVariant(variant(path, path), true);
+      const stood = pair.shapes.pass ?? [];
+      expect(stood.map((item) => item.tone).sort()).toEqual((pair.shapes.in ?? []).map((item) => item.tone).sort());
+      expect(new Set(stood.map((item) => item.tone)).size).toBe(2);
+      for (const { d } of stood) {
+        expect(kites(d, true).filter((item) => Math.abs(item.at[0]) < 0.01)).toHaveLength(2);
+      }
+    });
+
+    it("незаданной может быть и горизонталь: на сетку встаёт высота, ромб стоит у точки", () => {
+      const free = drawVariant(variant([{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), line([0, 40]), { kind: "line", to: [null, 80], basis: "unspecified" }, markOut]), true);
+      expect(free.grid.xs).toEqual([-60]);
+      expect(free.grid.ys).toEqual([10, 40, 80]);
+      expect(drawn(free.shapes, "unspecified").match(/M/g)).toHaveLength(1);
+    });
+
+    it("ромб и квадрат замера в одной точке встают рядом, а не один на другой", () => {
+      const both = drawVariant(
+        variant([{ kind: "start", at: [-60, 12], basis: "measured" }, markIn, line([0, 12], { basis: "measured" }), line([30, 40]), line([0, 12], { basis: "measured" }), { kind: "line", to: [-60, null], basis: "unspecified" }, markOut]),
+        true,
+      );
+      const centre = (d: string) => [...d.matchAll(/M(-?[\d.]+) (-?[\d.]+)/g)].map((match) => Number(match[1]));
+      const squares = centre(drawn(both.shapes, "measured")).map((x) => x + 1.5);
+      const diamonds = centre(drawn(both.shapes, "unspecified"));
+      for (const x of diamonds) {
+        expect(squares.every((other) => Math.abs(other - x) > 3)).toBe(true);
+      }
+    });
+
+    it("без пролёта перед поворотом курс носа неизвестен — значков у поворота нет", () => {
+      const blind = [{ kind: "start", at: [0, 10] }, markIn, { kind: "rotate", degrees: 180, direction: "ccw", about: { status: "not_found", reason: "страница не называет" }, to: [0, 20] }, line([60, 20]), markOut];
+      const stood = kites(drawn(drawVariant(variant(blind), true).shapes, "pass"), true);
+      expect(stood.every((item) => Math.abs(item.at[1] - 80) < 0.01 && item.at[0] > 1)).toBe(true);
+    });
+
+    it("после шага без показанного направления курс носа неизвестен — значков у поворота нет", () => {
+      const hidden = [{ kind: "start", at: [-60, 10] }, markIn, line([0, 10], { unmarked: true }), tip("ccw", "left-tip", [0, 20]), line([60, 20]), markOut];
+      const stood = kites(drawn(drawVariant(variant(hidden), true).shapes, "pass"), true);
+      expect(stood.filter((item) => Math.abs(item.at[0]) < 0.01)).toEqual([]);
+    });
+
+    it("положение, которое книга объявила незаданным, отмечает ромбом, а заданную координату отрезка ставит на сетку", () => {
+      const open = { status: "unspecified", reason: "стр. 71: высота после поворота не задана" };
+      const rung = { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "diagram", to: open };
+      const free = drawVariant(variant([{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), rung, { kind: "line", to: [60, null], basis: "unspecified" }, markOut]), true);
+      // Два ромба: конец поворота и конец отрезка. Замером это не помечено.
+      expect(drawn(free.shapes, "unspecified").match(/M/g)).toHaveLength(2);
+      expect(free.shapes.measured).toBeUndefined();
+      // Справа от центра 60 подписано в книге; высота линии сетки не получает.
+      expect(free.grid.xs).toEqual([-60, 60]);
+      expect(free.grid.ys).toEqual([10]);
+      // Ступень — размах значка: метки стоят законцовка к законцовке.
+      expect(free.tracks[0].d).toBe("M-60 90L0 90M0 81.6L60 81.6");
+      const stood = polygonsOf(drawn(free.shapes, "pass"));
+      expect(stood).toHaveLength(2);
+      expect(Math.min(...stood[0].map((corner) => corner[1]))).toBeCloseTo(Math.max(...stood[1].map((corner) => corner[1])));
     });
 
     it("точку, куда привёл поворот, отмечает по её происхождению", () => {
@@ -657,8 +754,25 @@ describe("чертежи каталога", () => {
       // «unmarked»; у двухстропных — только на шаге не носом вперёд. Значков
       // в пути не больше, чем шагов с направлением.
       expect(arrowTips(drawing.arrows)).toHaveLength(directed.filter((step) => rev || step.nose !== "forward").length);
+      // Сверх того значок стоит у каждого поворота со смещением: до и после.
       const passes = kites(drawn(drawing.shapes, "pass"), rev);
-      expect(passes.length).toBeLessThanOrEqual(directed.length);
+      // `known` — курс носа перед поворотом следует из пути: только у таких
+      // поворотов значок обязателен.
+      const swings = item.kites.flatMap((kite) => {
+        let here: readonly number[] = [];
+        let known = false;
+        return kite.path.flatMap((step) => {
+          const from = here;
+          here = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || isSwing(step) ? step.to : here;
+          if (step.kind === "line" || step.kind === "arc") {
+            known = !step.unmarked;
+          }
+          return isSwing(step) ? [{ ends: [from, step.to], known }] : [];
+        });
+      });
+      const swingEnds = swings.flatMap((swing) => swing.ends);
+      const atSwing = (mark: { at: number[] }) => swingEnds.some((end) => Math.hypot(end[0] - mark.at[0], 100 - end[1] - mark.at[1]) < 0.01);
+      expect(passes.filter((mark) => !atSwing(mark)).length).toBeLessThanOrEqual(directed.length);
       // Ни один значок в пути не стоит на шаге «unmarked»: нос его лежит на
       // линии шага с известным направлением.
       const lines = item.kites.flatMap((kite) => {
@@ -682,8 +796,14 @@ describe("чертежи каталога", () => {
             .flatMap((line) => line.points.map((point) => Math.hypot(point[0] - mark.at[0], 100 - point[1] - mark.at[1]))),
           1000,
         );
-      for (const mark of passes) {
+      for (const mark of passes.filter((item) => !atSwing(item))) {
         expect(reach(mark, false)).toBeLessThan(0.6);
+      }
+      // У каждого конца поворота со смещением стоит значок кайта — в пути
+      // либо вход, выход или остановка.
+      const standing = (["in", "out", "stall", "pass"] as const).flatMap((kind) => kites(drawn(drawing.shapes, kind), rev));
+      for (const end of swings.filter((swing) => swing.known).flatMap((swing) => swing.ends)) {
+        expect(standing.some((mark) => Math.hypot(end[0] - mark.at[0], 100 - end[1] - mark.at[1]) < 0.01)).toBe(true);
       }
       expect(drawing.tracks).toHaveLength(item.kites.length);
       // Линия рвётся на каждом повороте со смещением и только на нём, а дуг
@@ -694,6 +814,12 @@ describe("чертежи каталога", () => {
       const many = item.kites.length > 1;
       expect(drawing.labels.filter((label) => label.kind === "name")).toHaveLength(many ? item.kites.length * 2 + 2 : 2);
       expect(JSON.stringify(drawing)).not.toMatch(/NaN|Infinity|undefined|e-\d/);
+      // Сетка называет ровно то, что подписано: величина, которую книга
+      // объявила незаданной, линии сетки и числа у рамки не получает.
+      const open = item.kites.flatMap((kite) => kite.path.flatMap((step) => (step.kind === "line" && step.unset === 1 ? [step.to[1]] : isSwing(step) && step.basis === "unspecified" ? [step.to[1]] : [])));
+      for (const height of open) {
+        expect(drawing.grid.ys).not.toContain(height);
+      }
     }
   });
 });
@@ -717,6 +843,11 @@ describe("наложения значков на схемах каталога",
     ...[...drawn(shapes, "derived").matchAll(/M(-?[\d.]+) (-?[\d.]+)a/g)].map((match) => {
       const [x, y] = [Number(match[1]), Number(match[2])];
       return [[x, y - 1.7], [x + 3.4, y - 1.7], [x + 3.4, y + 1.7], [x, y + 1.7]];
+    }),
+    // Ромб: путь начинается с верхней вершины.
+    ...[...drawn(shapes, "unspecified").matchAll(/M(-?[\d.]+) (-?[\d.]+)l/g)].map((match) => {
+      const [x, y] = [Number(match[1]), Number(match[2])];
+      return [[x, y], [x + 2, y + 2], [x, y + 4], [x - 2, y + 2]];
     }),
   ];
   const inside = (spot: Spot, poly: Spot[]) => {
@@ -766,7 +897,7 @@ describe("наложения значков на схемах каталога",
       for (const kite of item.kites) {
         for (const step of kite.path) {
           // Поворот со смещением приводит кайт в точку, как отрезок и дуга.
-          if ((step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step)) && (step.basis === "derived" || step.basis === "measured")) {
+          if ((step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step)) && (step.basis === "derived" || step.basis === "measured" || step.basis === "unspecified")) {
             origins.add(`${step.basis} ${(step.kind === "start" ? step.at : step.to).join(" ")}`);
           }
         }
