@@ -9,8 +9,9 @@
 # проводка: когда запускаться, какой коммит собирать и как убедиться, что
 # выехал именно он.
 #
-# РАННЕР — СВОЙ, и это единственное исключение из правила «все джобы на
-# ubuntu-latest» (AGENTS.md). Ключ ssh и пароль к секретам инфраструктуры
+# РАННЕР — СВОЙ, и это одно из двух исключений из правила «все джобы на
+# ubuntu-latest» (AGENTS.md); второе — джоба `state` в catchup.yml, которая
+# читает с хоста выложенную ревизию. Ключ ssh и пароль к секретам инфраструктуры
 # живут на машине с раннером и в секреты GitHub не копируются; выкатить сайт
 # можно только оттуда. Метка своя и единственная — [kites-deploy], раннер
 # зарегистрирован без меток по умолчанию: ни одна джоба CI на него не попадёт,
@@ -36,10 +37,11 @@
 #     контейнере. Чекаут ему смонтирован только на чтение, сборка идёт в его
 #     собственном каталоге, наружу выходит один архив с собранной папкой.
 #
-# Чего этот воркфлоу НЕ покрывает. Коммит, влитый авто-мержем, прогона CI на
-# main не получает (мерж делает токен Actions, см. AGENTS.md), а значит и
-# выката: он уедет со следующим прямым пушем в main либо после ручного
-# запуска CI на main и затем этого воркфлоу.
+# Коммит, влитый авто-мержем. Прогона CI на main он сам не получает (мерж
+# делает токен Actions, см. AGENTS.md), а выкат слушает именно его. Этот
+# прогон ему запускает catchup.yml — событием workflow_dispatch, и потому
+# условие джобы ниже принимает CI на main по обоим событиям: push и
+# workflow_dispatch. Запущенный руками CI на main выкатывает так же.
 #
 # Если раннер не поднят, джоба не краснеет, а висит в queued и через сутки
 # отменяется лимитом GitHub.
@@ -50,7 +52,8 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
-  # Ручной выкат головы main — повторить выкат или довезти коммит авто-мержа.
+  # Ручной выкат головы main — повторить выкат. Им же довозит голову
+  # catchup.yml, когда CI на main у неё уже зелёный, а на сайте не она.
   # Нужен зелёный прогон CI у этого коммита (его проверяет второй шаг).
   # Именно новый запуск, а не Re-run старого прогона: Re-run несёт прежний
   # sha, и первый шаг его пропустит, если main с тех пор ушёл вперёд.
@@ -63,16 +66,20 @@ permissions:
 
 jobs:
   deploy:
-    # Только push в main и только зелёный CI. `event == 'push'` отсекает
-    # прогоны CI по pull_request из ветки с именем main, в том числе из форка:
-    # фильтр `branches` выше смотрит на имя ветки, а не на репозиторий.
-    # Ручной запуск — только с ветки по умолчанию.
+    # Только CI самой ветки main и только зелёный: по пушу в неё либо
+    # запущенный на ней вручную (так CI запускает catchup.yml). Перечень
+    # событий отсекает прогоны CI по pull_request из ветки с именем main, в
+    # том числе из форка: фильтр `branches` выше смотрит на имя ветки, а не
+    # на репозиторий. Запустить CI вручную может только тот, у кого есть
+    # право записи сюда, и выкатится всё равно лишь голова main (первый шаг).
+    # Ручной запуск самого выката — только с ветки по умолчанию.
     if: >-
       (github.event_name == 'workflow_dispatch' &&
       github.ref_name == github.event.repository.default_branch) ||
       (github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.event == 'push' ||
+      github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: [kites-deploy]
     timeout-minutes: 20
@@ -127,13 +134,16 @@ jobs:
               ;;
           esac
 
+      # Прогоны берутся у самого воркфлоу CI, а не все на этом sha: на голову
+      # main ложатся ещё прогоны довоза, авто-мержа и выката, и зелёный CI
+      # среди них ушёл бы с первой страницы ответа.
       - name: Ручной запуск — у коммита есть зелёный прогон CI
         if: steps.head.outputs.deploy == 'true' && github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          green=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${DEPLOY_SHA}&status=success" \
+          green=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${DEPLOY_SHA}&status=success&per_page=100" \
             --jq "[.workflow_runs[] | select(.name == \"CI\" and .head_branch == \"${DEFAULT_BRANCH}\")] | length")
           if [ "${green:-0}" = "0" ]; then
             echo "::error::у ${DEPLOY_SHA} нет зелёного прогона CI на ${DEFAULT_BRANCH} — не выкатываю"
