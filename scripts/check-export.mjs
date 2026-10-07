@@ -85,6 +85,12 @@ for (const slug of slugs) {
     if (!html.includes(`href="${href}"`)) {
       problems.push(`на странице figures/${slug}/ нет ссылки на первоисточник (${href})`);
     }
+    if (!html.includes(`страница ${source.page}</a>`)) {
+      problems.push(`на странице figures/${slug}/ не названа страница первоисточника ${source.page}`);
+    }
+  }
+  if (home !== null && !home.includes(`>${escapeHtml(title)}</a>`)) {
+    problems.push(`на главной ссылка на figures/${slug}/ не подписана «${title}»`);
   }
   if (home !== null && !home.includes(`href="/figures/${slug}/"`)) {
     problems.push(`на главной нет ссылки на figures/${slug}/`);

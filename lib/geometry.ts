@@ -112,7 +112,9 @@ function inGrid([x, y]: Point): boolean {
   );
 }
 
-function point(where: string, value: unknown): Point {
+// `anywhere` — для центра дуги: у пологой дуги он лежит за краем окна, и в
+// сетке обязана быть сама дуга, а не точка, вокруг которой она проведена.
+function point(where: string, value: unknown, anywhere = false): Point {
   if (
     !Array.isArray(value) ||
     value.length !== 2 ||
@@ -121,7 +123,7 @@ function point(where: string, value: unknown): Point {
     fail(where, "ожидается точка [x, y] из двух чисел");
   }
   const result: Point = [value[0] as number, value[1] as number];
-  if (!inGrid(result)) {
+  if (!anywhere && !inGrid(result)) {
     fail(where, `точка [${result.join(", ")}] вне сетки окна: x от −100 до 100, y от 0 до 100`);
   }
   return result;
@@ -198,7 +200,7 @@ function parseStep(where: string, raw: unknown, position: Point | null): Step {
     case "arc": {
       const value = record(where, raw, ["kind", "to", "center", "direction", "sweep", "basis", "nose", "unmarked", "sync"]);
       const to = point(`${where}.to`, value.to);
-      const center = point(`${where}.center`, value.center);
+      const center = point(`${where}.center`, value.center, true);
       const direction = oneOf(`${where}.direction`, value.direction, ["cw", "ccw"] as const);
       const sweep = value.sweep;
       if (typeof sweep !== "number" || !(sweep > 0 && sweep <= 360)) {
@@ -209,6 +211,9 @@ function parseStep(where: string, raw: unknown, position: Point | null): Step {
         if (radius < TOLERANCE) {
           fail(where, "центр дуги совпадает с её началом");
         }
+        if ((radius * sweep * Math.PI) / 180 < TOLERANCE) {
+          fail(where, "дуга нулевой длины");
+        }
         const end = arcPoint(position, center, direction, sweep);
         if (distance(end, to) > TOLERANCE) {
           fail(
@@ -217,7 +222,9 @@ function parseStep(where: string, raw: unknown, position: Point | null): Step {
               `выходит [${end.map((part) => part.toFixed(2)).join(", ")}], а записано [${to.join(", ")}]`,
           );
         }
-        for (let turned = 0; turned < sweep; turned += 5) {
+        // Шаг в градус: между соседними пробами дуга радиуса 100 отходит от
+        // хорды меньше чем на 0,004 единицы.
+        for (let turned = 0; turned < sweep; turned += 1) {
           if (!inGrid(arcPoint(position, center, direction, turned))) {
             fail(where, "дуга выходит за сетку окна");
           }
@@ -258,7 +265,8 @@ function parseKite(where: string, raw: unknown): Kite {
   const id = text(`${where}.id`, value.id);
   const path: Step[] = [];
   let position: Point | null = null;
-  let moves = 0;
+  // Отрезки и дуги между «in» и «out»: оцениваемая часть не бывает пустой.
+  let judged = 0;
   const calls: MarkName[] = [];
   list(`${where}.path`, value.path).forEach((item, index) => {
     const at = `${where}.path[${index}]`;
@@ -270,17 +278,19 @@ function parseKite(where: string, raw: unknown): Kite {
       position = step.at;
     } else if (step.kind === "line" || step.kind === "arc") {
       position = step.to;
-      moves += 1;
+      if (calls.join(",") === "in") {
+        judged += 1;
+      }
     } else if (step.kind === "mark" && (step.mark === "in" || step.mark === "out")) {
       calls.push(step.mark);
     }
     path.push(step);
   });
-  if (moves === 0) {
-    fail(`${where}.path`, "в пути нет ни одного отрезка или дуги");
-  }
   if (calls.join(",") !== "in,out") {
     fail(`${where}.path`, "в пути должна быть ровно одна отметка «in» и после неё ровно одна «out»");
+  }
+  if (judged === 0) {
+    fail(`${where}.path`, "между «in» и «out» нет ни одного отрезка или дуги");
   }
   return { id, path };
 }
@@ -338,10 +348,12 @@ export function parseGeometry(where: string, raw: unknown, pages: number): Geome
     parseVariant(`${where}.variants[${index}]`, item, pages),
   );
   unique(`${where}.variants`, variants.map((variant) => variant.id));
-  const notes =
-    value.notes === undefined
-      ? []
-      : list(`${where}.notes`, value.notes).map((item, index) => text(`${where}.notes[${index}]`, item));
+  if (value.notes !== undefined && !Array.isArray(value.notes)) {
+    fail(`${where}.notes`, "ожидается список строк");
+  }
+  const notes = ((value.notes as unknown[] | undefined) ?? []).map((item, index) =>
+    text(`${where}.notes[${index}]`, item),
+  );
   // Координата не с подписанной линии сетки обязана быть объяснена: иначе
   // читатель данных не отличит измеренное от подписанного.
   const unexplained = variants.some((variant) =>

@@ -45,6 +45,11 @@ export function parseSources(file: string, text: string): SourceDocument[] {
   if (!Array.isArray(documents) || documents.length === 0) {
     throw new Error(`${file}: ожидается объект с непустым списком «documents»`);
   }
+  for (const key of Object.keys(raw as object)) {
+    if (key !== "documents") {
+      throw new Error(`${file}: незнакомое поле «${key}»`);
+    }
+  }
   const seen = new Set<string>();
   return documents.map((item, index) => {
     const where = `${file}: documents[${index}]`;
@@ -57,15 +62,19 @@ export function parseSources(file: string, text: string): SourceDocument[] {
         throw new Error(`${where}: незнакомое поле «${key}»`);
       }
     }
-    for (const key of ["id", "version", "title", "publisher", "sha256"]) {
+    for (const key of ["id", "version", "title", "publisher"]) {
       if (typeof value[key] !== "string" || (value[key] as string).trim() === "") {
         throw new Error(`${where}: поле «${key}» должно быть непустой строкой`);
       }
     }
     for (const key of ["url", "landing"]) {
-      if (typeof value[key] !== "string" || !/^https?:\/\/\S+$/.test(value[key] as string)) {
-        throw new Error(`${where}: поле «${key}» должно быть адресом http(s)`);
+      // Без «#»: к адресу документа дописывается `#page=N`.
+      if (typeof value[key] !== "string" || !/^https?:\/\/[^\s#]+$/.test(value[key] as string)) {
+        throw new Error(`${where}: поле «${key}» должно быть адресом http(s) без «#»`);
       }
+    }
+    if (typeof value.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(value.sha256)) {
+      throw new Error(`${where}: поле «sha256» — 64 шестнадцатеричные цифры строчными`);
     }
     for (const key of ["dated", "checked_on"]) {
       if (!isDate(value[key])) {

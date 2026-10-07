@@ -67,6 +67,25 @@ describe("parseGeometry", () => {
     expect(() => parsePath([start, markIn, { kind: "arc", ...arc }, markOut])).toThrow(/дуга не сходится/);
   });
 
+  it("центр пологой дуги может лежать за краем окна, сама дуга — нет", () => {
+    const from = { kind: "start", at: [-30, 20] };
+    const flat = { kind: "arc", to: [30, 20], center: [0, -20], direction: "cw", sweep: 73.7398 };
+    expect(parsePath([from, markIn, flat, markOut]).status).toBe("ok");
+    // Радиус 100, концы на самой верхней линии: середина дуги выше окна.
+    const top = { kind: "start", at: [-4.36, 100] };
+    const over = { kind: "arc", to: [4.36, 100], center: [0, 0.1], direction: "cw", sweep: 5 };
+    expect(() => parsePath([top, markIn, over, markOut])).toThrow(/дуга выходит за сетку окна/);
+  });
+
+  it("пустой список заметок — то же, что его отсутствие", () => {
+    expect(parsePath([start, markIn, { kind: "line", to: [0, 50] }, markOut], { notes: [] })).toMatchObject({
+      notes: [],
+    });
+    expect(() => parsePath([start, markIn, { kind: "line", to: [0, 50] }, markOut], { notes: "текст" })).toThrow(
+      /notes: ожидается список строк/,
+    );
+  });
+
   it("принимает ту же дугу, записанную верно", () => {
     const arc = { kind: "arc", to: [20, 30], center: [0, 30], direction: "ccw", sweep: 90 };
     expect(parsePath([start, markIn, arc, markOut]).status).toBe("ok");
@@ -79,6 +98,7 @@ describe("parseGeometry", () => {
     [{ kind: "arc", to: [0, 40], center: [0, 40], direction: "cw", sweep: 360 }, /центр дуги совпадает с её началом/],
     [{ kind: "arc", to: [0, 40], center: [0, 15], direction: "cw", sweep: 360 }, /дуга выходит за сетку окна/],
     [{ kind: "line", to: [0, 40] }, /отрезок нулевой длины/],
+    [{ kind: "arc", to: [0, 40], center: [0, 60], direction: "cw", sweep: 0.01 }, /дуга нулевой длины/],
     [{ kind: "line", to: [101, 10] }, /вне сетки окна/],
     [{ kind: "line", to: [0, -1] }, /вне сетки окна/],
     [{ kind: "line", to: [0, 101] }, /вне сетки окна/],
@@ -116,7 +136,9 @@ describe("parseGeometry", () => {
 
   it.each([
     ["путь не с start", [markIn, { kind: "line", to: [0, 50] }, markOut], /путь начинается шагом «start»/],
-    ["нет ни одного отрезка", [start, markIn, markOut], /в пути нет ни одного отрезка или дуги/],
+    ["нет ни одного отрезка", [start, markIn, markOut], /между «in» и «out» нет ни одного отрезка или дуги/],
+    ["отрезок только после out", [start, markIn, markOut, { kind: "line", to: [0, 50] }], /между «in» и «out» нет/],
+    ["отрезок только до in", [start, { kind: "line", to: [0, 50] }, markIn, { kind: "mark", mark: "stall" }, markOut], /между «in» и «out» нет/],
     ["нет in", [start, { kind: "line", to: [0, 50] }, markOut], /ровно одна отметка «in»/],
     ["нет out", [start, markIn, { kind: "line", to: [0, 50] }], /ровно одна отметка «in»/],
     ["out раньше in", [start, markOut, { kind: "line", to: [0, 50] }, markIn], /ровно одна отметка «in»/],

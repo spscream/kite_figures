@@ -31,7 +31,7 @@ export default async function FigurePage({ params }: Props) {
       <p className="note">
         Точная формулировка и официальная схема —{" "}
         <a className="source" href={figure.sourceUrl} rel="noreferrer">
-          в первоисточнике, страница {figure.source.page}
+          {`в первоисточнике, страница ${figure.source.page}`}
         </a>
         .
       </p>

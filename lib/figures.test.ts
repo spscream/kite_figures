@@ -173,6 +173,7 @@ describe("listFigures", () => {
     ["discipline", figure({ discipline: "kiteboarding" }), /поле «discipline» — одно из/],
     ["discipline из прототипа", figure({ discipline: "toString" }), /поле «discipline» — одно из/],
     ["number", figure({ number: 0 }), /поле «number»/],
+    ["number больше 99", figure({ number: 100 }), /поле «number»/],
     ["дробный number", figure({ number: 2.5 }), /поле «number»/],
     ["name", figure({ name: "  " }), /поле «name»/],
     ["status", figure({ status: "retired" }), /поле «status» — одно из: current, obsolete/],
@@ -227,34 +228,40 @@ describe("getFigure", () => {
 // Проверка самих данных репозитория: то, что лежит в `data/figures/`, читается
 // тем же кодом, которым их читает сборка, и сверено с реестром источников.
 describe("каталог репозитория", () => {
-  const figures = listFigures(FIGURES_DIR);
+  // Чтение — внутри тестов, а не в теле describe: битый файл данных должен
+  // ронять названный тест, а не сбор всего файла.
+  const read = () => listFigures(FIGURES_DIR);
   const [book] = loadSources();
+
+  it("читается без ошибок: у каждой фигуры все обязательные поля, страницы в пределах документа", () => {
+    expect(read().length).toBeGreaterThan(0);
+  });
 
   it("реестр источников называет книгу фигур версии 3.0 на 125 страниц", () => {
     expect(book).toMatchObject({ id: "iskcb", version: "3.0", pages: 125, dated: "2017-04-01" });
   });
 
   it("раздел Dual-line Individual — шестнадцать фигур книги версии 3.0", () => {
-    const section = figures.filter((item) => item.discipline === "dual-line-individual");
+    const section = read().filter((item) => item.discipline === "dual-line-individual");
     expect(section.map((item) => item.number)).toEqual([2, 3, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
     expect(section.map((item) => item.source.page)).toEqual(section.map((_, index) => 16 + index));
   });
 
-  it.each(figures.map((item) => [item.code, item] as const))(
-    "%s: все обязательные сведения на месте",
-    (_code, item) => {
-      expect(item.name.trim()).not.toBe("");
-      expect(["current", "obsolete"]).toContain(item.status);
-      expect(item.source.version).toBe("3.0");
-      expect(item.source.page).toBeGreaterThanOrEqual(1);
-      expect(item.source.page).toBeLessThanOrEqual(125);
-      expect(item.source.read_on).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(item.sourceUrl).toBe(`${book.url}#page=${item.source.page}`);
+  it("у каждой фигуры все обязательные сведения на месте", () => {
+    for (const item of read()) {
+      expect(item.name.trim(), item.slug).not.toBe("");
+      expect(["current", "obsolete"], item.slug).toContain(item.status);
+      expect(item.source.version, item.slug).toBe("3.0");
+      expect(item.source.page, item.slug).toBeGreaterThanOrEqual(1);
+      expect(item.source.page, item.slug).toBeLessThanOrEqual(125);
+      expect(item.source.read_on, item.slug).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(item.sourceUrl, item.slug).toBe(`${book.url}#page=${item.source.page}`);
+      expect(item.summary.trim(), item.slug).not.toBe("");
       if (item.geometry.status === "ok") {
-        expect(item.geometry.variants.length).toBeGreaterThan(0);
+        expect(item.geometry.variants.length, item.slug).toBeGreaterThan(0);
       } else {
-        expect(item.geometry.reason.trim()).not.toBe("");
+        expect(item.geometry.reason.trim(), item.slug).not.toBe("");
       }
-    },
-  );
+    }
+  });
 });
