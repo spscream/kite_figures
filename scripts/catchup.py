@@ -35,8 +35,16 @@ CI #37638111791 на main (workflow_dispatch от github-actions[bot]) заве�
 машине выката и передаёт сюда (`--deployed` или DEPLOYED_REVISION).
 
 Код возврата. 0 — делать нечего, идёт чужая работа или выкат запущен. 1 —
-CI на main красный или не завершился за время опроса, ответ API неполон или
-не пришёл, запуск отклонён: без человека голова main на сайт не попадёт.
+CI на main красный или не завершился за время опроса, очередь выката за это
+время не освободилась, ответ API неполон или не пришёл, запуск отклонён: без
+человека голова main на сайт не попадёт.
+
+Чего довоз не закрывает. Одна ревизия может выехать дважды: ревизию сайта
+читает джоба до очереди, и довоз, ждавший в очереди за другим, может не
+увидеть только что запущенный тем выкат. Повторный выкат той же ревизии
+безвреден. Выкат запускается на ветке, а не на sha: влей кто-то PR в секунды
+между решением и запуском — выкат возьмёт новую голову, не найдёт у неё
+зелёного CI и покраснеет; её довезёт следующий довоз.
 
 Локальная проверка на настоящем репозитории, без запусков (модулем из корня:
 общие с авто-мержем функции берутся из scripts/automerge.py):
@@ -57,6 +65,7 @@ from scripts.automerge import CI_WORKFLOW_NAME, gh_json, report
 
 NOTHING = "nothing"
 WAIT = "wait"
+BUSY = "busy"
 FOLLOW = "follow"
 RUN_CI = "run-ci"
 RUN_DEPLOY = "run-deploy"
@@ -93,9 +102,9 @@ def decide(head: str, deployed: str, runs: dict, deploys: dict, *, base: str) ->
     /actions/workflows/ci.yml/runs?head_sha=HEAD; `deploys` — последние
     прогоны воркфлоу выката, /actions/workflows/deploy.yml/runs.
 
-    WAIT — работа идёт и довезёт сама, следить незачем. FOLLOW — идёт CI,
-    запущенный вручную: его завершение выката не запустит, и за ним надо
-    проследить до конца.
+    WAIT — идёт CI по пушу: он довезёт сам, следить незачем. FOLLOW — идёт
+    CI, запущенный вручную: его завершение выката не запустит, и за ним надо
+    проследить до конца. BUSY — CI зелёный, но очередь выката занята.
     """
     if not SHA.fullmatch(head):
         return Verdict(STUCK, f"голова {base} — не sha: «{head[:60]}»")
@@ -119,6 +128,16 @@ def decide(head: str, deployed: str, runs: dict, deploys: dict, *, base: str) ->
     if not ci:
         # Идущий выкат этому не помеха: он чужого коммита, а CI ему не мешает.
         return Verdict(RUN_CI, f"у головы {base} {head[:8]} нет прогона CI на {base}")
+    active = [run for run in ci if run.get("status") != "completed"]
+    # Хоть один идущий прогон по пушу: его завершение запустит выкат само, и
+    # довоз, выкатив рядом с ним, выложил бы ту же ревизию дважды. Проверка
+    # стоит раньше зелёного: зелёный близнец, запущенный вручную, этого не
+    # отменяет.
+    for run in active:
+        if run.get("event") == SELF_DEPLOYING_EVENT:
+            return Verdict(
+                WAIT, f"CI #{run.get('id')} по пушу на {head[:8]} ещё идёт ({run.get('status')})"
+            )
     if any(run.get("status") == "completed" and run.get("conclusion") == "success" for run in ci):
         # Идущий выкат — любого коммита: очередь у выката одна, и запущенный
         # поверх неё второй выложил бы ту же ревизию дважды. Смотрим только
@@ -130,21 +149,12 @@ def decide(head: str, deployed: str, runs: dict, deploys: dict, *, base: str) ->
             return Verdict(STUCK, "в ответе о прогонах выката нет списка")
         for run in all_deploys:
             if run.get("status") != "completed":
-                return Verdict(WAIT, f"выкат #{run.get('id')} ещё идёт ({run.get('status')})")
+                return Verdict(BUSY, f"выкат #{run.get('id')} ещё идёт ({run.get('status')})")
         return Verdict(
             RUN_DEPLOY,
             f"CI на {base} у {head[:8]} зелёный, а на сайте {deployed[:8]}",
         )
-    active = [run for run in ci if run.get("status") != "completed"]
     if active:
-        # Хоть один идущий прогон по пушу: его завершение запустит выкат
-        # само, и довоз, проследив за ним, выкатил бы второй раз.
-        for run in active:
-            if run.get("event") == SELF_DEPLOYING_EVENT:
-                return Verdict(
-                    WAIT,
-                    f"CI #{run.get('id')} по пушу на {head[:8]} ещё идёт ({run.get('status')})",
-                )
         run = active[0]
         return Verdict(
             FOLLOW,
@@ -246,7 +256,7 @@ def main(argv: list[str] | None = None) -> int:
         if verdict.action == STUCK:
             report(f"Довоз не состоялся: {verdict.reason}.")
             return 1
-        if verdict.action == NOTHING or (verdict.action == WAIT and followed is None):
+        if verdict.action in (NOTHING, WAIT) or (verdict.action == BUSY and followed is None):
             report(f"Запускать нечего: {verdict.reason}.")
             return 0
         if args.dry_run:
@@ -268,15 +278,16 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             launched_ci = True
             report(f"{verdict.reason} — запущен {CI_WORKFLOW_FILE} на {base}, жду его завершения.")
-        # RUN_CI и FOLLOW: дальше следим за CI этой головы. WAIT сюда доходит,
-        # только когда мы уже следим: CI позеленел, но идёт чей-то выкат —
-        # уйди довоз сейчас, эту голову до расписания никто бы не повёз.
+        # RUN_CI и FOLLOW: дальше следим за CI этой головы. BUSY сюда доходит,
+        # только когда мы уже следим: CI позеленел, но идёт выкат прежнего
+        # коммита (два PR влиты подряд) — уйди довоз сейчас, эту голову до
+        # расписания никто бы не повёз.
         if followed is None and SHA.fullmatch(head):
             followed = head
         if attempt < args.attempts:
             time.sleep(args.interval)
 
-    report(f"Довоз не состоялся: за {args.attempts} опросов CI не завершился — {reason}.")
+    report(f"Довоз не состоялся: за {args.attempts} опросов голова не довезена — {reason}.")
     return 1
 
 

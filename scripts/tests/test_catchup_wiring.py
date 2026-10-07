@@ -1,7 +1,7 @@
 """Проводка довоза: коммит авто-мержа доезжает до сайта по цепочке из трёх воркфлоу.
 
-Automerge влил PR → catchup.yml сверил голову main с ревизией на хосте и
-запустил CI на main → зелёный CI запустил deploy.yml. Каждое звено записано в
+Automerge влил PR → catchup.yml сверил голову main с ревизией на хосте,
+запустил CI на main, дождался зелёного и запустил deploy.yml. Каждое звено записано в
 своём файле, и разойдись они — имя воркфлоу, имя файла, событие, — цепочка
 рвётся молча: все прогоны зелёные, а сайт стоит на старой ревизии. Тесты на
 `decide` (test_catchup.py) этого не видят: они зовут скрипт напрямую.
@@ -185,7 +185,9 @@ class CatchupWiringCase(unittest.TestCase):
         attempts = int(re.search(r'"--attempts", type=int, default=(\d+)', parser_defaults).group(1))
         interval = float(re.search(r'"--interval", type=float, default=([\d.]+)', parser_defaults).group(1))
         self.assertGreaterEqual(attempts * interval, ci_limit * 60)
-        self.assertGreater(minutes(self.dispatch) * 60, attempts * interval)
+        # Сверх сна между опросами — чекаут и сами запросы: по паре секунд на
+        # опрос. Две минуты запаса это покрывают.
+        self.assertGreaterEqual(minutes(self.dispatch) * 60, attempts * interval + 120)
 
     def test_the_runner_job_queues_apart_from_the_deploy(self):
         # В одной группе с выкатом сверка вытесняла бы ждущий выкат.

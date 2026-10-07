@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 
 from scripts import catchup
-from scripts.catchup import FOLLOW, NOTHING, RUN_CI, RUN_DEPLOY, STUCK, WAIT, decide
+from scripts.catchup import BUSY, FOLLOW, NOTHING, RUN_CI, RUN_DEPLOY, STUCK, WAIT, decide
 
 HEAD = "a" * 40
 OLD = "b" * 40
@@ -101,6 +101,10 @@ class DecideCase(unittest.TestCase):
     def test_one_run_that_deploys_by_itself_is_enough_to_stand_back(self):
         runs = listing(running(run_id=1), running(event="push", run_id=2))
         self.assertEqual(self.decide(runs=runs).action, WAIT)
+        # И зелёный близнец, запущенный вручную, этого не отменяет: выкатит
+        # завершение прогона по пушу.
+        runs = listing(ci_run(run_id=1), running(event="push", run_id=2))
+        self.assertEqual(self.decide(runs=runs).action, WAIT)
 
     def test_ci_is_not_started_twice_while_a_red_twin_is_finished(self):
         runs = listing(ci_run(conclusion="failure", run_id=1), running(run_id=2))
@@ -119,7 +123,7 @@ class DecideCase(unittest.TestCase):
             with self.subTest(status=status):
                 deploys = listing(deploy_run(), deploy_run(status=status, conclusion=None))
                 verdict = self.decide(runs=listing(ci_run()), deploys=deploys)
-                self.assertEqual(verdict.action, WAIT)
+                self.assertEqual(verdict.action, BUSY)
 
     def test_a_running_deploy_of_an_older_commit_does_not_hold_ci_back(self):
         # Два PR влиты подряд: выкат первого ещё в очереди, а у второго нет
@@ -242,6 +246,60 @@ class MainCase(unittest.TestCase):
         self.assertEqual(launched, [CI_LAUNCH, DEPLOY_LAUNCH])
         self.assertEqual(self.sleeps, 4)
 
+    def test_a_push_that_lands_on_the_followed_head_takes_the_deploy_over(self):
+        # CI запущен довозом, а в списке рядом объявился прогон по пушу: тот
+        # выкатит сам, и довоз отходит — и пока прогон идёт, и когда свой CI
+        # уже позеленел.
+        for third in (listing(running(), running(event="push", run_id=2)),
+                      listing(ci_run(), running(event="push", run_id=2))):
+            with self.subTest(third=third):
+                code, launched, _ = self.run_main(listing(), listing(running()), third)
+                self.assertEqual(code, 0)
+                self.assertEqual(launched, [CI_LAUNCH])
+
+    def test_a_running_deploy_met_before_following_is_left_alone(self):
+        busy = listing(deploy_run(status="in_progress", conclusion=None))
+        code, launched, _ = self.run_main(listing(ci_run()), deploys=busy)
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [])
+        self.assertEqual(self.sleeps, 0)
+
+    def test_a_deploy_queue_that_never_clears_fails_the_run(self):
+        busy = listing(deploy_run(status="queued", conclusion=None))
+        code, launched, out = self.run_main(
+            listing(), listing(ci_run()), deploys=busy, argv=["--attempts", "4"])
+        self.assertEqual(code, 1)
+        self.assertEqual(launched, [CI_LAUNCH])
+        self.assertIn("выкат #200 ещё идёт", out)
+
+    def test_an_unknown_default_branch_fails_the_run(self):
+        for error in (subprocess.CalledProcessError(1, "gh", stderr="HTTP 502"), KeyError("x")):
+            with self.subTest(error=error):
+                def gh_json(*args, error=error):
+                    raise error
+
+                launched = mock.Mock()
+                with mock.patch.object(catchup, "gh_json", gh_json), \
+                        mock.patch.object(catchup.subprocess, "run", launched), \
+                        mock.patch.dict("os.environ", {}, clear=True), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    code = catchup.main(["--repo", "octo/repo", "--deployed", OLD])
+                self.assertEqual(code, 1)
+                launched.assert_not_called()
+
+    def test_a_dry_run_against_a_silent_api_is_not_a_green_verdict(self):
+        silent = subprocess.CalledProcessError(1, "gh", stderr="HTTP 502")
+        code, launched, out = self.run_main(silent, argv=["--dry-run"])
+        self.assertEqual(code, 1)
+        self.assertEqual(launched, [])
+        self.assertIn("HTTP 502", out)
+
+    def test_an_answer_of_the_wrong_shape_is_a_hiccup_too(self):
+        code, launched, _ = self.run_main(
+            listing(), ValueError("не JSON"), KeyError("sha"), listing(ci_run()))
+        self.assertEqual(code, 0)
+        self.assertEqual(launched, [CI_LAUNCH, DEPLOY_LAUNCH])
+
     def test_a_green_head_launches_the_deploy_on_main(self):
         code, launched, _ = self.run_main(listing(ci_run()))
         self.assertEqual(code, 0)
@@ -261,7 +319,7 @@ class MainCase(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(launched, [CI_LAUNCH])
         self.assertEqual(self.sleeps, 4)
-        self.assertIn("за 5 опросов CI не завершился", out)
+        self.assertIn("за 5 опросов голова не довезена", out)
 
     def test_ci_that_never_shows_up_is_not_launched_again(self):
         code, launched, _ = self.run_main(listing(), argv=["--attempts", "6"])
