@@ -26,6 +26,13 @@ const STATUSES = [
   ["obsolete", "Выведены из действующей редакции"],
 ];
 const OBSOLETE_NOTE = '<p class="status">Фигура выведена из действующей редакции правил.</p>';
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+
+// Дата редакции словами — повторено намеренно, как и названия разделов ниже.
+function longDate(date) {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${day} ${MONTHS[month - 1]} ${year} года`;
+}
 
 const problems = [];
 
@@ -1037,6 +1044,34 @@ for (const slug of slugs) {
         ? `${where} не сказано, что фигура выведена из действующей редакции`
         : `${where} действующая фигура помечена выведенной`,
     );
+  }
+  // Действующая редакция — первый документ реестра. Страница фигуры, снятой с
+  // другой редакции, называет её версию и дату, и ссылка на первоисточник
+  // говорит, какой это версии документ; у остальных такой отметки нет.
+  const earlier = document !== undefined && document !== documents[0];
+  const editions = main.split('class="edition"').length - 1;
+  if (editions !== (earlier ? 1 : 0)) {
+    problems.push(
+      earlier
+        ? `${where} не сказано, что схема снята с версии ${source.version}`
+        : `${where} есть отметка о прежней редакции, а фигура снята с действующей`,
+    );
+  }
+  if (earlier) {
+    const note = `<p class="edition">Схема и шаги сняты с прежней редакции книги фигур — версии ${escapeHtml(source.version)} от ${longDate(document.dated)}: в действующей версии ${escapeHtml(documents[0].version)} страницы этой фигуры нет.</p>`;
+    if (!main.includes(note)) {
+      problems.push(`${where} отметка о прежней редакции не называет версию ${source.version} и её дату`);
+    }
+    // Две отметки стоят подряд: сначала «выведена», сразу за ней — редакция.
+    const status = main.indexOf('class="status"');
+    if (status === -1 || !main.startsWith(note, main.indexOf("</p>", status) + "</p>".length)) {
+      problems.push(`${where} отметка о прежней редакции стоит не сразу за отметкой о выведенной фигуре`);
+    }
+    if (!main.includes(`в первоисточнике версии ${escapeHtml(source.version)}, страница ${source.page}</a>`)) {
+      problems.push(`${where} ссылка на первоисточник не называет версию ${source.version}`);
+    }
+  } else if (!main.includes(`в первоисточнике, страница ${source.page}</a>`)) {
+    problems.push(`${where} ссылка на первоисточник действующей редакции названа иначе`);
   }
 }
 

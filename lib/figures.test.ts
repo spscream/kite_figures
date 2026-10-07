@@ -232,7 +232,7 @@ describe("каталог репозитория", () => {
   // Чтение — внутри тестов, а не в теле describe: битый файл данных должен
   // ронять названный тест, а не сбор всего файла.
   const read = () => listFigures(FIGURES_DIR);
-  const [book] = loadSources();
+  const [book, earlier] = loadSources();
 
   it("читается без ошибок: у каждой фигуры все обязательные поля, страницы в пределах документа", () => {
     expect(read().length).toBeGreaterThan(0);
@@ -240,6 +240,28 @@ describe("каталог репозитория", () => {
 
   it("реестр источников называет книгу фигур версии 3.0 на 125 страниц", () => {
     expect(book).toMatchObject({ id: "iskcb", version: "3.0", pages: 125, dated: "2017-04-01" });
+  });
+
+  it("вторым в реестре стоит прежняя редакция — версия 2.2.1 на 108 страниц", () => {
+    expect(loadSources()).toHaveLength(2);
+    expect(earlier).toMatchObject({ id: "iskcb", version: "2.2.1", pages: 108, dated: "2011-12-05" });
+  });
+
+  // Версия 3.0 главная: прежняя редакция годится только там, где у версии 3.0
+  // схемы нет, то есть у фигур, которые она вывела из обязательных.
+  it("с прежней редакции сняты только выведенные фигуры, и у каждой из них есть схема", () => {
+    const fromEarlier = read().filter((item) => item.source.version !== book.version);
+    expect(fromEarlier.map((item) => item.slug)).toEqual([
+      "dt-14-have-fun",
+      "dt-15-solaris",
+      "mi-18-roman-ten",
+      "mp-05-sticky-wicket",
+    ]);
+    for (const item of fromEarlier) {
+      expect(item.status, item.slug).toBe("obsolete");
+      expect(item.geometry.status, item.slug).toBe("ok");
+    }
+    expect(read().filter((item) => item.status === "current").map((item) => item.source.version)).not.toContain("2.2.1");
   });
 
   it("раздел Dual-line Individual — шестнадцать фигур книги версии 3.0", () => {
@@ -252,11 +274,12 @@ describe("каталог репозитория", () => {
     for (const item of read()) {
       expect(item.name.trim(), item.slug).not.toBe("");
       expect(["current", "obsolete"], item.slug).toContain(item.status);
-      expect(item.source.version, item.slug).toBe("3.0");
+      const document = [book, earlier].find((source) => source.version === item.source.version);
+      expect(document, item.slug).toBeDefined();
       expect(item.source.page, item.slug).toBeGreaterThanOrEqual(1);
-      expect(item.source.page, item.slug).toBeLessThanOrEqual(125);
+      expect(item.source.page, item.slug).toBeLessThanOrEqual(document!.pages);
       expect(item.source.read_on, item.slug).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(item.sourceUrl, item.slug).toBe(`${book.url}#page=${item.source.page}`);
+      expect(item.sourceUrl, item.slug).toBe(`${document!.url}#page=${item.source.page}`);
       expect(item.summary.trim(), item.slug).not.toBe("");
       if (item.geometry.status === "ok") {
         expect(item.geometry.variants.length, item.slug).toBeGreaterThan(0);

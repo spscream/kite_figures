@@ -132,7 +132,8 @@ h1 {
   font-size: 0.875rem;
 }
 
-.status {
+.status,
+.edition {
   padding: 0.5rem 0.75rem;
   border-left: 3px solid var(--muted);
   color: var(--muted);

@@ -4,7 +4,226 @@
   "number": 14,
   "name": "Have Fun",
   "status": "obsolete",
-  "source": {"document": "iskcb", "version": "3.0", "page": 13, "read_on": "2026-10-07"},
-  "summary": "Фигура выведена из книги: версия 3.0 называет её в списке снятых после версии 2.2.1 и схемы не приводит.",
-  "geometry": {"status": "not_found", "reason": "В книге версии 3.0 у фигуры нет страницы со схемой и описанием: она названа в оглавлении раздела на странице 47 и в списке снятых фигур на странице 13, а страницы фигур раздела (48–69) её не содержат. Геометрию снять не с чего."}
+  "source": {"document": "iskcb", "version": "2.2.1", "page": 61, "read_on": "2026-10-08", "page_version": "2005-08-01"},
+  "summary": "Кайты взлетают в ряд с земли в левой части окна, поднимаются до высоты 80 и уходят вправо друг за другом. Каждый делает под линией прохода свою маленькую петлю по часовой стрелке и с неё по наклонной спускается влево, к центру окна, где команда садится в ряд на оба конца крыла. Фигура выведена из обязательных версией 3.0.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-80, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-80, 80]},
+              {"kind": "line", "to": [20, 80]},
+              {"kind": "arc", "to": [20, 80], "center": [20, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [26.42, 68.62], "center": [20, 72.5], "direction": "cw", "sweep": 121.11, "basis": "measured"},
+              {"kind": "line", "to": [-15, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-65, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-65, 80], "basis": "measured"},
+              {"kind": "line", "to": [50, 80], "basis": "measured"},
+              {"kind": "arc", "to": [50, 80], "center": [50, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [55.79, 67.73], "center": [50, 72.5], "direction": "cw", "sweep": 129.48, "basis": "measured"},
+              {"kind": "line", "to": [0, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-50, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-50, 80]},
+              {"kind": "line", "to": [80, 80]},
+              {"kind": "arc", "to": [80, 80], "center": [80, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [85.18, 67.08], "center": [80, 72.5], "direction": "cw", "sweep": 136.3, "basis": "measured"},
+              {"kind": "line", "to": [15, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 61 книги версии 2.2.1, прочитана 2026-10-08) вспомогательных линий нет."}
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 62,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-80, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-80, 80]},
+              {"kind": "line", "to": [20, 80]},
+              {"kind": "arc", "to": [20, 80], "center": [20, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [26.42, 68.62], "center": [20, 72.5], "direction": "cw", "sweep": 121.11, "basis": "measured"},
+              {"kind": "line", "to": [-15, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-70, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-70, 80]},
+              {"kind": "line", "to": [40, 80]},
+              {"kind": "arc", "to": [40, 80], "center": [40, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [46, 68], "center": [40, 72.5], "direction": "cw", "sweep": 126.87, "basis": "measured"},
+              {"kind": "line", "to": [-5, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-60, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-60, 80]},
+              {"kind": "line", "to": [60, 80]},
+              {"kind": "arc", "to": [60, 80], "center": [60, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [65.58, 67.49], "center": [60, 72.5], "direction": "cw", "sweep": 131.91, "basis": "measured"},
+              {"kind": "line", "to": [5, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 0]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-50, 80]},
+              {"kind": "line", "to": [80, 80]},
+              {"kind": "arc", "to": [80, 80], "center": [80, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [85.18, 67.08], "center": [80, 72.5], "direction": "cw", "sweep": 136.3, "basis": "measured"},
+              {"kind": "line", "to": [15, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 62 книги версии 2.2.1, прочитана 2026-10-08) вспомогательных линий нет."}
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 62,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-85, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-85, 80], "basis": "measured"},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "arc", "to": [0, 80], "center": [0, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [7, 69.79], "center": [0, 72.5], "direction": "cw", "sweep": 111.15, "basis": "measured"},
+              {"kind": "line", "to": [-20, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-75, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-75, 80], "basis": "measured"},
+              {"kind": "line", "to": [20, 80]},
+              {"kind": "arc", "to": [20, 80], "center": [20, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [26.62, 68.98], "center": [20, 72.5], "direction": "cw", "sweep": 117.96, "basis": "measured"},
+              {"kind": "line", "to": [-10, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-65, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-65, 80], "basis": "measured"},
+              {"kind": "line", "to": [40, 80]},
+              {"kind": "arc", "to": [40, 80], "center": [40, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [46.21, 68.3], "center": [40, 72.5], "direction": "cw", "sweep": 124.08, "basis": "measured"},
+              {"kind": "line", "to": [0, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-55, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-55, 80], "basis": "measured"},
+              {"kind": "line", "to": [60, 80]},
+              {"kind": "arc", "to": [60, 80], "center": [60, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [65.79, 67.73], "center": [60, 72.5], "direction": "cw", "sweep": 129.48, "basis": "measured"},
+              {"kind": "line", "to": [10, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-45, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-45, 80], "basis": "measured"},
+              {"kind": "line", "to": [80, 80]},
+              {"kind": "arc", "to": [80, 80], "center": [80, 72.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [85.38, 67.27], "center": [80, 72.5], "direction": "cw", "sweep": 134.18, "basis": "measured"},
+              {"kind": "line", "to": [20, 0], "basis": "measured"},
+              {"kind": "mark", "mark": "landing", "style": "two-point"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 62 книги версии 2.2.1, прочитана 2026-10-08) вспомогательных линий нет."}
+      }
+    ],
+    "notes": [
+      "Геометрия снята с книги версии 2.2.1 от 5 декабря 2011 года: в версии 3.0 страницы у фигуры нет, она названа только в оглавлении раздела на странице 47 и в перечне отменённых на странице 13.",
+      "Название в версии 2.2.1 напечатано слитно — «HaveFun»; в данных оно записано раздельно, как в перечне отменённых на странице 13 версии 3.0 (её оглавление раздела тоже печатает слитно).",
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: подпись In стоит у взлёта кайта №1, Out — у меток посадки.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайтов стоят на нижней рамке сетки. Слова Launch на схеме нет; вид посадки назван и на схеме («2-Point Landings»), и в пояснении. Пояснение добавляет, что заход на посадку идёт по часовой стрелке; в данных это спуск с петли, пройденной по часовой стрелке.",
+      "Петля — окружность под линией прохода, касается её сверху; направление — по часовой стрелке, так стоят метки кайта на петлях. Размер не подписан: подгонка окружности по всем двенадцати петлям трёх схем даёт радиус от 7,51 до 7,55 и центр на высоте 72,35–72,40; записаны радиус 7,5 и центр на высоте 72,5, точность — около четверти единицы. Центры петель по горизонтали стоят на подписанных линиях, кроме средней петли схемы для трёх кайтов (x = 50, замер 50,1).",
+      "Петля записана двумя дугами одной окружности: полный круг и ещё часть, до точки, где от окружности по касательной уходит спуск к месту посадки. Эта точка вычислена из окружности и места посадки и записана с двумя знаками. Проверка: нарисованные спуски проходят от центров своих петель на расстоянии от 7,2 до 7,7.",
+      "Места посадки на схеме не подписаны. Записаны −15, 0 и 15 для трёх кайтов, −15, −5, 5 и 15 для четырёх, от −20 до 20 через 10 для пяти: метки посадки стоят на −14,4, 0,2 и 15,7; на −14,7, −4,6, 5,4 и 15,5; на −19,8, −9,9, 0,2 и 10,2 (пятая метка чёрная, её место взято по спуску). Точность — около единицы.",
+      "Вертикали взлёта, не попавшие на подписанные линии, сняты замером: x = −65 у кайта №2 на схеме для трёх (замер −64,9) и все пять на схеме для пяти (замер −85,1, −75,2, −65,3, −55,1 и −45,2; записано от −85 до −45 через 10).",
+      "У меток посадки на схеме для трёх кайтов третий кайт подписан цифрой 4.",
+      "Пояснение требует, чтобы кайты всю фигуру держались горизонтально относительно друг друга. Одновременности отдельных шагов схема не показывает, и меток sync на шагах нет."
+    ]
+  }
 }
