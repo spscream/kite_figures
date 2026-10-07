@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 31,
+  "name": "Circle Over Clock",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 93, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Проход влево на высоте 40 с петлёй над центром окна, вертикальный слайд вниз до высоты 10, полёт назад до центра, разворот на месте на 180° против часовой стрелки и выход вперёд под точкой входа.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [40, 40]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "arc", "to": [0, 40], "center": [0, 50], "direction": "cw", "sweep": 360},
+              {"kind": "line", "to": [-40, 40]},
+              {"kind": "line", "to": [-40, 10], "nose": 270},
+              {"kind": "line", "to": [0, 10], "nose": "backward"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [40, 10]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "На странице редакция фигуры напечатана как «2017-04-01b»; в «page_version» записана дата без буквы."
+    ]
+  }
+}

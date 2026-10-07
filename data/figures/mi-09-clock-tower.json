@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 9,
+  "name": "Clock Tower",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 76, "read_on": "2026-10-07", "page_version": "2005-08-01"},
+  "summary": "Вертикаль вниз по центру окна носом вверх с двумя полными оборотами вокруг центра кайта: на высоте 50 — по часовой стрелке, на высоте 30 — против.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 80]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [0, 50], "nose": "backward"},
+              {"kind": "rotate", "degrees": 360, "direction": "cw"},
+              {"kind": "line", "to": [0, 30], "nose": "backward"},
+              {"kind": "rotate", "degrees": 360, "direction": "ccw"},
+              {"kind": "line", "to": [0, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Каждый оборот выполняется восемью отдельными шагами по 45° — так сказано в пояснении и подписано на схеме. Отдельного поля для числа шагов в формате нет.",
+      "Посадка записана на уровне земли (y = 0): метка Out на схеме стоит на нижней рамке окна. Слова о посадке на странице нет; отметка поставлена по положению метки."
+    ]
+  }
+}

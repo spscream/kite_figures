@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 21,
+  "name": "Diamond",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 83, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Ромб по часовой стрелке от нижней вершины на высоте 10, все стороны — полётом вперёд. В каждой вершине кайт поворачивается вокруг центра: 45°, 270° и 270° против часовой стрелки, затем 450° и 135° по часовой.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "rotate", "degrees": 45, "direction": "ccw"},
+              {"kind": "line", "to": [-30, 40]},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "rotate", "degrees": 270, "direction": "ccw"},
+              {"kind": "line", "to": [30, 40]},
+              {"kind": "rotate", "degrees": 450, "direction": "cw"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "rotate", "degrees": 135, "direction": "cw"},
+              {"kind": "line", "to": [0, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Углы и направления поворотов названы в пояснении. Курс носа на сторонах вычислен из них: после каждого поворота нос смотрит вдоль следующей стороны, то есть все четыре стороны летятся вперёд. Метки кайта на сторонах стоят поперёк линии, но схема мелкая, и переднюю кромку на наклонных метках по ней не различить.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Слов о взлёте и посадке на странице нет; отметки поставлены по положению меток In и Out."
+    ]
+  }
+}

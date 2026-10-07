@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 23,
+  "name": "Slide and Square",
+  "level": "Intermediate",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 85, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Подъём по центру до высоты 80 и спуск обратно в точку взлёта с обходом квадрата слева от центральной линии; нос всё время вверх, так что спуски летятся задним ходом, а горизонтали — слайдом. Остановка в каждой из пяти узловых точек.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 50], "nose": "backward"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [-30, 50], "nose": 0},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [-30, 20], "nose": "backward"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 20], "nose": 0},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна."
+    ]
+  }
+}

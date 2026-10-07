@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 15,
+  "name": "Pivots",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 78, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Подъём слева, горизонталь на высоте 30 через всё окно и спуск справа. В пяти точках горизонтали кайт останавливается и поворачивается, так что четыре её отрезка летятся по-разному: перевёрнутый слайд, полёт назад, слайд, полёт вперёд.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-80, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-80, 30]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 30], "nose": 180},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 30], "nose": "backward"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 30], "nose": 0},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [80, 30]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [80, 0]},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта. Направления поворотов названы в пояснении, углы подписаны на схеме.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Слов о взлёте и посадке на странице нет; отметки поставлены по положению меток. Метка Out стоит носом вниз."
+    ]
+  }
+}

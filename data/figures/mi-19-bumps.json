@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 19,
+  "name": "Bumps",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 81, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Три одинаковых полукруга от земли до земли слева направо с посадкой после каждого: первый и третий летятся вперёд, второй — задним ходом.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-90, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "arc", "to": [-30, 0], "center": [-60, 0], "direction": "cw", "sweep": 180},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "arc", "to": [30, 0], "center": [0, 0], "direction": "cw", "sweep": 180, "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "arc", "to": [90, 0], "center": [60, 0], "direction": "cw", "sweep": 180},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Повторные взлёты после первой и второй посадки отдельными отметками не записаны."
+    ]
+  }
+}

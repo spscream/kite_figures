@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 29,
+  "name": "Quadrato",
+  "level": "Intermediate",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 91, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Квадрат против часовой стрелки со входом и выходом через середину нижней стороны; взлёт и посадка в одной точке на левой законцовке. Поворотов два: на 90° по часовой стрелке в правом нижнем углу и на 90° против — в правом верхнем.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 10], "nose": 270},
+              {"kind": "line", "to": [30, 10], "nose": "backward"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [30, 70]},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-30, 70]},
+              {"kind": "line", "to": [-30, 10], "nose": 270},
+              {"kind": "line", "to": [0, 10], "nose": "backward"},
+              {"kind": "line", "to": [0, 0], "nose": 270},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Вид посадки — на законцовку крыла — в перечне формата не предусмотрен, поэтому «style» не указан."
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 26,
+  "name": "The Arch with Stops",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 88, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Та же арка от земли до земли, но с тремя остановками: в начале полукруга, в его верхней точке и в конце.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-30, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-30, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [0, 80], "center": [0, 50], "direction": "cw", "sweep": 90},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [30, 50], "center": [0, 50], "direction": "cw", "sweep": 90},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [30, 0]},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Метка Out стоит носом вниз; вид посадки страница не называет.",
+      "Остановок три — так в пояснении; на схеме подписаны две, в начале и в конце полукруга."
+    ]
+  }
+}

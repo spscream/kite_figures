@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 34,
+  "name": "Circle",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 96, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Взлёт с правой законцовки, вертикальный слайд по центру до высоты 20, остановка, один полный круг против часовой стрелки вперёд, снова остановка и слайд вниз до посадки на ту же законцовку.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 20], "nose": 90},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [0, 20], "center": [0, 50], "direction": "ccw", "sweep": 360},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 0], "nose": 90},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Вид посадки — на законцовку крыла — в перечне формата не предусмотрен, поэтому «style» не указан."
+    ]
+  }
+}

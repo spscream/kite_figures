@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 33,
+  "name": "Home Sweet Home",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 95, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Контур домика: левая стена вверх, двускатная крыша через вершину на высоте 90, правая стена вниз, затем на высоте 5 перевёрнутым слайдом к дверному проёму и обход двери. Остановки с поворотами по часовой стрелке — в углах крыши и на её вершине.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-40, 5]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-40, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 45, "direction": "cw"},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 50]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 45, "direction": "cw"},
+              {"kind": "line", "to": [40, 5]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [10, 5], "nose": 180},
+              {"kind": "line", "to": [10, 20], "nose": "backward"},
+              {"kind": "line", "to": [-10, 20], "nose": 180},
+              {"kind": "line", "to": [-10, 5]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта. Углы поворотов и четыре остановки подписаны на схеме; остановка перед выходом — по пояснению."
+    ]
+  }
+}

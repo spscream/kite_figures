@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 4,
+  "name": "Two Down",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 73, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Змейка сверху вниз: проход вправо, вертикальный слайд вниз, проход назад влево, поворот на 90° и спуск носом вниз, затем перевёрнутый слайд вправо.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-40, 70]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [40, 70]},
+              {"kind": "line", "to": [40, 40], "nose": 90},
+              {"kind": "line", "to": [-40, 40], "nose": "backward"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-40, 10]},
+              {"kind": "line", "to": [40, 10], "nose": 180},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта. Пояснения на странице нет; поворот на схеме подписан один — 90° в левом конце среднего прохода."
+    ]
+  }
+}

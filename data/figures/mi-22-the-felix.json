@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 22,
+  "name": "The Felix",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 84, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Буква S над центром окна: с земли до высоты 10, дуга влево до 40, дуга вправо до 70, разворот на 180° и возврат тем же путём; остановка в каждой узловой точке, посадка на правую законцовку.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 10], "basis": "text", "nose": 270},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [0, 40], "center": [0, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [0, 70], "center": [0, 55], "direction": "ccw", "sweep": 180, "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "arc", "to": [0, 40], "center": [0, 55], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "arc", "to": [0, 10], "center": [0, 25], "direction": "ccw", "sweep": 180, "basis": "derived"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 0], "basis": "text", "nose": 90},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Концы дуг — высоты 10, 40 и 70 на центральной линии — названы в пояснении и стоят на подписанных линиях. Радиус не подписан: крайние точки дуг на схеме лежат на x = ∓15 (замер, точность — около половины единицы), то есть дуги — полуокружности, и центры вычислены из этого.",
+      "Первый и последний отрезки — вертикальный слайд: метки кайта стоят вертикально. Курс носа на них вычислен: дуги летятся вперёд, а посадка — на правую законцовку.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Вид посадки — на законцовку крыла — в перечне формата не предусмотрен, поэтому «style» не указан."
+    ]
+  }
+}
