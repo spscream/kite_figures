@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 7,
+  "name": "Sorted Rectangle",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 56, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты спускаются по обоим краям окна, нечётные слева, чётные справа, и низким проходом над землёй сходятся к центру, где по очереди, как зубцы застёжки, сворачивают вверх в одну колонну. С центральной вертикали каждый уходит в свою сторону на прямоугольник — нечётные влево, чётные вправо, каждый следующий ниже предыдущего, — возвращается по нижней его стороне к центру и снова уходит вверх.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 60]},
+              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 30]},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 57,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 60]},
+              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 30]},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [80, 20]},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [0, 60]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 57,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [90, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 60]},
+              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 80]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 30]},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [80, 20]},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [0, 60]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-90, 60]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-90, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 5], "basis": "measured"},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [-80, 30]},
+              {"kind": "line", "to": [-80, 10]},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Высота низкого прохода на схеме не подписана: самая нижняя подписанная линия — 10. Проход записан на y = 5 по замеру (4,5 при точности около половины единицы).",
+      "Порядок, в котором кайты встают в колонну на центральной вертикали, схема показывает только итоговой расстановкой у отметки Out (№1 сверху, дальше по номерам) и пояснением на странице; метки на входных вертикалях стоят попарно на одной высоте и момент слияния не передают.",
+      "Нижняя сторона прямоугольника одного кайта совпадает с верхней стороной прямоугольника следующего с той же стороны окна (слева — на высоте 50 у №1 и №3 и на 30 у №3 и №5, справа — на 40 у №2 и №4): по ней они летят навстречу друг другу. На схеме для трёх кайтов на высоте 40 справа нарисована метка «#4», хотя кайта №4 в этом составе нет; в данные она не внесена."
+    ]
+  }
+}

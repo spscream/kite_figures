@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 2,
+  "name": "Pick-up Sticks",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 48, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты входят слева один над другим и летят вправо параллельными проходами. Верхний сворачивает вниз первым, ближе всех к центру окна, каждый следующий — ниже и дальше вправо; вниз они идут уже в одну шеренгу и садятся в ряд на оба конца крыла.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 80]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [10, 80]},
+              {"kind": "line", "to": [10, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 60]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [30, 60]},
+              {"kind": "line", "to": [30, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-50, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "line", "to": [50, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 49,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 80]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [10, 80]},
+              {"kind": "line", "to": [10, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 60]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [30, 60]},
+              {"kind": "line", "to": [30, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-50, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "line", "to": [50, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [70, 20]},
+              {"kind": "line", "to": [70, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 49,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "line", "to": [0, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 70]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [20, 70]},
+              {"kind": "line", "to": [20, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-50, 50]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [40, 50]},
+              {"kind": "line", "to": [40, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 30]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [60, 30]},
+              {"kind": "line", "to": [60, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-50, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [80, 10]},
+              {"kind": "line", "to": [80, 0]},
+              {"kind": "mark", "mark": "landing", "style": "two-point", "sync": "landing"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Одновременность посадки (метка «landing») — по схеме: на спусках метки кайтов нарисованы на одних и тех же высотах, шеренгой. Длины путей это подтверждают: у каждого кайта горизонтальный проход и спуск в сумме одинаковы (140 единиц у состава из трёх, 160 у четырёх, 180 у пяти).",
+      "Посадка записана на уровне земли (y = 0): метки кайтов стоят на нижней границе сетки. Вид посадки подписан на схеме один раз, у кайта №1; записан всем кайтам.",
+      "На схеме для пяти кайтов подпись «0» сдвинута влево от центральной линии, по которой спускается кайт №1; столбцы 20, 40, 60 и 80 подписаны на своих местах, и замер ставит спуск №1 на x = 0."
+    ]
+  }
+}

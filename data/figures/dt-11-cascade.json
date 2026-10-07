@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 11,
+  "name": "Cascade",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 62, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты колонной идут вправо по верху окна и один за другим плавным скруглением сворачивают вниз — первый раньше всех, каждый следующий на своей вертикали чуть правее. Внизу так же плавно выходят на низкий проход вправо и снова выстраиваются в колонну. Пока все летят вниз, кайты держатся на одной наклонной линии — каскадом.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-25, 90], "basis": "measured"},
+              {"kind": "arc", "to": [-15, 80], "center": [-25, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [-15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [-5, 10], "center": [-5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [70, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-65, 90], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-10, 90]},
+              {"kind": "arc", "to": [0, 80], "center": [-10, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [0, 20], "basis": "measured"},
+              {"kind": "arc", "to": [10, 10], "center": [10, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-80, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [15, 80], "center": [5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [25, 10], "center": [25, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [40, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 63,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-25, 90], "basis": "measured"},
+              {"kind": "arc", "to": [-15, 80], "center": [-25, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [-15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [-5, 10], "center": [-5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [70, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-60, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-15, 90], "basis": "measured"},
+              {"kind": "arc", "to": [-5, 80], "center": [-15, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [-5, 20], "basis": "measured"},
+              {"kind": "arc", "to": [5, 10], "center": [5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [60, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-70, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [5, 80], "center": [-5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [5, 20], "basis": "measured"},
+              {"kind": "arc", "to": [15, 10], "center": [15, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [50, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-80, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [15, 80], "center": [5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [25, 10], "center": [25, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [40, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 63,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-25, 90], "basis": "measured"},
+              {"kind": "arc", "to": [-15, 80], "center": [-25, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [-15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [-5, 10], "center": [-5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [70, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-57.5, 90], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-17.5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [-7.5, 80], "center": [-17.5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [-7.5, 20], "basis": "measured"},
+              {"kind": "arc", "to": [2.5, 10], "center": [2.5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [62.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-65, 90], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-10, 90]},
+              {"kind": "arc", "to": [0, 80], "center": [-10, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [0, 20], "basis": "measured"},
+              {"kind": "arc", "to": [10, 10], "center": [10, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-72.5, 90], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-2.5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [7.5, 80], "center": [-2.5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [7.5, 20], "basis": "measured"},
+              {"kind": "arc", "to": [17.5, 10], "center": [17.5, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [47.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-80, 90]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [5, 90], "basis": "measured"},
+              {"kind": "arc", "to": [15, 80], "center": [5, 80], "direction": "cw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [15, 20], "basis": "measured"},
+              {"kind": "arc", "to": [25, 10], "center": [25, 20], "direction": "ccw", "sweep": 90, "basis": "measured"},
+              {"kind": "line", "to": [40, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Вертикали спуска лежат между подписанными линиями сетки и сняты замером: x = −15, 0 и 15 у состава из трёх кайтов, ±15 и ±5 у четырёх, ±15, ±7,5 и 0 у пяти; точность — около половины единицы.",
+      "Радиус скруглений на схеме не подписан. Записан радиус 10 по замеру: дуги такого радиуса, касающиеся прохода и вертикали, целиком ложатся на линии схем всех трёх составов при радиусе от 9,5 до 10,5, а при 8,5 и меньше с линий сходят; значение приблизительное, с точностью около единицы.",
+      "Положение кайтов на входе и выходе, не попавшее на подписанную линию, снято замером меток.",
+      "Наклонная линия, на которой кайты держатся во время спуска, на схеме проведена через их метки тонкой серой чертой; в путь она не входит."
+    ]
+  }
+}
