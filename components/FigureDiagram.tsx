@@ -21,6 +21,9 @@ const SHAPE_TEXT: Record<Shape, string> = {
 // двухстропного — ещё и направление: он летит носом вперёд.
 const PASS_TEXT_DELTA = "кайт в пути: летит туда, куда смотрит нос, если рядом нет стрелки";
 
+// Поворот, который сам перемещает кайт: линии пролёта у него нет.
+const SWING_TEXT = "поворот со смещением: кайт переходит в новую точку самим поворотом, нос идёт по дуге; стрелка — сторона, число — угол";
+
 // Вспомогательная линия книги — не путь: по ней никто не летит.
 const GUIDE_TEXT = "вспомогательная линия книги: на ней кайты стоят в один момент";
 
@@ -95,6 +98,14 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
             : "направление движения (стрелка идёт рядом с линией)"}
         </li>
       )}
+      {drawing.swings && (
+        <li>
+          <Icon>
+            <path className="d-swing" d="M0 4A4 4 0 0 0 0 -4M3 -1.9L4 0L5 -1.9" />
+          </Icon>
+          {SWING_TEXT}
+        </li>
+      )}
       {drawing.guides && (
         <li>
           <svg className="d-icon d-icon-line" viewBox="0 -6 24 12" aria-hidden="true">
@@ -138,6 +149,8 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
       {drawing.tracks.map((track, index) => (
         <path key={track.id} className={trackClass(index, many)} d={track.d} />
       ))}
+      {/* Поворот со смещением — тонкой дугой: это не пролёт. */}
+      {drawing.swings && <path className="d-swing" d={drawing.swings} />}
       {LAYERS.flatMap((name) =>
         (drawing.shapes[name] ?? []).map(({ tone, d }) => (
           <path key={`${name}${tone}`} className={tone ? `d-${name} g-${tone}` : `d-${name}`} d={d} />

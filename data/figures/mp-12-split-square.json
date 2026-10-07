@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-pair",
   "number": 12,
   "name": "Split Square",
@@ -18,10 +18,10 @@
               {"kind": "start", "at": [10, 0]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [10, 70], "sync": "a"},
-              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 70], "nose": "backward", "sync": "b"},
               {"kind": "line", "to": [90, 5], "nose": 270, "basis": "measured", "sync": "c"},
-              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [20, 5], "nose": 180, "basis": "measured", "sync": "d"},
               {"kind": "line", "to": [20, 0], "sync": "e"},
               {"kind": "mark", "mark": "out"}
@@ -33,10 +33,10 @@
               {"kind": "start", "at": [-10, 0]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-10, 70], "sync": "a"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-90, 70], "nose": "backward", "sync": "b"},
               {"kind": "line", "to": [-90, 5], "nose": 90, "basis": "measured", "sync": "c"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-20, 5], "nose": 180, "basis": "measured", "sync": "d"},
               {"kind": "line", "to": [-20, 0], "sync": "e"},
               {"kind": "mark", "mark": "out"}

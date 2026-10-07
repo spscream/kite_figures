@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { listFigures } from "./figures";
-import { type Kite, parseGeometry } from "./geometry";
+import { isSwing, type Kite, parseGeometry } from "./geometry";
 import { describeKite, lineText } from "./steps";
 
 function kite(path: unknown[]): Kite {
@@ -46,7 +46,7 @@ describe("describeKite", () => {
         { kind: "mark", mark: "launch" },
         { kind: "line", to: [0, 20.5] },
         { kind: "mark", mark: "stall", style: "push", nose: 0 },
-        { kind: "rotate", degrees: 90, direction: "cw" },
+        { kind: "rotate", degrees: 90, direction: "cw", about: "center", about_basis: "text" },
         { kind: "arc", to: [0, 60.5], center: [0, 40.5], direction: "ccw", sweep: 180 },
         { kind: "arc", to: [0, 60.5], center: [0, 40.5], direction: "cw", sweep: 360 },
         { kind: "line", to: [-30, 60.5] },
@@ -55,7 +55,7 @@ describe("describeKite", () => {
       ]),
     ).toEqual([
       "Точка (0; 0) — вход (IN), взлёт",
-      "Прямая до (0; 20,5) — остановка толчком (push), на схеме книги кайт носом вверх, поворот на 90° по часовой стрелке",
+      "Прямая до (0; 20,5) — остановка толчком (push), на схеме книги кайт носом вверх, поворот на 90° по часовой стрелке вокруг центра",
       "Дуга 180° против часовой стрелки вокруг (0; 40,5) до (0; 60,5)",
       "Полный круг по часовой стрелке вокруг (0; 40,5)",
       "Прямая до (−30; 60,5) — посадка на две точки, выход (OUT)",
@@ -107,9 +107,9 @@ describe("describeKite", () => {
         { kind: "start", at: [0, 10] },
         { kind: "mark", mark: "in" },
         { kind: "line", to: [0, 50], nose: 90 },
-        { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip" },
+        { kind: "rotate", degrees: 180, direction: "ccw", about: { status: "not_found", reason: "страница не называет" } },
         { kind: "line", to: [40, 50], nose: 270 },
-        { kind: "rotate", degrees: 180, direction: "cw", about: "right-tip" },
+        { kind: "rotate", degrees: 180, direction: "cw", about: "center", about_basis: "text" },
         { kind: "mark", mark: "stall", style: "snap", nose: { status: "not_found", reason: "метки нет" } },
         { kind: "arc", to: [40, 10], center: [40, 30], direction: "cw", sweep: 180, nose: "in" },
         { kind: "mark", mark: "half-axel" },
@@ -118,10 +118,31 @@ describe("describeKite", () => {
         { kind: "mark", mark: "out" },
       ]).slice(1),
     ).toEqual([
-      "Прямая до (0; 50), нос вправо — поворот на 180° против часовой стрелки вокруг левой законцовки",
-      "Прямая до (40; 50), нос влево — поворот на 180° по часовой стрелке вокруг правой законцовки, остановка рывком (snap)",
+      "Прямая до (0; 50), нос вправо — поворот на 180° против часовой стрелки (точка поворота в книге не названа)",
+      "Прямая до (40; 50), нос влево — поворот на 180° по часовой стрелке вокруг центра, остановка рывком (snap)",
       "Дуга 180° по часовой стрелке вокруг (40; 30) до (40; 10), нос внутрь круга — половина акселя",
       "Прямая до (40; 0), нос вниз — посадка на переднюю кромку, выход (OUT)",
+    ]);
+  });
+
+  it("поворот со смещением — своя строка: куда привёл, вокруг чего и откуда это известно", () => {
+    expect(
+      texts([
+        { kind: "start", at: [-60, 10] },
+        { kind: "mark", mark: "in" },
+        { kind: "line", to: [0, 10] },
+        { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "derived", to: [0, 16.5], basis: "measured" },
+        { kind: "rotate", degrees: 180, direction: "cw", about: "right-tip", about_basis: "diagram", to: [0, 23] },
+        { kind: "mark", mark: "stall", nose: 90 },
+        { kind: "rotate", degrees: 180, direction: "ccw", about: "center", about_basis: "text" },
+        { kind: "line", to: [60, 23] },
+        { kind: "mark", mark: "out" },
+      ]).slice(1),
+    ).toEqual([
+      "Прямая до (0; 10)",
+      "Поворот на 180° против часовой стрелки вокруг левой законцовки (выведено, книгой не названо) до (0; 16,5) □",
+      "Поворот на 180° по часовой стрелке вокруг правой законцовки до (0; 23) — остановка, на схеме книги кайт носом вправо, поворот на 180° против часовой стрелки вокруг центра",
+      "Прямая до (60; 23) — выход (OUT)",
     ]);
   });
 
@@ -153,13 +174,13 @@ describe("describeKite", () => {
 });
 
 describe("шаги каталога", () => {
-  it("у каждого кайта каждое перемещение — своя строка, и ни одна не пуста", () => {
+  it("у каждого кайта каждое перемещение — отрезок, дуга, поворот со смещением — своя строка, и ни одна не пуста", () => {
     for (const figure of listFigures()) {
       if (figure.geometry.status !== "ok") {
         continue;
       }
       for (const kite of figure.geometry.variants.flatMap((variant) => variant.kites)) {
-        const moves = kite.path.filter((step) => step.kind === "line" || step.kind === "arc").length;
+        const moves = kite.path.filter((step) => step.kind === "line" || step.kind === "arc" || isSwing(step)).length;
         const lines = describeKite(kite);
         expect(lines, figure.slug).toHaveLength(moves + 1);
         for (const line of lines) {

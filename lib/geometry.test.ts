@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { arcPoint, parseGeometry } from "./geometry";
+import { listFigures } from "./figures";
+import { arcPoint, isSwing, parseGeometry, pivotOf } from "./geometry";
 
 type Raw = Record<string, unknown>;
 
@@ -13,6 +14,8 @@ function geometry(path: unknown[], over: Raw = {}): Raw {
 }
 
 const NO_GUIDES: Raw = { status: "not_found", reason: "на схеме их нет" };
+const CENTER: Raw = { about: "center", about_basis: "text" };
+const MISSING: Raw = { status: "not_found", reason: "страница точку поворота не называет" };
 
 const parse = (raw: unknown) => parseGeometry("g", raw, 125);
 const parsePath = (path: unknown[], over: Raw = {}) => parse(geometry(path, over));
@@ -117,8 +120,23 @@ describe("parseGeometry", () => {
     [{ kind: "mark", mark: "loop" }, /mark: ожидается одно из/],
     [{ kind: "mark", mark: "stall", style: "two-point", nose: 0 }, /style: ожидается одно из: push, snap/],
     [{ kind: "mark", mark: "launch", style: "push" }, /style: ожидается одно из/],
-    [{ kind: "rotate", degrees: 0, direction: "cw" }, /degrees: угол поворота/],
-    [{ kind: "rotate", degrees: 90, direction: "cw", about: "nose" }, /about: ожидается одно из/],
+    [{ kind: "rotate", degrees: 0, direction: "cw", ...CENTER }, /degrees: угол поворота/],
+    [{ kind: "rotate", degrees: 90, direction: "cw", about: "nose", about_basis: "text" }, /about: ожидается одно из/],
+    // Молчаливого «вокруг центра» нет: точка названа либо признана ненайденной.
+    [{ kind: "rotate", degrees: 90, direction: "cw" }, /about: обязательна точка поворота/],
+    [{ kind: "rotate", degrees: 90, direction: "cw", about: "center" }, /about_basis: у названной точки поворота обязательно/],
+    [{ kind: "rotate", degrees: 90, direction: "cw", about: "center", about_basis: "guess" }, /about_basis: ожидается одно из: text, diagram, derived/],
+    [{ kind: "rotate", degrees: 90, direction: "cw", about: { status: "not_found" } }, /about\.reason: должно быть непустой строкой/],
+    [{ kind: "rotate", degrees: 90, direction: "cw", about: MISSING, about_basis: "text" }, /about_basis: записывается только у названной/],
+    // Смещение принадлежит повороту: вокруг законцовки оно обязано быть
+    // сказано, вокруг центра его нет.
+    [{ kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "text" }, /to: поворот вокруг законцовки перемещает кайт/],
+    [{ kind: "rotate", degrees: 180, direction: "ccw", ...CENTER, to: [0, 46.5] }, /to: поворот вокруг центра кайт не перемещает/],
+    [{ kind: "rotate", degrees: 180, direction: "ccw", ...CENTER, basis: "measured" }, /basis: записывается только вместе с точкой «to»/],
+    [{ kind: "rotate", degrees: 180, direction: "ccw", about: MISSING, to: [0, 40] }, /to: поворот не смещает кайт/],
+    [{ kind: "rotate", degrees: 360, direction: "ccw", about: MISSING, to: [0, 46.5] }, /degrees: поворот со смещением — меньше полного оборота/],
+    [{ kind: "rotate", degrees: 180, direction: "ccw", about: MISSING, to: [0, 101] }, /вне сетки окна/],
+    [{ kind: "rotate", degrees: 270, direction: "ccw", about: MISSING, to: [0, 95] }, /поворот выводит кайт за сетку окна/],
     [{ kind: "start", at: [0, 20] }, /путь начинается шагом «start», и такой шаг в нём один/],
   ])("отвергает шаг %j", (step, message) => {
     expect(() => parsePath([start, markIn, { kind: "line", to: [0, 40] }, step, markOut])).toThrow(message);
@@ -129,7 +147,7 @@ describe("parseGeometry", () => {
       start,
       markIn,
       { kind: "line", to: [40, 10], nose: 0 },
-      { kind: "rotate", degrees: 180, direction: "cw" },
+      { kind: "rotate", degrees: 180, direction: "cw", ...CENTER },
       { kind: "line", to: [40, 50], nose: "backward" },
       { kind: "arc", to: [40, 50], center: [40, 70], direction: "ccw", sweep: 360, nose: "out", sync: "a" },
       markOut,
@@ -149,6 +167,138 @@ describe("parseGeometry", () => {
     ["пустой путь", [], /path: ожидается непустой список/],
   ])("отвергает путь: %s", (_label, path, message) => {
     expect(() => parsePath(path)).toThrow(message);
+  });
+
+  describe("поворот со смещением", () => {
+    // Кайт пришёл в центр окна слева, нос вправо: верхняя законцовка — левая.
+    const climb = (turn: Raw, over: Raw = {}) =>
+      parsePath([{ kind: "start", at: [-60, 10] }, markIn, { kind: "line", to: [0, 10] }, turn, markOut], over);
+    const up: Raw = { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "diagram", to: [0, 16.5] };
+
+    it("точка поворота следует из смещения, угла и стороны", () => {
+      const [mx, my] = pivotOf([0, 10], [0, 16.5], "ccw", 180);
+      expect(mx).toBeCloseTo(0);
+      expect(my).toBeCloseTo(13.25);
+      const [x, y] = pivotOf([10, 50], [0, 60], "ccw", 90);
+      expect(x).toBeCloseTo(0);
+      expect(y).toBeCloseTo(50);
+      // Та же хорда в другую сторону — центр по другую сторону от неё.
+      const [cx, cy] = pivotOf([10, 50], [0, 60], "cw", 90);
+      expect(cx).toBeCloseTo(10);
+      expect(cy).toBeCloseTo(60);
+    });
+
+    it("принимает поворот вокруг законцовки с точкой, куда он привёл нос", () => {
+      const read = climb(up);
+      const turn = read.status === "ok" && read.variants[0].kites[0].path[3];
+      expect(turn).toMatchObject({ kind: "rotate", about: "left-tip", about_basis: "diagram", to: [0, 16.5], basis: "grid" });
+      expect(turn && isSwing(turn)).toBe(true);
+    });
+
+    it("следующий шаг идёт уже из новой точки: отрезок в неё же — нулевой длины", () => {
+      const path = [{ kind: "start", at: [-60, 10] }, markIn, { kind: "line", to: [0, 10] }, up, { kind: "line", to: [0, 16.5] }, markOut];
+      expect(() => parsePath(path)).toThrow(/path\[4\]: отрезок нулевой длины/);
+    });
+
+    it.each([
+      ["не та законцовка", { ...up, about: "right-tip" }, /about: смещение в \[0, 16.5\].*это «left-tip», а записано «right-tip»/],
+      ["четверть оборота по часовой идёт вокруг нижней законцовки", { ...up, degrees: 90, direction: "cw", to: [3.25, 6.75] }, /это «right-tip», а записано «left-tip»/],
+      ["смещение вдоль курса, а не вбок", { ...up, to: [6.5, 10] }, /не сбоку от носа, это не законцовка/],
+    ])("сверяет законцовку со смещением и курсом носа: %s", (_label, turn, message) => {
+      expect(() => climb(turn)).toThrow(message);
+    });
+
+    it("курс носа ведёт через повороты: вторая ступень — вокруг другой законцовки", () => {
+      const second: Raw = { kind: "rotate", degrees: 180, direction: "cw", about: "right-tip", about_basis: "diagram", to: [0, 23] };
+      const path = (turn: Raw) => [{ kind: "start", at: [-60, 10] }, markIn, { kind: "line", to: [0, 10] }, up, turn, markOut];
+      expect(parsePath(path(second)).status).toBe("ok");
+      expect(() => parsePath(path({ ...second, about: "left-tip" }))).toThrow(/path\[4\]\.about: .*это «right-tip», а записано «left-tip»/);
+    });
+
+    it("выведенная точка поворота требует заметки, прочитанная — нет", () => {
+      expect(() => climb({ ...up, about_basis: "derived" })).toThrow(/notes: есть шаги.*выведенная точка поворота/);
+      expect(climb({ ...up, about_basis: "derived" }, { notes: ["Законцовка выведена из смещения."] }).status).toBe("ok");
+      expect(climb({ ...up, about_basis: "text" }).status).toBe("ok");
+    });
+
+    it("замер точки, куда привёл поворот, требует заметки, как замер конца отрезка", () => {
+      expect(() => climb({ ...up, basis: "measured" })).toThrow(/notes: есть шаги/);
+    });
+
+    it("ненайденным смещение не записать: за таким поворотом отрезок снова понёс бы его сам", () => {
+      expect(() => climb({ ...up, to: { status: "not_found", reason: "схема не показывает, куда пришёл кайт" } })).toThrow(/path\[3\]\.to/);
+    });
+
+    it("книга точку поворота не называет, а смещение показывает — принимается без сверки законцовки", () => {
+      expect(climb({ kind: "rotate", degrees: 180, direction: "cw", about: MISSING, to: [0, 16.5] }).status).toBe("ok");
+    });
+  });
+
+  // Старый способ — поворот вокруг законцовки, а смещение отрезком после
+  // него — в формате больше не записать: у такого поворота «to» обязательно.
+  // Что каталог не держит его в обход, проверяется по самим файлам.
+  describe("повороты каталога", () => {
+    const turns = listFigures().flatMap((figure) =>
+      figure.geometry.status !== "ok"
+        ? []
+        : figure.geometry.variants.flatMap((variant) =>
+            variant.kites.flatMap((kite) =>
+              kite.path.flatMap((step, index) => (step.kind === "rotate" ? [{ slug: figure.slug, step, next: kite.path[index + 1] }] : [])),
+            ),
+          ),
+    );
+
+    it("у каждого поворота точка названа с источником либо признана ненайденной", () => {
+      expect(turns.length).toBeGreaterThan(100);
+      for (const { slug, step } of turns) {
+        expect(typeof step.about === "string" ? step.about_basis : step.about.reason, slug).toBeTruthy();
+      }
+    });
+
+    it("отрезок сразу после поворота — пролёт: поворот перед ним либо на месте, либо своё смещение несёт сам", () => {
+      const carried = turns.filter(
+        ({ step, next }) => next?.kind === "line" && (step.about === "left-tip" || step.about === "right-tip") && !isSwing(step),
+      );
+      expect(carried.map(({ slug }) => slug)).toEqual([]);
+    });
+
+    // Поворот на месте и поворот вокруг неназванной точки формат от отрезка
+    // со смещением не отличит: это видно только на странице книги. У
+    // перечитанных фигур самый короткий отрезок после поворота — 10 единиц,
+    // а смещение поворота вокруг законцовки не больше размаха кайта (метка
+    // на схемах книги — около 6,5). Короче этого порога отрезок после
+    // поворота — повод перечитать страницу, прежде чем поднимать число.
+    it("отрезок сразу после поворота длиннее размаха кайта: смещение поворота под отрезок не замаскировано", () => {
+      const short = listFigures().flatMap((figure) =>
+        figure.geometry.status !== "ok"
+          ? []
+          : figure.geometry.variants.flatMap((variant) =>
+              variant.kites.flatMap((kite) => {
+                let here: readonly number[] = [];
+                return kite.path.flatMap((step, index) => {
+                  const from = here;
+                  here = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || isSwing(step) ? step.to : here;
+                  const after = kite.path[index - 1]?.kind === "rotate" && step.kind === "line";
+                  return after && Math.hypot(step.to[0] - from[0], step.to[1] - from[1]) < 10 ? [figure.slug] : [];
+                });
+              }),
+            ),
+      );
+      expect(short).toEqual([]);
+    });
+
+    it("MI 02 поднимается четырьмя поворотами со смещением, без единого вертикального отрезка", () => {
+      const ladder = listFigures().find((figure) => figure.slug === "mi-02-ladder-up")!;
+      const path = ladder.geometry.status === "ok" ? ladder.geometry.variants[0].kites[0].path : [];
+      expect(path.filter(isSwing).map((step) => step.to)).toEqual([[0, 16.5], [0, 23], [0, 29.5], [0, 36]]);
+      expect(path.filter(isSwing).map((step) => `${step.about} ${step.about_basis} ${step.basis}`)).toEqual([
+        "left-tip derived measured",
+        "right-tip derived measured",
+        "left-tip derived measured",
+        "right-tip derived measured",
+      ]);
+      expect(path.filter((step) => step.kind === "line").map((step) => step.to)).toEqual([[0, 10], [60, 36]]);
+    });
   });
 
   it.each([{ basis: "measured" }, { basis: "derived" }, { unmarked: true }])(

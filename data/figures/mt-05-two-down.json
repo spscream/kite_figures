@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-team",
   "number": 5,
   "name": "Two Down",
@@ -21,7 +21,7 @@
               {"kind": "line", "to": [60, 70]},
               {"kind": "line", "to": [60, 40], "nose": 90},
               {"kind": "line", "to": [-30, 40], "nose": "backward"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-30, 10]},
               {"kind": "line", "to": [60, 10], "nose": 180},
               {"kind": "mark", "mark": "out"}
@@ -35,7 +35,7 @@
               {"kind": "line", "to": [50, 70]},
               {"kind": "line", "to": [50, 40], "nose": 90},
               {"kind": "line", "to": [-40, 40], "nose": "backward"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-40, 10]},
               {"kind": "line", "to": [50, 10], "nose": 180},
               {"kind": "mark", "mark": "out"}
@@ -49,7 +49,7 @@
               {"kind": "line", "to": [40, 70]},
               {"kind": "line", "to": [40, 40], "nose": 90},
               {"kind": "line", "to": [-50, 40], "nose": "backward"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-50, 10]},
               {"kind": "line", "to": [40, 10], "nose": 180},
               {"kind": "mark", "mark": "out"}
@@ -63,7 +63,7 @@
               {"kind": "line", "to": [30, 70]},
               {"kind": "line", "to": [30, 40], "nose": 90},
               {"kind": "line", "to": [-60, 40], "nose": "backward"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-60, 10]},
               {"kind": "line", "to": [30, 10], "nose": 180},
               {"kind": "mark", "mark": "out"}

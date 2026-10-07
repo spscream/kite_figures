@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { along, drawVariant } from "./diagram";
 import { listFigures } from "./figures";
-import { parseGeometry, type Variant } from "./geometry";
+import { isSwing, parseGeometry, type Variant } from "./geometry";
 
 const start = { kind: "start", at: [-50, 20] };
 const markIn = { kind: "mark", mark: "in" };
 const markOut = { kind: "mark", mark: "out" };
+// Точка поворота названа всегда; в чертеже от неё зависит только смещение.
+const CENTER = { about: "center", about_basis: "text" };
 
 // Чертёж строится по разобранной геометрии, как на странице: с умолчаниями.
 const NO_GUIDES = { status: "not_found", reason: "на схеме их нет" };
@@ -206,7 +208,7 @@ describe("drawVariant", () => {
         markIn,
         line([0, 20]),
         stallAt(270),
-        { kind: "rotate", degrees: 90, direction: "ccw" },
+        { kind: "rotate", degrees: 90, direction: "ccw", ...CENTER },
         line([40, 20], { nose: 0 }),
         markOut,
       ];
@@ -254,7 +256,7 @@ describe("drawVariant", () => {
         line([0, 40]),
         stall,
         line([30, 40]),
-        { kind: "rotate", degrees: 90, direction: "cw" },
+        { kind: "rotate", degrees: 90, direction: "cw", ...CENTER },
         line([60, 40]),
         { kind: "mark", mark: "half-axel" },
         line([60, 0]),
@@ -293,7 +295,7 @@ describe("drawVariant", () => {
       markIn,
       line([x, 60]),
       stall,
-      { kind: "rotate", degrees: 90, direction: "cw" },
+      { kind: "rotate", degrees: 90, direction: "cw", ...CENTER },
       line([x + 40, 60], { nose: 90 }),
       markOut,
     ];
@@ -305,7 +307,7 @@ describe("drawVariant", () => {
   });
 
   it("поворот рисует в сторону поворота", () => {
-    const path = (direction: string) => [start, markIn, line([0, 20]), { kind: "rotate", degrees: 180, direction }, markOut];
+    const path = (direction: string) => [start, markIn, line([0, 20]), { kind: "rotate", degrees: 180, direction, ...CENTER }, markOut];
     const end = (direction: string) => {
       const d = drawn(drawVariant(variant(path(direction)), true).shapes, "turn");
       const [fx, tx] = [d.match(/^M(\S+) /)![1], d.match(/A3.4 3.4 0 1 \d (\S+) /)![1]].map(Number);
@@ -406,15 +408,75 @@ describe("drawVariant", () => {
     expect(drawn(drawVariant(variant(path)).shapes, "in")).toBe("M-50 80L-56 83.3L-54.5 80L-56 76.7Z");
   });
 
+  describe("поворот со смещением", () => {
+    // Лестница: кайт пришёл слева носом вправо и поднимается двумя
+    // полуоборотами вокруг верхней законцовки.
+    const tip = (direction: string, about: string, to: number[]) => ({ kind: "rotate", degrees: 180, direction, about, about_basis: "diagram", to });
+    const ladder = [
+      { kind: "start", at: [-60, 10] },
+      markIn,
+      line([0, 10]),
+      tip("ccw", "left-tip", [0, 20]),
+      tip("cw", "right-tip", [0, 30]),
+      line([60, 30]),
+      markOut,
+    ];
+    const drawing = drawVariant(variant(ladder), true);
+
+    it("линию пролёта между точками не проводит: путь кайта рвётся и продолжается из новой точки", () => {
+      expect(drawing.tracks[0].d).toBe("M-60 90L0 90M0 80M0 70L60 70");
+      expect(drawing.tracks[0].d).not.toMatch(/L0 80|L0 70/);
+    });
+
+    it("вход прямо перед поворотом смотрит по курсу подлёта, а не на конец пролёта за поворотом", () => {
+      const entered = drawVariant(variant([{ kind: "start", at: [-60, 10] }, line([0, 10]), markIn, tip("ccw", "left-tip", [0, 20]), line([-60, 20]), markOut]), true);
+      const plain = drawVariant(variant([{ kind: "start", at: [-60, 10] }, line([0, 10]), markIn, line([60, 10]), markOut]), true);
+      expect(entered.shapes.in).toEqual(plain.shapes.in);
+    });
+
+    it("рисует дугу носа вокруг точки поворота — в сторону поворота — со стрелкой посередине", () => {
+      // Против часовой снизу вверх нос идёт справа от законцовки, по часовой — слева.
+      expect(drawing.swings).toBe(
+        "M0 90A5 5 0 0 0 0 80M6 86.9L5 85L4 86.9" + "M0 80A5 5 0 0 1 0 70M-4 76.9L-5 75L-6 76.9",
+      );
+    });
+
+    it("знака поворота на месте не ставит, угол подписывает снаружи дуги", () => {
+      expect(drawing.shapes.turn).toBeUndefined();
+      const angles = drawing.labels.filter((label) => label.text === "180°");
+      expect(angles).toHaveLength(2);
+      // Первая дуга выгнута вправо, вторая — влево; подписи по те же стороны.
+      expect(angles[0].x).toBeGreaterThan(5);
+      expect(angles[1].x).toBeLessThan(-5);
+    });
+
+    it("стрелку и значок кайта в пути получают только пролёты", () => {
+      expect(arrowTips(drawing.arrows)).toHaveLength(2);
+      expect(kites(drawn(drawing.shapes, "pass"), true).length).toBeLessThanOrEqual(2);
+    });
+
+    it("точку, куда привёл поворот, отмечает по её происхождению", () => {
+      const measured = [start, markIn, line([0, 20]), { kind: "rotate", degrees: 180, direction: "cw", about: { status: "not_found", reason: "страница не называет" }, to: [0, 28], basis: "measured" }, markOut];
+      expect(drawVariant(variant(measured), true).shapes.measured).toHaveLength(1);
+    });
+
+    it("поворот на месте в той же фигуре остаётся знаком поворота", () => {
+      const both = [...ladder.slice(0, 5), { kind: "rotate", degrees: 90, direction: "cw", ...CENTER }, ...ladder.slice(5)];
+      const mixed = drawVariant(variant(both), true);
+      expect(drawn(mixed.shapes, "turn").match(/A3\.4 3\.4/g)).toHaveLength(1);
+      expect(mixed.swings.match(/A5 5/g)).toHaveLength(2);
+    });
+  });
+
   it("поворот на месте разворачивает нос следующих значков", () => {
     const { shapes } = drawVariant(
       variant([
         start,
         markIn,
         line([0, 20]),
-        { kind: "rotate", degrees: 90, direction: "ccw" },
+        { kind: "rotate", degrees: 90, direction: "ccw", ...CENTER },
         stall,
-        { kind: "rotate", degrees: 180, direction: "cw" },
+        { kind: "rotate", degrees: 180, direction: "cw", ...CENTER },
         markOut,
       ]),
     );
@@ -624,6 +686,11 @@ describe("чертежи каталога", () => {
         expect(reach(mark, false)).toBeLessThan(0.6);
       }
       expect(drawing.tracks).toHaveLength(item.kites.length);
+      // Линия рвётся на каждом повороте со смещением и только на нём, а дуг
+      // поворота на схеме столько же: фантомному отрезку взяться неоткуда.
+      const swung = item.kites.map((kite) => kite.path.filter(isSwing).length);
+      expect(drawing.tracks.map((track) => track.d.match(/M/g)!.length - 1)).toEqual(swung);
+      expect((drawing.swings.match(/A/g) ?? []).length).toBe(swung.reduce((sum, value) => sum + value, 0));
       const many = item.kites.length > 1;
       expect(drawing.labels.filter((label) => label.kind === "name")).toHaveLength(many ? item.kites.length * 2 + 2 : 2);
       expect(JSON.stringify(drawing)).not.toMatch(/NaN|Infinity|undefined|e-\d/);
@@ -698,7 +765,8 @@ describe("наложения значков на схемах каталога",
       const origins = new Set<string>();
       for (const kite of item.kites) {
         for (const step of kite.path) {
-          if ((step.kind === "start" || step.kind === "line" || step.kind === "arc") && (step.basis === "derived" || step.basis === "measured")) {
+          // Поворот со смещением приводит кайт в точку, как отрезок и дуга.
+          if ((step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step)) && (step.basis === "derived" || step.basis === "measured")) {
             origins.add(`${step.basis} ${(step.kind === "start" ? step.at : step.to).join(" ")}`);
           }
         }

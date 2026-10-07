@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-individual",
   "number": 28,
   "name": "Square",
@@ -19,7 +19,7 @@
               {"kind": "start", "at": [-30, 10]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-30, 70]},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": {"status": "not_found", "reason": "Страница (стр. 90, прочитана 2026-10-07) не называет, вокруг какой точки кайта идёт поворот."}},
               {"kind": "line", "to": [30, 70]},
               {"kind": "line", "to": [30, 10], "nose": 90},
               {"kind": "line", "to": [-30, 10], "nose": "backward"},

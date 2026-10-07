@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-individual",
   "number": 32,
   "name": "All Slides",
@@ -19,13 +19,13 @@
               {"kind": "start", "at": [30, 10]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [30, 40], "nose": 90},
-              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [0, 40], "nose": 0},
-              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [0, 10], "nose": 270},
-              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-30, 10], "nose": 180},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-30, 40], "nose": 270},
               {"kind": "mark", "mark": "out"}
             ]

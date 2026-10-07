@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-team",
   "number": 4,
   "name": "Rainbow Slide",
@@ -20,7 +20,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 45], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
-              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-45, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
               {"kind": "mark", "mark": "out"}
@@ -33,7 +33,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 60], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
-              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-60, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
               {"kind": "mark", "mark": "out"}
@@ -46,7 +46,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 75], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
-              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-75, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
               {"kind": "mark", "mark": "out"}
@@ -59,7 +59,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 90], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
-              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-90, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
               {"kind": "mark", "mark": "out"}

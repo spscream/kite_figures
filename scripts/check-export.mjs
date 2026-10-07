@@ -162,6 +162,17 @@ const GLOSS = {
   "½ Axel": "половина акселя",
 };
 
+// Поворот со смещением в легенде и слова шагов о точке поворота — тоже повторены.
+const SWING = "поворот со смещением: кайт переходит в новую точку самим поворотом, нос идёт по дуге; стрелка — сторона, число — угол";
+const ABOUT_WORDS = { center: " вокруг центра", "left-tip": " вокруг левой законцовки", "right-tip": " вокруг правой законцовки" };
+const ABOUT_DERIVED = " (выведено, книгой не названо)";
+const ABOUT_MISSING = " (точка поворота в книге не названа)";
+
+// Поворот, который сам перемещает кайт: у него записано, куда пришёл нос.
+function isSwing(step) {
+  return step.kind === "rotate" && Array.isArray(step.to);
+}
+
 // Вспомогательная линия книги в легенде — тоже повторена.
 const GUIDE = "вспомогательная линия книги: на ней кайты стоят в один момент";
 
@@ -178,7 +189,7 @@ function expectedStalls(variant) {
     for (const step of kite.path) {
       if (step.kind === "start") {
         here = step.at;
-      } else if (isMove(step)) {
+      } else if (isMove(step) || isSwing(step)) {
         here = step.to;
       } else if (step.kind === "mark" && step.mark === "stall" && typeof step.nose === "number") {
         // Курс сверяется до градуса: так же схема решает, одна метка в точке или две.
@@ -200,7 +211,8 @@ function expectedShapes(variant) {
     in: true,
     out: true,
     stall: expectedStalls(variant).length > 0,
-    turn: steps.some((step) => step.kind === "rotate"),
+    // Знак поворота на месте — только у поворота, который кайт не перемещает.
+    turn: steps.some((step) => step.kind === "rotate" && !isSwing(step)),
     axel: mark("axel", "half-axel"),
     derived: steps.some((step) => step.basis === "derived"),
     measured: steps.some((step) => step.basis === "measured"),
@@ -287,6 +299,38 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
     const strokes = kites.map((_, kite) => (many ? (kite % 5) + 1 : 0));
     if (tracks.join() !== strokes.join()) {
       say(`штрихи линий [${tracks.join()}], а по числу кайтов нужны [${strokes.join()}]`);
+    }
+
+    // Поворот со смещением: линия кайта на нём рвётся — пролёта между точками
+    // нет, — а на схеме стоит дуга носа, и кончается она в точке из данных.
+    const point = ([x, y]) => `${Math.round(x * 100) / 100} ${Math.round((100 - y) * 100) / 100}`;
+    const trackPaths = [...svg.matchAll(/<path class="d-track k\d" d="([^"]*)"/g)].map((match) => match[1]);
+    const swung = kites.flatMap((kite) => kite.path.filter(isSwing));
+    kites.forEach((kite, order) => {
+      const own = kite.path.filter(isSwing);
+      const parts = count(trackPaths[order] ?? "", /M/g);
+      if (parts !== own.length + 1) {
+        say(`линия кайта ${kite.id} из ${parts} кусков, а поворотов со смещением ${own.length}: на каждом линия рвётся, и только на них`);
+      }
+      let here = null;
+      for (const step of kite.path) {
+        if (isSwing(step) && (trackPaths[order] ?? "").includes(`${point(here)}L${point(step.to)}`)) {
+          say(`у кайта ${kite.id} поворот в (${step.to.join("; ")}) нарисован прямой линией пролёта`);
+        }
+        here = step.kind === "start" ? step.at : isMove(step) || isSwing(step) ? step.to : here;
+      }
+    });
+    const swingPaths = [...svg.matchAll(/<path class="d-swing" d="([^"]*)"/g)].map((match) => match[1]);
+    // Кусок с дугой кончается в точке, куда поворот привёл нос; за ним — стрелка.
+    const swingEnds = swingPaths.flatMap((d) =>
+      d.split("M").filter((part) => part.includes("A")).map((part) => part.match(/(-?[\d.]+ -?[\d.]+)$/)?.[1] ?? "?"),
+    );
+    if (swingPaths.length !== (swung.length > 0 ? 1 : 0) || swingEnds.join("|") !== swung.map((step) => point(step.to)).join("|")) {
+      say(`повороты со смещением приводят в [${swingEnds.join("|")}], а по данным — в [${swung.map((step) => point(step.to)).join("|")}]`);
+    }
+    const swingTold = block.includes(`</path></svg>${SWING}</li>`);
+    if (swingTold !== swung.length > 0 || count(block, /class="d-swing"/g) !== (swung.length > 0 ? 2 : 0)) {
+      say("легенда расходится со схемой в поворотах со смещением");
     }
 
     const moves = kites.flatMap((kite) => kite.path.filter(isMove));
@@ -483,14 +527,15 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
         say(`остановки подписаны [${shown.join()}], а по данным нужны [${needed.join()}]`);
       }
     }
-    // В легенде нет строк сверх названных: кайты, значки, стрелка,
-    // вспомогательная линия, слова.
+    // В легенде нет строк сверх названных: кайты, значки, стрелка, поворот со
+    // смещением, вспомогательная линия, слова.
     const legend = block.match(/<ul class="d-legend">[\s\S]*?<\/ul>/)?.[0] ?? "";
     const rows =
       (many ? kites.length : 0) +
       Object.values(expectedShapes(variant)).filter(Boolean).length +
       (passes > 0 ? 1 : 0) +
       (arrows > 0 ? 1 : 0) +
+      (swung.length > 0 ? 1 : 0) +
       (guide !== "" ? 1 : 0) +
       words.length;
     if (count(legend, /<li/g) !== rows) {
@@ -513,8 +558,8 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
       say(`легенда кайтов [${legendKites.join()}], а нужна [${wantedKites.join()}]`);
     }
 
-    // Шаги: список на кайт, строка на старт и на каждое перемещение, пометка
-    // на каждом шаге без направления.
+    // Шаги: список на кайт, строка на старт и на каждое перемещение — отрезок,
+    // дугу и поворот со смещением, — пометка на каждом шаге без направления.
     const lists = block.match(/<ol>[\s\S]*?<\/ol>/g) ?? [];
     if (lists.length !== kites.length) {
       say(`списков шагов ${lists.length}, а кайтов ${kites.length}`);
@@ -523,8 +568,26 @@ function checkDiagrams(slug, html, geometry, documentUrl, rev) {
     kites.forEach((kite, order) => {
       const own = kite.path.filter(isMove);
       const lines = count(lists[order], /<li>[^<]/g);
-      if (lines !== own.length + 1) {
-        say(`у кайта ${kite.id} строк шагов ${lines}, а нужно ${own.length + 1}`);
+      const swings = kite.path.filter(isSwing).length;
+      if (lines !== own.length + swings + 1) {
+        say(`у кайта ${kite.id} строк шагов ${lines}, а нужно ${own.length + swings + 1}`);
+      }
+      // Точка каждого поворота названа в шагах так, как записана: словом, с
+      // оговоркой у выведенной, либо признанием, что книга её не называет.
+      const turns = [...lists[order].matchAll(/[Пп]оворот на [\d,]+° (?:по|против) часовой стрелк[еи]((?: вокруг (?:центра|левой законцовки|правой законцовки))?(?: \((?:выведено, книгой не названо|точка поворота в книге не названа)\))?)/g)].map((match) => match[1]);
+      const abouts = kite.path
+        .filter((step) => step.kind === "rotate")
+        .map((step) =>
+          typeof step.about === "string" ? ABOUT_WORDS[step.about] + (step.about_basis === "derived" ? ABOUT_DERIVED : "") : ABOUT_MISSING,
+        );
+      // Куда привёл поворот со смещением, сказано в его строке.
+      const told = [...lists[order].matchAll(/<li>Поворот на [^<]*? до \(([−\d,]+); ([−\d,]+)\)/g)].map((match) => `${match[1]}; ${match[2]}`);
+      const reached = kite.path.filter(isSwing).map((step) => step.to.map((part) => String(part).replace("-", "−").replace(".", ",")).join("; "));
+      if (told.join("|") !== reached.join("|")) {
+        say(`у кайта ${kite.id} повороты со смещением в шагах приводят в [${told.join("|")}], а по данным — в [${reached.join("|")}]`);
+      }
+      if (turns.join("|") !== abouts.join("|")) {
+        say(`у кайта ${kite.id} точки поворотов названы [${turns.join("|")}], а по данным — [${abouts.join("|")}]`);
       }
       // Курс метки книги в остановке назван в шагах — у каждой остановки, где
       // книга метку рисует.
@@ -583,6 +646,11 @@ function checkStyles() {
   const gridDash = css.match(/\.d-grid,\.d-mid\{[^}]*stroke-dasharray:([^;}]*)/)?.[1];
   if (guideDash === undefined || guideDash === "none" || guideDash === gridDash) {
     problems.push("в стилях у вспомогательной линии (.d-guide) нет своего штриха");
+  }
+  // Дуга поворота со смещением — линия: без своего правила путь SVG залился
+  // бы чёрным.
+  if (!/\.d-swing\{[^}]*fill:none/.test(css) || !/\.d-swing\{[^}]*stroke:var\(--fg\)/.test(css)) {
+    problems.push("в стилях дуга поворота со смещением (.d-swing) не линия: нужны fill:none и своя обводка");
   }
   if (css.includes("url(")) {
     problems.push("стили подключают внешний файл через url(): схемы рисуются из данных, без картинок");

@@ -36,7 +36,16 @@ export const MARKS = {
 } as const satisfies Record<string, readonly string[]>;
 export type MarkName = keyof typeof MARKS;
 
+// Вокруг чего кайт поворачивается. Законцовки названы так, как их видит пилот
+// у кайта носом вверх: при носе вправо левая законцовка — верхняя.
 export const ROTATE_ABOUT = ["center", "left-tip", "right-tip"] as const;
+export type RotateAbout = (typeof ROTATE_ABOUT)[number];
+
+// Откуда известна точка поворота: названа в тексте страницы, видна на схеме
+// либо выведена из условия, названного в `notes`. Умолчания нет: чего книга не
+// называет, то записывается как `not_found`.
+export const ABOUT_BASES = ["text", "diagram", "derived"] as const;
+export type AboutBasis = (typeof ABOUT_BASES)[number];
 
 // `unmarked: true` — страница не показывает, в каком порядке кайт проходит этот
 // шаг (замкнутая петля без стрелки). Шаг записан в одном из возможных
@@ -55,7 +64,25 @@ export type Step =
   // рисует кайт в этой точке (0 — вверх, 90 — вправо), либо запись о том, что
   // метки там нет.
   | { kind: "mark"; mark: MarkName; style?: string; sync?: string; nose?: number | Missing }
-  | { kind: "rotate"; degrees: number; direction: "cw" | "ccw"; about: (typeof ROTATE_ABOUT)[number] };
+  // Поворот. `to` — куда он привёл нос кайта: поворот вокруг законцовки сам
+  // перемещает кайт, и это смещение принадлежит ему, а не отрезку после него.
+  // Без `to` нос остаётся в той же точке сетки.
+  | {
+      kind: "rotate";
+      degrees: number;
+      direction: "cw" | "ccw";
+      about: RotateAbout | Missing;
+      about_basis?: AboutBasis;
+      to?: Point;
+      basis?: Basis;
+    };
+
+// Поворот, который сам перемещает кайт: у него записана точка, куда пришёл нос.
+export type Swing = Extract<Step, { kind: "rotate" }> & { to: Point };
+
+export function isSwing(step: Step): step is Swing {
+  return step.kind === "rotate" && step.to !== undefined;
+}
 
 export type Kite = { id: string; path: Step[] };
 
@@ -157,6 +184,44 @@ export function arcPoint(from: Point, center: Point, direction: "cw" | "ccw", sw
   ];
 }
 
+// Точка, вокруг которой поворот на `degrees` в сторону `direction` переводит
+// нос из `from` в `to`. Она следует из самого смещения и не зависит от того,
+// названа ли в данных законцовка.
+export function pivotOf(from: Point, to: Point, direction: "cw" | "ccw", degrees: number): Point {
+  const half = ((direction === "ccw" ? degrees : -degrees) * Math.PI) / 360;
+  const along = Math.cos(half) / Math.sin(half) / 2;
+  return [
+    (from[0] + to[0]) / 2 - (to[1] - from[1]) * along,
+    (from[1] + to[1]) / 2 + (to[0] - from[0]) * along,
+  ];
+}
+
+// Курс носа единичным вектором: 0 — вверх, 90 — вправо.
+function courseVector(degrees: number): Point {
+  const angle = (degrees * Math.PI) / 180;
+  return [Math.sin(angle), Math.cos(angle)];
+}
+
+// Куда смотрит нос кайта в конце отрезка или дуги.
+function noseAfter(from: Point, step: Extract<Step, { kind: "line" | "arc" }>): Point {
+  if (typeof step.nose === "number") {
+    return courseVector(step.nose);
+  }
+  let ahead: Point;
+  if (step.kind === "line") {
+    const size = distance(from, step.to);
+    ahead = [(step.to[0] - from[0]) / size, (step.to[1] - from[1]) / size];
+  } else {
+    const size = distance(step.to, step.center);
+    const radial: Point = [(step.to[0] - step.center[0]) / size, (step.to[1] - step.center[1]) / size];
+    if (step.nose === "out" || step.nose === "in") {
+      return step.nose === "out" ? radial : [-radial[0], -radial[1]];
+    }
+    ahead = step.direction === "ccw" ? [-radial[1], radial[0]] : [radial[1], -radial[0]];
+  }
+  return step.nose === "backward" ? [-ahead[0], -ahead[1]] : ahead;
+}
+
 function course(where: string, value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value >= 360) {
     fail(where, "курс носа — от 0 до 360 градусов, не включая 360");
@@ -194,7 +259,8 @@ function flown(where: string, value: Record<string, unknown>): Flown {
   };
 }
 
-function parseStep(where: string, raw: unknown, position: Point | null): Step {
+// `heading` — куда смотрит нос перед шагом, если это следует из пути.
+function parseStep(where: string, raw: unknown, position: Point | null, heading: Point | null = null): Step {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     fail(where, "ожидается объект");
   }
@@ -282,16 +348,82 @@ function parseStep(where: string, raw: unknown, position: Point | null): Step {
       };
     }
     case "rotate": {
-      const value = record(where, raw, ["kind", "degrees", "direction", "about"]);
-      if (typeof value.degrees !== "number" || !(value.degrees > 0)) {
+      const value = record(where, raw, ["kind", "degrees", "direction", "about", "about_basis", "to", "basis"]);
+      const degrees = value.degrees;
+      if (typeof degrees !== "number" || !(degrees > 0)) {
         fail(`${where}.degrees`, "угол поворота — положительное число градусов");
       }
-      return {
+      const direction = oneOf(`${where}.direction`, value.direction, ["cw", "ccw"] as const);
+      // Точка поворота названа всегда: либо словом и тем, откуда оно взято,
+      // либо записью, что книга её не называет. Молчаливого «вокруг центра» нет.
+      if (value.about === undefined) {
+        fail(`${where}.about`, "обязательна точка поворота либо запись «not_found» с причиной");
+      }
+      const named = typeof value.about === "string";
+      const about = named ? oneOf(`${where}.about`, value.about, ROTATE_ABOUT) : missing(`${where}.about`, value.about);
+      if (named !== (value.about_basis !== undefined)) {
+        fail(
+          `${where}.about_basis`,
+          named
+            ? `у названной точки поворота обязательно, откуда она взята: ${ABOUT_BASES.join(", ")}`
+            : "записывается только у названной точки поворота",
+        );
+      }
+      const step: Extract<Step, { kind: "rotate" }> = {
         kind,
-        degrees: value.degrees,
-        direction: oneOf(`${where}.direction`, value.direction, ["cw", "ccw"] as const),
-        about: value.about === undefined ? "center" : oneOf(`${where}.about`, value.about, ROTATE_ABOUT),
+        degrees,
+        direction,
+        about,
+        ...(named ? { about_basis: oneOf(`${where}.about_basis`, value.about_basis, ABOUT_BASES) } : {}),
       };
+      // Вокруг центра нос остаётся в своей точке сетки; вокруг законцовки кайт
+      // переезжает, и куда — обязано быть сказано здесь же: иначе смещение
+      // снова достанется отрезку после поворота.
+      if (about === "center" && value.to !== undefined) {
+        fail(`${where}.to`, "поворот вокруг центра кайт не перемещает");
+      }
+      if ((about === "left-tip" || about === "right-tip") && value.to === undefined) {
+        fail(`${where}.to`, "поворот вокруг законцовки перемещает кайт: нужна точка, куда пришёл нос");
+      }
+      if (value.to === undefined) {
+        if (value.basis !== undefined) {
+          fail(`${where}.basis`, "записывается только вместе с точкой «to»");
+        }
+        return step;
+      }
+      const to = point(`${where}.to`, value.to);
+      const basis = value.basis === undefined ? "grid" : oneOf(`${where}.basis`, value.basis, BASES);
+      if (degrees >= 360) {
+        fail(`${where}.degrees`, "поворот со смещением — меньше полного оборота");
+      }
+      if (position !== null) {
+        if (distance(position, to) < TOLERANCE) {
+          fail(`${where}.to`, "поворот не смещает кайт: точка «to» совпадает с текущей");
+        }
+        const pivot = pivotOf(position, to, direction, degrees);
+        // Нос идёт по дуге вокруг точки поворота — она тоже не покидает окна.
+        for (let turned = 0; turned < degrees; turned += 1) {
+          if (!inGrid(arcPoint(position, pivot, direction, turned))) {
+            fail(where, "поворот выводит кайт за сетку окна");
+          }
+        }
+        // Нос — середина передней кромки, законцовка — сбоку от него: левая —
+        // слева от курса, если смотреть на кайт носом вверх.
+        if (heading !== null && typeof about === "string") {
+          const reach: Point = [pivot[0] - position[0], pivot[1] - position[1]];
+          const aside = reach[0] * -heading[1] + reach[1] * heading[0];
+          const ahead = reach[0] * heading[0] + reach[1] * heading[1];
+          const side = aside > 0 ? "left-tip" : "right-tip";
+          if (Math.abs(aside) <= Math.abs(ahead) || side !== about) {
+            fail(
+              `${where}.about`,
+              `смещение в [${to.join(", ")}] при этом курсе носа даёт точку поворота [${pivot.map((part) => part.toFixed(2)).join(", ")}]` +
+                (Math.abs(aside) <= Math.abs(ahead) ? " — не сбоку от носа, это не законцовка" : ` — это «${side}», а записано «${about}»`),
+            );
+          }
+        }
+      }
+      return { ...step, to, basis };
     }
     default:
       fail(`${where}.kind`, "ожидается одно из: start, line, arc, mark, rotate");
@@ -303,21 +435,36 @@ function parseKite(where: string, raw: unknown): Kite {
   const id = text(`${where}.id`, value.id);
   const path: Step[] = [];
   let position: Point | null = null;
+  // Куда смотрит нос, пока это следует из пути: по нему сверяется законцовка.
+  let heading: Point | null = null;
   // Отрезки и дуги между «in» и «out»: оцениваемая часть не бывает пустой.
   let judged = 0;
   const calls: MarkName[] = [];
   list(`${where}.path`, value.path).forEach((item, index) => {
     const at = `${where}.path[${index}]`;
-    const step = parseStep(at, item, position);
+    const step = parseStep(at, item, position, heading);
     if ((step.kind === "start") !== (index === 0)) {
       fail(at, "путь начинается шагом «start», и такой шаг в нём один");
     }
     if (step.kind === "start") {
       position = step.at;
     } else if (step.kind === "line" || step.kind === "arc") {
+      heading = position === null ? null : noseAfter(position, step);
       position = step.to;
       if (calls.join(",") === "in") {
         judged += 1;
+      }
+    } else if (step.kind === "rotate") {
+      if (heading !== null) {
+        // По часовой курс растёт.
+        const angle = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
+        heading = [
+          heading[0] * Math.cos(angle) + heading[1] * Math.sin(angle),
+          heading[1] * Math.cos(angle) - heading[0] * Math.sin(angle),
+        ];
+      }
+      if (isSwing(step)) {
+        position = step.to;
       }
     } else if (step.kind === "mark" && (step.mark === "in" || step.mark === "out")) {
       calls.push(step.mark);
@@ -421,15 +568,16 @@ export function parseGeometry(where: string, raw: unknown, pages: number): Geome
       variant.kites.some((kite) =>
       kite.path.some(
         (step) =>
-          ("basis" in step && step.basis !== "grid" && step.basis !== "text") ||
-          ("unmarked" in step && step.unmarked === true),
+          ("basis" in step && step.basis !== undefined && step.basis !== "grid" && step.basis !== "text") ||
+          ("unmarked" in step && step.unmarked === true) ||
+          (step.kind === "rotate" && step.about_basis === "derived"),
       ),
     ),
   );
   if (unexplained && notes.length === 0) {
     fail(
       `${where}.notes`,
-      "есть шаги или вспомогательные линии с basis «derived» или «measured» либо шаги с «unmarked» — нужна заметка, что именно не подписано и откуда взято значение",
+      "есть шаги или вспомогательные линии с basis «derived» или «measured», шаги с «unmarked» либо выведенная точка поворота — нужна заметка, что именно не подписано и откуда взято значение",
     );
   }
   return { status, variants, notes };

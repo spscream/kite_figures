@@ -14,7 +14,7 @@ import { isDate, loadSources, type SourceDocument } from "./sources";
 // те, кто по ним рисует схемы и строит страницы.
 export const FIGURES_DIR = path.join(process.cwd(), "data", "figures");
 
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 
 const EXTENSION = ".json";
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;

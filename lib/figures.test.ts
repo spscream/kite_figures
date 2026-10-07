@@ -27,7 +27,7 @@ const SOURCES: SourceDocument[] = [
 // Полная запись фигуры; тест портит в ней ровно одно место.
 function figure(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    schema: 1,
+    schema: 2,
     discipline: "dual-line-individual",
     number: 2,
     name: "Circle",
@@ -170,7 +170,7 @@ describe("listFigures", () => {
   });
 
   it.each([
-    ["schema", figure({ schema: 2 }), /поле «schema» должно быть равно 1/],
+    ["schema", figure({ schema: 1 }), /поле «schema» должно быть равно 2/],
     ["discipline", figure({ discipline: "kiteboarding" }), /поле «discipline» — одно из/],
     ["discipline из прототипа", figure({ discipline: "toString" }), /поле «discipline» — одно из/],
     ["number", figure({ number: 0 }), /поле «number»/],

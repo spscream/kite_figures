@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-pair",
   "number": 7,
   "name": "Circles and Slides",
@@ -23,7 +23,7 @@
               {"kind": "arc", "to": [50, 40], "center": [50, 55], "direction": "ccw", "sweep": 360, "sync": "d", "basis": "measured"},
               {"kind": "line", "to": [70, 40], "sync": "e"},
               {"kind": "line", "to": [70, 10], "nose": 90, "sync": "f"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": {"status": "not_found", "reason": "Страница (стр. 105, прочитана 2026-10-07) не называет, вокруг какой точки кайта идёт поворот."}},
               {"kind": "line", "to": [-50, 10], "nose": 180, "sync": "g"},
               {"kind": "mark", "mark": "out"}
             ]
@@ -39,7 +39,7 @@
               {"kind": "arc", "to": [20, 40], "center": [20, 55], "direction": "ccw", "sweep": 360, "sync": "d"},
               {"kind": "line", "to": [40, 40], "sync": "e"},
               {"kind": "line", "to": [40, 10], "nose": 90, "sync": "f"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": {"status": "not_found", "reason": "Страница (стр. 105, прочитана 2026-10-07) не называет, вокруг какой точки кайта идёт поворот."}},
               {"kind": "line", "to": [-80, 10], "nose": 180, "sync": "g"},
               {"kind": "mark", "mark": "out"}
             ]
