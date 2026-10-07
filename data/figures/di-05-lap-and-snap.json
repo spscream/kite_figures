@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 5,
+  "name": "Lap and Snap",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 18, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Три горизонтальных прохода змейкой сверху вниз, соединённые двумя полукруглыми разворотами, и короткий спуск по центру окна с посадкой на оба конца крыла.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-80, 80]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [65, 80], "basis": "derived"},
+              {"kind": "arc", "to": [65, 50], "center": [65, 65], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-65, 50], "basis": "derived"},
+              {"kind": "arc", "to": [-65, 20], "center": [-65, 35], "direction": "ccw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [0, 0]},
+              {"kind": "mark", "mark": "landing", "style": "snap-two-point"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Точки, где прямые переходят в дуги (x = ±65), на схеме не подписаны. Они выведены из подписанных высот проходов (80, 50 и 20 — отсюда радиус 15) и из того, что дуги доходят до подписанных линий x = ±80; замер по схеме с этим согласуется.",
+      "Посадка записана на уровне земли (y = 0): на схеме метка кайта стоит на нижней границе сетки. Вид посадки — по подписи на схеме и по списку того, что оценивают судьи."
+    ]
+  }
+}

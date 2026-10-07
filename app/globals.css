@@ -60,9 +60,3 @@ h1 {
 .figure-list {
   padding-left: 1.2rem;
 }
-
-.fictional {
-  border: 1px dashed var(--line);
-  padding: 0.5rem 0.75rem;
-  color: var(--muted);
-}

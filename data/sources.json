@@ -1,0 +1,17 @@
+{
+  "documents": [
+    {
+      "id": "iskcb",
+      "version": "3.0",
+      "title": "International Sport Kite Compulsories Book",
+      "dated": "2017-04-01",
+      "publisher": "International Rule Book Committee (IRBC)",
+      "url": "http://worldsportkite.com/wp-content/uploads/2017/04/ISK-Compulsories-Book-v3-2017-03-30final.pdf",
+      "landing": "http://worldsportkite.com/2017-isk-rules",
+      "pages": 125,
+      "bytes": 2934736,
+      "sha256": "0753c538fbbbf7a5bc15c2529a88d4969d1aee3b460b049ee6d0bdf3754c711e",
+      "checked_on": "2026-10-07"
+    }
+  ]
+}

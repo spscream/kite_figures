@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 20,
+  "name": "Boomerang",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 31, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Разворот бумерангом: кайт уходит к центру окна и возвращается выше, параллельным курсом в обратную сторону. Сам разворот — полукруглая дуга, которую с обоих концов обрамляют половины акселя; начало и конец фигуры лежат на одной вертикали.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 20]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 70], "center": [0, 45], "direction": "cw", "sweep": 180},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "line", "to": [-50, 70]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

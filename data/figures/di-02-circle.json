@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-individual",
+  "number": 2,
+  "name": "Circle",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 16, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Один полный круг по часовой стрелке в центре окна. Вход и выход — в одной точке, на правом краю круга.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [40, 50]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "arc", "to": [40, 50], "center": [0, 50], "direction": "cw", "sweep": 360},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

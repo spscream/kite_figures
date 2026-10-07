@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { listFigures } from "@/lib/figures";
+import { figureTitle, listFigures } from "@/lib/figures";
 
 export default function HomePage() {
   const figures = listFigures();
@@ -8,14 +8,14 @@ export default function HomePage() {
     <>
       <h1>Фигуры для спортивных кайтов</h1>
       <p className="note">
-        Сайт в работе: каталог обязательных фигур со своими схемами и ссылками на официальные
-        правила появится здесь позже.
+        Сайт в работе: в каталоге пока один раздел правил, свои схемы фигур появятся здесь
+        позже.
       </p>
       <h2>Фигуры</h2>
       <ul className="figure-list">
         {figures.map((figure) => (
           <li key={figure.slug}>
-            <Link href={`/figures/${figure.slug}/`}>{figure.title}</Link>
+            <Link href={`/figures/${figure.slug}/`}>{figureTitle(figure)}</Link>
           </li>
         ))}
       </ul>
