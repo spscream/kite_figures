@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-individual",
   "number": 9,
   "name": "Clock Tower",
@@ -19,9 +19,9 @@
               {"kind": "start", "at": [0, 80]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [0, 50], "nose": "backward"},
-              {"kind": "rotate", "degrees": 360, "direction": "cw"},
+              {"kind": "rotate", "degrees": 360, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [0, 30], "nose": "backward"},
-              {"kind": "rotate", "degrees": 360, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 360, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [0, 0], "nose": "backward"},
               {"kind": "mark", "mark": "landing"},
               {"kind": "mark", "mark": "out"}

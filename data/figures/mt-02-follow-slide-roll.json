@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-team",
   "number": 2,
   "name": "Follow, Slide, Roll",
@@ -22,7 +22,7 @@
               {"kind": "line", "to": [30, 10], "nose": 180},
               {"kind": "arc", "to": [30, 10], "center": [30, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
-              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 90]},
               {"kind": "mark", "mark": "out"}
             ]
@@ -36,7 +36,7 @@
               {"kind": "line", "to": [10, 10], "nose": 180},
               {"kind": "arc", "to": [10, 10], "center": [10, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
-              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 70]},
               {"kind": "mark", "mark": "out"}
             ]
@@ -50,7 +50,7 @@
               {"kind": "line", "to": [-10, 10], "nose": 180},
               {"kind": "arc", "to": [-10, 10], "center": [-10, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
-              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 50]},
               {"kind": "mark", "mark": "out"}
             ]
@@ -64,7 +64,7 @@
               {"kind": "line", "to": [-30, 10], "nose": 180},
               {"kind": "arc", "to": [-30, 10], "center": [-30, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
-              {"kind": "rotate", "degrees": 180, "direction": "cw"},
+              {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 30]},
               {"kind": "mark", "mark": "out"}
             ]

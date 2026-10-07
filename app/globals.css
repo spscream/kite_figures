@@ -386,6 +386,14 @@ h1 {
   stroke-linecap: round;
 }
 
+.d-swing {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 0.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .d-note {
   fill: var(--fg);
   font-size: 4.6px;

@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-team",
   "number": 1,
   "name": "Cascade",
@@ -20,7 +20,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-20, 90]},
               {"kind": "line", "to": [-20, 10], "nose": 90, "sync": "diagonal"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [95, 10], "basis": "measured", "nose": 180},
               {"kind": "mark", "mark": "out"}
             ]
@@ -33,7 +33,7 @@
               {"kind": "line", "to": [0, 90]},
               {"kind": "line", "to": [0, 36], "basis": "measured", "nose": 90, "sync": "diagonal"},
               {"kind": "line", "to": [0, 10], "nose": 90},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [85, 10], "basis": "measured", "nose": 180},
               {"kind": "mark", "mark": "out"}
             ]
@@ -46,7 +46,7 @@
               {"kind": "line", "to": [20, 90]},
               {"kind": "line", "to": [20, 61.5], "basis": "measured", "nose": 90, "sync": "diagonal"},
               {"kind": "line", "to": [20, 10], "nose": 90},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [75, 10], "basis": "measured", "nose": 180},
               {"kind": "mark", "mark": "out"}
             ]
@@ -59,7 +59,7 @@
               {"kind": "line", "to": [40, 90]},
               {"kind": "line", "to": [40, 87.5], "basis": "measured", "nose": 90, "sync": "diagonal"},
               {"kind": "line", "to": [40, 10], "nose": 90},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [65, 10], "basis": "measured", "nose": 180},
               {"kind": "mark", "mark": "out"}
             ]

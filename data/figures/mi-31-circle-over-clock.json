@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-individual",
   "number": 31,
   "name": "Circle Over Clock",
@@ -23,7 +23,7 @@
               {"kind": "line", "to": [-40, 40]},
               {"kind": "line", "to": [-40, 10], "nose": 270},
               {"kind": "line", "to": [0, 10], "nose": "backward"},
-              {"kind": "rotate", "degrees": 180, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 180, "direction": "ccw", "about": {"status": "not_found", "reason": "Страница (стр. 93, прочитана 2026-10-07) называет поворот выполненным на месте, но не говорит, вокруг какой точки кайта он идёт."}},
               {"kind": "line", "to": [40, 10]},
               {"kind": "mark", "mark": "out"}
             ]

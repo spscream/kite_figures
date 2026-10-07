@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-pair",
   "number": 4,
   "name": "Two Down",
@@ -20,7 +20,7 @@
               {"kind": "line", "to": [50, 70], "sync": "a"},
               {"kind": "line", "to": [50, 40], "nose": 90, "sync": "b"},
               {"kind": "line", "to": [-40, 40], "nose": "backward", "sync": "c"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-40, 10], "sync": "d"},
               {"kind": "line", "to": [50, 10], "nose": 180, "sync": "e"},
               {"kind": "mark", "mark": "out"}
@@ -34,7 +34,7 @@
               {"kind": "line", "to": [40, 70], "sync": "a"},
               {"kind": "line", "to": [40, 40], "nose": 90, "sync": "b"},
               {"kind": "line", "to": [-50, 40], "nose": "backward", "sync": "c"},
-              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-50, 10], "sync": "d"},
               {"kind": "line", "to": [40, 10], "nose": 180, "sync": "e"},
               {"kind": "mark", "mark": "out"}

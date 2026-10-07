@@ -3,7 +3,7 @@
 // вид остановки и посадки, одновременность). Формулировки свои и строятся из
 // тех же данных, что и чертёж.
 
-import type { Basis, Kite, Point, Step } from "./geometry";
+import { isSwing, type Basis, type Kite, type Point, type Step } from "./geometry";
 
 // Пометка шага, которую читатель обязан увидеть: направление не показано
 // первоисточником либо координата взята не с подписанной линии сетки.
@@ -82,10 +82,24 @@ const MARK = {
 } as const;
 
 const ABOUT = {
-  center: "",
+  center: " вокруг центра",
   "left-tip": " вокруг левой законцовки",
   "right-tip": " вокруг правой законцовки",
 } as const;
+
+// Точка поворота названа всегда — либо сказано, что книга её не называет.
+// Выведенная отличается от прочитанной словами: значка на схеме у неё нет.
+export const ABOUT_MISSING_TEXT = " (точка поворота в книге не названа)";
+export const ABOUT_DERIVED_TEXT = " (выведено, книгой не названо)";
+
+function turn(step: Extract<Step, { kind: "rotate" }>): string {
+  const about =
+    typeof step.about === "string"
+      ? ABOUT[step.about] + (step.about_basis === "derived" ? ABOUT_DERIVED_TEXT : "")
+      : ABOUT_MISSING_TEXT;
+  const to = isSwing(step) ? ` до ${point(step.to)}` : "";
+  return `оворот на ${num(step.degrees)}° ${DIRECTION[step.direction]}${about}${to}`;
+}
 
 function head(step: Step): string {
   switch (step.kind) {
@@ -108,21 +122,23 @@ function head(step: Step): string {
         (typeof step.nose === "number" ? `, на схеме книги кайт носом ${COURSE[step.nose] ?? `по курсу ${num(step.nose)}°`}` : "")
       );
     case "rotate":
-      return `поворот на ${num(step.degrees)}° ${DIRECTION[step.direction]}${ABOUT[step.about]}`;
+      // Поворот со смещением — перемещение, и строка у него своя.
+      return (isSwing(step) ? "П" : "п") + turn(step);
   }
 }
 
-// Строка на каждое перемещение; события в точке, куда оно привело (отметки и
-// повороты на месте), дописываются к нему же. Первая строка — точка старта.
+// Строка на каждое перемещение — отрезок, дугу и поворот, который сам
+// перемещает кайт; события в точке, куда оно привело (отметки и повороты на
+// месте), дописываются к нему же. Первая строка — точка старта.
 export function describeKite(kite: Kite): StepLine[] {
   const lines: StepLine[] = [];
   for (const step of kite.path) {
-    if (step.kind === "start" || step.kind === "line" || step.kind === "arc") {
+    if (step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step)) {
       const tags: Tag[] = [];
-      if (step.kind !== "start" && step.unmarked) {
+      if ((step.kind === "line" || step.kind === "arc") && step.unmarked) {
         tags.push("unmarked");
       }
-      if (step.basis !== "grid") {
+      if (step.basis !== undefined && step.basis !== "grid") {
         tags.push(step.basis);
       }
       lines.push({ head: head(step), events: [], tags, sync: [] });

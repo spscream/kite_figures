@@ -4,14 +4,15 @@
 // (графической легенды в книге нет, см. `docs/sources.md`): значок кайта носом
 // по курсу на входе, выходе, остановке и вдоль пути, координата — по носу,
 // тонкая стрелка рядом с линией у многострочных, подписи «In», «Out», «Stop»,
-// дуга со стрелкой и углом у поворота на месте, цвета кайтов команды, линии
+// дуга со стрелкой и углом у поворота на месте, дуга носа со стрелкой у
+// поворота, который сам перемещает кайт, цвета кайтов команды, линии
 // сетки только там, где проходит фигура. Модуль ничего не знает про React: он
 // считает геометрию, а разметку собирает `components/FigureDiagram.tsx`.
 //
 // Координаты SVG — та же сетка окна, только `y` перевёрнут: земля внизу, на
 // `y = 100`. Дуга «по часовой, как видит пилот» на экране тоже по часовой.
 
-import { arcPoint, GRID, type Kite, type Point, type Step, type Variant } from "./geometry";
+import { arcPoint, GRID, isSwing, pivotOf, type Kite, type Point, type Step, type Variant } from "./geometry";
 
 type Move = Extract<Step, { kind: "line" | "arc" }>;
 
@@ -29,8 +30,12 @@ export type Label = { x: number; y: number; text: string; tone: string; kind: "n
 
 export type Drawing = {
   viewBox: string;
-  // Линия каждого кайта, в порядке кайтов варианта.
+  // Линия каждого кайта, в порядке кайтов варианта. Там, где кайт перемещён
+  // поворотом, линия разорвана: пролёта между этими точками нет.
   tracks: { id: string; d: string }[];
+  // Повороты, которые сами перемещают кайт, одним путём: дуга, по которой нос
+  // идёт вокруг точки поворота, со стрелкой посередине. Пусто, когда таких нет.
+  swings: string;
   // Стрелки направления рядом с линией, по цвету: `in` — первый проход от
   // входа, `out` — последний к выходу, `mid` — остальные. Есть только у
   // многострочных: двухстропный кайт летит носом вперёд, и направление
@@ -411,7 +416,9 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   const flown: { from: Point; step: Move; kite: number; tone: string; edge: "in" | "out" | "mid" }[] = [];
   const traces: Point[][] = [];
   // Что подписать рядом с точкой: остановки, акселя, повороты.
-  const notes: { point: Point; text: string; turn?: "cw" | "ccw" }[] = [];
+  // `spots` — места подписи по порядку предпочтения, когда они у неё свои.
+  const notes: { point: Point; text: string; turn?: "cw" | "ccw"; spots?: (half: number) => Point[] }[] = [];
+  let swings = "";
   // Что подписать под землёй: взлёты и посадки.
   const grounded: { point: Point; text: string }[] = [];
   const wanted: { point: Point; toward: Point; text: string; tone: string; side?: -1 | 1 }[] = [];
@@ -494,7 +501,44 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
           break;
         }
         case "rotate": {
-          notes.push({ point: here, text: `${fmt(step.degrees).replace(".", ",")}°`, turn: step.direction });
+          const text = `${fmt(step.degrees).replace(".", ",")}°`;
+          if (isSwing(step)) {
+            // Поворот сам переносит кайт: нос идёт по дуге вокруг точки
+            // поворота, а она следует из смещения, угла и стороны. Линия пути
+            // здесь рвётся — прямой между этими точками кайт не летит.
+            const center = pivotOf(here, step.to, step.direction, step.degrees);
+            const arc: Move = { kind: "arc", to: step.to, center, direction: step.direction, sweep: step.degrees, basis: "grid", nose: "forward" };
+            const end = along(here, arc, 1);
+            // Стрелка — посередине дуги: её концы заняты значками координат.
+            const tip = along(here, arc, 0.5);
+            const whisker = (aside: number): Point => [
+              tip.point[0] - tip.heading[0] * 1.9 + tip.heading[1] * aside,
+              tip.point[1] - tip.heading[1] * 1.9 - tip.heading[0] * aside,
+            ];
+            swings += `M${at(here)}${segment(here, arc)}M${at(whisker(1))}L${at(tip.point)}L${at(whisker(-1))}`;
+            const count = Math.max(2, Math.ceil(length(here, arc) / 3));
+            traces.push(Array.from({ length: count + 1 }, (_, i) => along(here, arc, i / count).point));
+            // Угол — снаружи дуги, у её середины.
+            const middle = tip.point;
+            const radius = gap(middle, center);
+            const out: Point = [(middle[0] - center[0]) / radius, (middle[1] - center[1]) / radius];
+            notes.push({
+              point: middle,
+              text,
+              spots: (half) => [
+                ...[3.5, 6].map((far): Point => [middle[0] + out[0] * (far + half), middle[1] + out[1] * far]),
+                ...around(middle, 7, half),
+              ],
+            });
+            busy.push(middle, step.to);
+            heading = end.heading;
+            here = step.to;
+            d += `M${at(here)}`;
+            offGrid(step.basis ?? "grid", here);
+            onGrid(step.basis ?? "grid", here);
+          } else {
+            notes.push({ point: here, text, turn: step.direction });
+          }
           // Поворот на месте разворачивает нос: по часовой курс растёт.
           const angle = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
           nose = [
@@ -871,8 +915,8 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   const placedNotes: { point: Point; text: string }[] = [];
   // Сперва слова — им место справа от точки, как в книге; знак поворота
   // встаёт потом туда, где осталось свободно.
-  for (const { point, text, turn: direction } of [...notes.filter((note) => !note.turn), ...notes.filter((note) => note.turn)]) {
-    const key = direction ? `${direction} ${text}` : text;
+  for (const { point, text, turn: direction, spots } of [...notes.filter((note) => !note.turn), ...notes.filter((note) => note.turn)]) {
+    const key = direction ? `${direction} ${text}` : spots ? `swing ${text}` : text;
     if (!solo && placedNotes.some((other) => other.text === key && gap(other.point, point) < 16)) {
       continue;
     }
@@ -904,7 +948,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
       labels.push({ x: round(sx(spot)), y: round(sy(spot) + 2.6), text, tone: "", kind: "note" });
     } else {
       const half = halfOf(text, "note");
-      const spot = settle(point, around(point, 7, half), half);
+      const spot = settle(point, spots ? spots(half) : around(point, 7, half), half);
       labels.push({ x: round(sx(spot)), y: round(sy(spot)), text, tone: "", kind: "note" });
     }
   }
@@ -949,6 +993,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   return {
     viewBox: `${VIEW.left} ${VIEW.top} ${VIEW.width} ${fmt(bottom - VIEW.top)}`,
     tracks,
+    swings,
     arrows,
     guides,
     grid: {
@@ -964,6 +1009,9 @@ function round(value: number): number {
   return Number(fmt(value));
 }
 
+// Ближайший пролёт из этой же точки. За поворотом со смещением пролёт
+// начинается уже в другой точке, и курса отсюда он не задаёт.
 function nextMove(kite: Kite, after: number): Move | undefined {
-  return kite.path.slice(after + 1).find((step): step is Move => step.kind === "line" || step.kind === "arc");
+  const next = kite.path.slice(after + 1).find((step) => step.kind === "line" || step.kind === "arc" || isSwing(step));
+  return next?.kind === "line" || next?.kind === "arc" ? next : undefined;
 }

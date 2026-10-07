@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "discipline": "multi-line-pair",
   "number": 11,
   "name": "Triangle Split",
@@ -18,11 +18,11 @@
               {"kind": "start", "at": [10, 4], "basis": "measured"},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [10, 90], "nose": 90, "sync": "a"},
-              {"kind": "rotate", "degrees": 60, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 60, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [80, 50], "nose": 30, "sync": "b"},
-              {"kind": "rotate", "degrees": 120, "direction": "cw"},
+              {"kind": "rotate", "degrees": 120, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [30, 4], "nose": 137.5, "basis": "measured", "sync": "c"},
-              {"kind": "rotate", "degrees": 47.5, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 47.5, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "out"}
             ]
           },
@@ -32,11 +32,11 @@
               {"kind": "start", "at": [-10, 4], "basis": "measured"},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-10, 90], "nose": 270, "sync": "a"},
-              {"kind": "rotate", "degrees": 60, "direction": "cw"},
+              {"kind": "rotate", "degrees": 60, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-80, 50], "nose": 330, "sync": "b"},
-              {"kind": "rotate", "degrees": 120, "direction": "ccw"},
+              {"kind": "rotate", "degrees": 120, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [-30, 4], "nose": 222.5, "basis": "measured", "sync": "c"},
-              {"kind": "rotate", "degrees": 47.5, "direction": "cw"},
+              {"kind": "rotate", "degrees": 47.5, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "mark", "mark": "out"}
             ]
           }
