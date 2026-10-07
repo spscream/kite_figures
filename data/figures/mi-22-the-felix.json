@@ -19,7 +19,7 @@
               {"kind": "start", "at": [0, 0]},
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
-              {"kind": "line", "to": [0, 10], "basis": "text", "nose": 270},
+              {"kind": "line", "to": [0, 10], "nose": 270},
               {"kind": "mark", "mark": "stall"},
               {"kind": "arc", "to": [0, 40], "center": [0, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
               {"kind": "mark", "mark": "stall"},
@@ -30,7 +30,7 @@
               {"kind": "mark", "mark": "stall"},
               {"kind": "arc", "to": [0, 10], "center": [0, 25], "direction": "ccw", "sweep": 180, "basis": "derived"},
               {"kind": "mark", "mark": "stall"},
-              {"kind": "line", "to": [0, 0], "basis": "text", "nose": 90},
+              {"kind": "line", "to": [0, 0], "nose": 90},
               {"kind": "mark", "mark": "landing"},
               {"kind": "mark", "mark": "out"}
             ]
