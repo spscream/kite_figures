@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 17,
+  "name": "Boomerang",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 68, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Кайты входят навстречу друг другу, один под другим: нечётные справа, чётные слева. На центральной линии каждый делает половину акселя и уходит вверх полукруглой дугой — в ту сторону, откуда пришёл, — возвращаясь на центральную линию выше; оттуда резко поворачивает вниз, спускается по ней до своей высоты и резким поворотом выходит дальше по линии входа.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [50, 50]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 80], "center": [0, 65], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-50, 50]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 70], "center": [0, 55], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [50, 30]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 60], "center": [0, 45], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [-50, 30]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 69,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [50, 50]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 80], "center": [0, 65], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-50, 50]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 70], "center": [0, 55], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [50, 30]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 60], "center": [0, 45], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [-50, 30]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 50], "center": [0, 35], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [50, 20]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 69,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [50, 50]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 80], "center": [0, 65], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [-50, 50]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-50, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 70], "center": [0, 55], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [50, 40]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [50, 30]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 60], "center": [0, 45], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [-50, 30]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 20]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 50], "center": [0, 35], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [50, 20]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [50, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "mark", "mark": "half-axel"},
+              {"kind": "arc", "to": [0, 40], "center": [0, 25], "direction": "ccw", "sweep": 180},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "line", "to": [-50, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Спуск по центральной линии у всех кайтов общий: на нём они идут друг за другом по одной прямой.",
+      "Половина акселя подписана на схеме у точки, где линия входа каждого кайта встречает центральную линию."
+    ]
+  }
+}

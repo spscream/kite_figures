@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 10,
+  "name": "Team Diamonds",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 60, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Кайты стоят в ряд на низком проходе и летят вправо. Каждый на середине своего отрезка описывает ромб — квадрат, поставленный на угол, нижней вершиной на линии прохода — и продолжает проход до точки под правым углом ромба. Все ромбы одного размера и стоят в одну линию.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [30, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [50, 10]},
+              {"kind": "line", "to": [70, 30], "unmarked": true},
+              {"kind": "line", "to": [50, 50], "unmarked": true},
+              {"kind": "line", "to": [30, 30], "unmarked": true},
+              {"kind": "line", "to": [50, 10], "unmarked": true},
+              {"kind": "line", "to": [70, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-20, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "line", "to": [20, 30], "unmarked": true},
+              {"kind": "line", "to": [0, 50], "unmarked": true},
+              {"kind": "line", "to": [-20, 30], "unmarked": true},
+              {"kind": "line", "to": [0, 10], "unmarked": true},
+              {"kind": "line", "to": [20, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-70, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-50, 10]},
+              {"kind": "line", "to": [-30, 30], "unmarked": true},
+              {"kind": "line", "to": [-50, 50], "unmarked": true},
+              {"kind": "line", "to": [-70, 30], "unmarked": true},
+              {"kind": "line", "to": [-50, 10], "unmarked": true},
+              {"kind": "line", "to": [-30, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 61,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [75, 10], "basis": "measured"},
+              {"kind": "line", "to": [95, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [75, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [55, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [75, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [95, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [25, 10], "basis": "measured"},
+              {"kind": "line", "to": [45, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [25, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [25, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [45, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-45, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-25, 10], "basis": "measured"},
+              {"kind": "line", "to": [-5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-25, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-45, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-25, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-95, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-75, 10], "basis": "measured"},
+              {"kind": "line", "to": [-55, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-75, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-95, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-75, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 61,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [75, 10], "basis": "measured"},
+              {"kind": "line", "to": [95, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [75, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [55, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [75, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [95, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [17.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [37.5, 10], "basis": "measured"},
+              {"kind": "line", "to": [57.5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [37.5, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [17.5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [37.5, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [57.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-20, 10]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "line", "to": [20, 30], "unmarked": true},
+              {"kind": "line", "to": [0, 50], "unmarked": true},
+              {"kind": "line", "to": [-20, 30], "unmarked": true},
+              {"kind": "line", "to": [0, 10], "unmarked": true},
+              {"kind": "line", "to": [20, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-57.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-37.5, 10], "basis": "measured"},
+              {"kind": "line", "to": [-17.5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-37.5, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-57.5, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-37.5, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-17.5, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-95, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-75, 10], "basis": "measured"},
+              {"kind": "line", "to": [-55, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-75, 50], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-95, 30], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-75, 10], "basis": "measured", "unmarked": true},
+              {"kind": "line", "to": [-55, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Направление обхода ромба схема не показывает: метки кайтов стоят только на концах нижнего прохода. Стороны ромба записаны в порядке обхода против часовой стрелки и помечены `unmarked` — линии верны, направление по ним рисовать нельзя.",
+      "У составов из четырёх и пяти кайтов вершины ромбов лежат между подписанными линиями сетки: центры ромбов — x = ±75 и ±25 у четырёх, ±75, ±37,5 и 0 у пяти, полуширина 20. Сняты замером нижнего прохода и наложением записанных ромбов на схему; точность — около единицы. У состава из пяти соседние ромбы заходят друг на друга на 2,5 единицы."
+    ]
+  }
+}

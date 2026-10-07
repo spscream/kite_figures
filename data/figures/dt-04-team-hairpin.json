@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "discipline": "dual-line-team",
+  "number": 4,
+  "name": "Team Hairpin",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 52, "read_on": "2026-10-07", "page_version": "2011-12-05"},
+  "summary": "Кайты колонной летят вправо, и каждый делает над линией полёта полный круг против часовой стрелки — все круги одного размера, в ряд. Затем колонна разворачивается вниз широкой полукруглой шпилькой у правого края окна и на обратном проходе влево повторяет то же: по кругу над линией на каждого, теперь по часовой стрелке.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "team-3",
+        "team_size": 3,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [45, 40], "basis": "derived"},
+              {"kind": "arc", "to": [45, 40], "center": [45, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-45, 10], "basis": "derived"},
+              {"kind": "arc", "to": [-45, 10], "center": [-45, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-90, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-45, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "arc", "to": [0, 40], "center": [0, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "arc", "to": [0, 10], "center": [0, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-45, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-45, 40], "basis": "derived"},
+              {"kind": "arc", "to": [-45, 40], "center": [-45, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [45, 10], "basis": "derived"},
+              {"kind": "arc", "to": [45, 10], "center": [45, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "team_size": 4,
+        "page": 53,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [45, 40], "basis": "derived"},
+              {"kind": "arc", "to": [45, 40], "center": [45, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-45, 10], "basis": "derived"},
+              {"kind": "arc", "to": [-45, 10], "center": [-45, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-90, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-30, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [15, 40], "basis": "derived"},
+              {"kind": "arc", "to": [15, 40], "center": [15, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-15, 10], "basis": "derived"},
+              {"kind": "arc", "to": [-15, 10], "center": [-15, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-60, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-60, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-15, 40], "basis": "derived"},
+              {"kind": "arc", "to": [-15, 40], "center": [-15, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [15, 10], "basis": "derived"},
+              {"kind": "arc", "to": [15, 10], "center": [15, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-30, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-45, 40], "basis": "derived"},
+              {"kind": "arc", "to": [-45, 40], "center": [-45, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [45, 10], "basis": "derived"},
+              {"kind": "arc", "to": [45, 10], "center": [45, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "team_size": 5,
+        "page": 53,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [30, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [60, 40], "basis": "derived"},
+              {"kind": "arc", "to": [60, 40], "center": [60, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-60, 10], "basis": "derived"},
+              {"kind": "arc", "to": [-60, 10], "center": [-60, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-90, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [0, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [30, 40], "basis": "derived"},
+              {"kind": "arc", "to": [30, 40], "center": [30, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [-30, 10], "basis": "derived"},
+              {"kind": "arc", "to": [-30, 10], "center": [-30, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-60, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-30, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [0, 40]},
+              {"kind": "arc", "to": [0, 40], "center": [0, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "arc", "to": [0, 10], "center": [0, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [-30, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-60, 40], "basis": "measured"},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-30, 40], "basis": "derived"},
+              {"kind": "arc", "to": [-30, 40], "center": [-30, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [30, 10], "basis": "derived"},
+              {"kind": "arc", "to": [30, 10], "center": [30, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [0, 10]},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          },
+          {
+            "id": "5",
+            "path": [
+              {"kind": "start", "at": [-90, 40]},
+              {"kind": "mark", "mark": "in", "sync": "in"},
+              {"kind": "line", "to": [-60, 40], "basis": "derived"},
+              {"kind": "arc", "to": [-60, 40], "center": [-60, 50], "direction": "ccw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [75, 40], "basis": "derived"},
+              {"kind": "arc", "to": [75, 10], "center": [75, 25], "direction": "cw", "sweep": 180, "basis": "derived"},
+              {"kind": "line", "to": [60, 10], "basis": "derived"},
+              {"kind": "arc", "to": [60, 10], "center": [60, 20], "direction": "cw", "sweep": 360, "basis": "derived"},
+              {"kind": "line", "to": [30, 10], "basis": "measured"},
+              {"kind": "mark", "mark": "out", "sync": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Отметки «in» и «out» с меткой одновременности — один момент для всей команды: на схеме подписи In и Out стоят у кайта №1, а путь каждого из остальных начат и закончен там, где схема рисует его метку рядом с метками остальных.",
+      "Круги: на схеме подписаны их боковые края и высоты (верхний ряд — от 40 до 60, нижний — от 10 до 30). Центр и точка касания с линией полёта — середина между подписанными краями, радиус 10 (`derived`); подгонка окружности по схеме даёт радиус 10,0 и те же центры с точностью до половины единицы.",
+      "Шпилька: подписаны её крайняя правая точка (x = 90) и высоты проходов (40 и 10). Отсюда радиус 15 и переход прямых в дугу на x = 75 (`derived`); подгонка окружности по схеме даёт радиус 15,0 и центр на высоте 25.",
+      "Положение кайтов в момент входа и выхода, не попавшее на подписанную линию сетки, снято замером меток с точностью около единицы."
+    ]
+  }
+}
