@@ -404,7 +404,8 @@ h1 {
 }
 
 .d-derived,
-.d-measured {
+.d-measured,
+.d-unspecified {
   fill: var(--bg);
   stroke: var(--fg);
   stroke-width: 0.6;

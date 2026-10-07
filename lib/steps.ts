@@ -10,12 +10,13 @@ import { isSwing, type Basis, type Kite, type Point, type Step } from "./geometr
 export type Tag = "unmarked" | Exclude<Basis, "grid">;
 
 // Пометка стоит сразу за перемещением, до событий в точке: она про
-// координату шага, а не про остановку или выход. Кружок и квадрат — те же
-// значки, что на схеме и в её легенде; `unmarked` в это число не входит: его
+// координату шага, а не про остановку или выход. Кружок, квадрат и ромб — те
+// же значки, что на схеме и в её легенде; `unmarked` в это число не входит: его
 // разметка выделяет отдельно.
 const TAG_TEXT: Record<Exclude<Tag, "unmarked">, string> = {
   derived: " ○",
   measured: " □",
+  unspecified: " ◇",
   text: " (число из текста страницы)",
 };
 
@@ -37,8 +38,15 @@ function num(value: number): string {
   return String(value).replace("-", "−").replace(".", ",");
 }
 
-function point([x, y]: Point): string {
-  return `(${num(x)}; ${num(y)})`;
+// Величина, которую книга объявила незаданной: числа у неё нет ни в данных,
+// ни в шагах — место кайта на схеме за число из книги не выдаётся.
+export const UNSPECIFIED_TEXT = "не задано";
+export const SWING_UNSPECIFIED_TEXT = ", положение после поворота книгой не задано";
+
+// `unset` — координата, которую книга не задаёт: вместо числа — слова.
+function point(at: Point, unset?: 0 | 1): string {
+  const [x, y] = at.map((part, axis) => (axis === unset ? UNSPECIFIED_TEXT : num(part)));
+  return `(${x}; ${y})`;
 }
 
 const DIRECTION = { cw: "по часовой стрелке", ccw: "против часовой стрелки" } as const;
@@ -97,7 +105,7 @@ function turn(step: Extract<Step, { kind: "rotate" }>): string {
     typeof step.about === "string"
       ? ABOUT[step.about] + (step.about_basis === "derived" ? ABOUT_DERIVED_TEXT : "")
       : ABOUT_MISSING_TEXT;
-  const to = isSwing(step) ? ` до ${point(step.to)}` : "";
+  const to = !isSwing(step) ? "" : step.basis === "unspecified" ? SWING_UNSPECIFIED_TEXT : ` до ${point(step.to)}`;
   return `оворот на ${num(step.degrees)}° ${DIRECTION[step.direction]}${about}${to}`;
 }
 
@@ -106,7 +114,7 @@ function head(step: Step): string {
     case "start":
       return `Точка ${point(step.at)}`;
     case "line":
-      return `Прямая до ${point(step.to)}${nose(step)}`;
+      return `Прямая до ${point(step.to, step.unset)}${nose(step)}`;
     case "arc": {
       const turn = ` ${DIRECTION[step.direction]}`;
       return step.sweep === 360

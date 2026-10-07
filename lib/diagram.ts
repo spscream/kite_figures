@@ -12,7 +12,7 @@
 // Координаты SVG — та же сетка окна, только `y` перевёрнут: земля внизу, на
 // `y = 100`. Дуга «по часовой, как видит пилот» на экране тоже по часовой.
 
-import { arcPoint, GRID, isSwing, pivotOf, type Kite, type Point, type Step, type Variant } from "./geometry";
+import { arcPoint, GRID, isSwing, pivotOf, REV_SPAN, type Kite, type Point, type Step, type Variant } from "./geometry";
 
 type Move = Extract<Step, { kind: "line" | "arc" }>;
 
@@ -20,7 +20,7 @@ type Move = Extract<Step, { kind: "line" | "arc" }>;
 // остановка и кайт в пути залиты цветом пути. Остановку от кайта в пути
 // отличает подпись «Stop» или «Stall», как в книге.
 export const KITE_SHAPES = ["in", "out", "stall", "pass"] as const;
-export const SHAPES = [...KITE_SHAPES, "turn", "axel", "derived", "measured"] as const;
+export const SHAPES = [...KITE_SHAPES, "turn", "axel", "derived", "measured", "unspecified"] as const;
 export type Shape = (typeof SHAPES)[number];
 type KiteShape = (typeof KITE_SHAPES)[number];
 
@@ -166,8 +166,10 @@ const DELTA: readonly Point[] = [
   [-6, -3.3],
 ];
 // Полуразмах четырёхстропного. Соседи в строю стоят через 10 единиц, и между
-// их значками должен оставаться просвет шире обводки.
-const REV_HALF = 4.2;
+// их значками должен оставаться просвет шире обводки. Размах общий с
+// проверкой геометрии: на него же кайт уходит при полуобороте вокруг
+// законцовки, когда книга положение после поворота не задаёт.
+const REV_HALF = REV_SPAN / 2;
 const REV: readonly Point[] = [
   [0, -REV_HALF],
   [0, REV_HALF],
@@ -271,6 +273,9 @@ export function shape(
       return ring(1.7);
     case "measured":
       return box(1.5);
+    case "unspecified":
+      // Ромб: величина, которую книга объявила незаданной.
+      return `M${fmt(x)} ${fmt(y - 2)}l2 2l-2 2l-2 -2z`;
   }
 }
 
@@ -410,7 +415,9 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     glyphs.push(item);
     busy.push(...body(item.point, item.nose));
   };
-  const marks: { basis: "derived" | "measured"; point: Point }[] = [];
+  type OffGrid = "derived" | "measured" | "unspecified";
+  const SPOT_BASES: OffGrid[] = ["derived", "measured", "unspecified"];
+  const marks: { basis: OffGrid; point: Point }[] = [];
   // Шаги с направлением: им нужен знак направления. Шаг `unmarked` сюда не
   // попадает — книга его направления не показывает, не показывает и схема.
   const flown: { from: Point; step: Move; kite: number; tone: string; edge: "in" | "out" | "mid" }[] = [];
@@ -458,7 +465,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   const tracks: Drawing["tracks"] = [];
 
   const offGrid = (basis: string, point: Point) => {
-    if (basis === "derived" || basis === "measured") {
+    if (basis === "derived" || basis === "measured" || basis === "unspecified") {
       marks.push({ basis, point });
     }
   };
@@ -466,8 +473,10 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   variant.kites.forEach((kite, order) => {
     let here: Point = [0, 0];
     let heading: Point = [1, 0];
-    // Нос кайта в точке, куда привёл последний шаг.
+    // Нос кайта в точке, куда привёл последний шаг, и следует ли он из пути:
+    // до первого пролёта и после шага `unmarked` курс неизвестен.
     let nose: Point = [0, 1];
+    let known = false;
     let d = "";
     const tone = solo ? "" : `k${(order % 5) + 1}`;
     const moves = kite.path.filter((step): step is Move => step.kind === "line" || step.kind === "arc");
@@ -498,10 +507,17 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
           here = step.to;
           offGrid(step.basis, here);
           onGrid(step.basis, here);
+          // У точки с одной незаданной координатой вторая стоит на сетке.
+          if (step.kind === "line" && step.unset !== undefined) {
+            (step.unset === 1 ? xs : ys).add(here[1 - step.unset]);
+          }
+          // Шаг без показанного направления курса носа не задаёт.
+          known = !step.unmarked;
           break;
         }
         case "rotate": {
           const text = `${fmt(step.degrees).replace(".", ",")}°`;
+          const from = here;
           if (isSwing(step)) {
             // Поворот сам переносит кайт: нос идёт по дуге вокруг точки
             // поворота, а она следует из смещения, угла и стороны. Линия пути
@@ -541,10 +557,35 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
           }
           // Поворот на месте разворачивает нос: по часовой курс растёт.
           const angle = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
+          const before = nose;
           nose = [
             nose[0] * Math.cos(angle) + nose[1] * Math.sin(angle),
             nose[1] * Math.cos(angle) - nose[0] * Math.sin(angle),
           ];
+          // Кайт до и после поворота со смещением — значком, как рисует книга:
+          // метки стоят законцовка к законцовке, и по ним виден сам переход.
+          // Курс метки следует из пути и поворота; где он неизвестен, метки нет.
+          if (isSwing(step) && known) {
+            // Отметка сразу за поворотом ставит в его конце свой значок: выход
+            // — по тому же курсу, остановка — по курсу метки книги.
+            const same = (a: Point, b: Point) => a[0] * b[0] + a[1] * b[1] > 0.99;
+            let standsAfter = false;
+            for (const item of kite.path.slice(index + 1)) {
+              if (item.kind !== "mark") {
+                break;
+              }
+              const turned = typeof item.nose === "number" ? (item.nose * Math.PI) / 180 : null;
+              standsAfter ||= item.mark === "out" || (item.mark === "stall" && turned !== null && same([Math.sin(turned), Math.cos(turned)], nose));
+            }
+            for (const [point, facing] of [[from, before], [here, nose]] as const) {
+              if (point === here && standsAfter) {
+                continue;
+              }
+              if (!glyphs.some((other) => other.kite === order && gap(other.point, point) < 0.5 && same(other.nose, facing))) {
+                glyph({ name: "pass", point, nose: facing, tone, kite: order });
+              }
+            }
+          }
           break;
         }
         case "mark": {
@@ -658,7 +699,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   // Сами значки рисуются после кайтов в пути: на коротком шаге, где кайту
   // некуда встать, отходит в сторону значок координаты.
   const dots: Point[] = [];
-  const placed: { basis: "derived" | "measured"; point: Point; spot: Point }[] = [];
+  const placed: { basis: OffGrid; point: Point; spot: Point }[] = [];
   const tail = rev ? 6 : 8.6;
   const origins = new Set<string>();
   for (const { basis, point } of marks) {
@@ -688,9 +729,10 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     }
     // В точку пришли два шага с разным происхождением: значки встают рядом,
     // а не один поверх другого.
-    if (marked.has(`${basis === "derived" ? "measured" : "derived"} ${at(spot)}`)) {
+    const taken = SPOT_BASES.filter((other) => other !== basis && marked.has(`${other} ${at(spot)}`)).length;
+    if (taken > 0) {
       marked.add(`${basis} ${at(spot)}`);
-      spot = [spot[0] + 3.6, spot[1]];
+      spot = [spot[0] + 3.6 * taken, spot[1]];
     }
     marked.add(`${basis} ${at(spot)}`);
     placed.push({ basis, point, spot });

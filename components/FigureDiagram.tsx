@@ -15,6 +15,7 @@ const SHAPE_TEXT: Record<Shape, string> = {
   axel: "аксель или его половина",
   derived: "координата выведена из подписей схемы, а не стоит на линии сетки (в шагах — ○)",
   measured: "координата снята замером по схеме, приблизительно (в шагах — □)",
+  unspecified: "книга объявляет положение незаданным; на схеме оно стоит по размаху значка кайта (в шагах — ◇)",
 };
 
 // У четырёхстропного кайта значок в пути показывает только нос, у
@@ -28,7 +29,7 @@ const SWING_TEXT = "поворот со смещением: кайт перех�
 const GUIDE_TEXT = "вспомогательная линия книги: на ней кайты стоят в один момент";
 
 // Слои схемы снизу вверх: пустой выход лежит под залитым входом и остановкой.
-const LAYERS: Shape[] = ["out", "pass", "in", "stall", "turn", "axel", "derived", "measured"];
+const LAYERS: Shape[] = ["out", "pass", "in", "stall", "turn", "axel", "derived", "measured", "unspecified"];
 
 const isKite = (name: Shape) => (KITE_SHAPES as readonly string[]).includes(name);
 

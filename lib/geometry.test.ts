@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { listFigures } from "./figures";
-import { arcPoint, isSwing, parseGeometry, pivotOf } from "./geometry";
+import { arcPoint, isSwing, parseGeometry, pivotOf, REV_SPAN } from "./geometry";
 
 type Raw = Record<string, unknown>;
 
@@ -229,6 +232,97 @@ describe("parseGeometry", () => {
       expect(() => climb({ ...up, to: { status: "not_found", reason: "схема не показывает, куда пришёл кайт" } })).toThrow(/path\[3\]\.to/);
     });
 
+    // Книга объявляет положение после поворота незаданным: числа в данных
+    // нет, нос уходит вокруг названной законцовки на размах значка кайта.
+    describe("положение, которое книга объявила незаданным", () => {
+      const OPEN: Raw = { status: "unspecified", reason: "стр. 71: высота после поворота не задана" };
+      const open: Raw = { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "diagram", to: OPEN };
+      const notes = { notes: ["Высота книгой не задана."] };
+
+      it("поворот уводит нос на размах значка вокруг названной законцовки и помечен «unspecified»", () => {
+        const read = climb(open, notes);
+        const turn = read.status === "ok" && read.variants[0].kites[0].path[3];
+        expect(turn).toMatchObject({ kind: "rotate", to: [0, 10 + REV_SPAN], basis: "unspecified" });
+        expect(turn && isSwing(turn)).toBe(true);
+        // Четверть оборота — тоже вокруг законцовки: нос уходит вперёд и вбок.
+        const quarter = climb({ ...open, degrees: 90 }, notes);
+        expect(quarter.status === "ok" && quarter.variants[0].kites[0].path[3]).toMatchObject({ to: [REV_SPAN / 2, 10 + REV_SPAN / 2] });
+      });
+
+      it("сторону смещения задаёт законцовка: вокруг правой нос уходит вниз", () => {
+        const down = parsePath(
+          [{ kind: "start", at: [-60, 50] }, markIn, { kind: "line", to: [0, 50] }, { ...open, direction: "cw", about: "right-tip" }, markOut],
+          notes,
+        );
+        expect(down.status === "ok" && down.variants[0].kites[0].path[3]).toMatchObject({ to: [0, 50 - REV_SPAN] });
+      });
+
+      it("требует заметки: читатель данных обязан узнать, что числа нет", () => {
+        expect(() => climb(open)).toThrow(/notes: есть шаги.*объявила незаданной/);
+      });
+
+      it.each([
+        ["происхождение рядом с незаданным положением", { ...open, basis: "measured" }, /path\[3\]\.basis: у незаданного положения/],
+        ["точка поворота не названа", { ...open, about: MISSING, about_basis: undefined }, /path\[3\]\.to: .*нужна названная законцовка/],
+        ["причина не названа", { ...open, to: { status: "unspecified" } }, /path\[3\]\.to\.reason/],
+        ["полный оборот", { ...open, degrees: 360 }, /меньше полного оборота/],
+      ])("отвергает: %s", (_label, turn, message) => {
+        expect(() => climb(turn, notes)).toThrow(message);
+      });
+
+      it("без курса носа из пути положение не вывести", () => {
+        expect(() => parsePath([{ kind: "start", at: [0, 10] }, markIn, open, { kind: "line", to: [60, 30] }, markOut], notes)).toThrow(
+          /path\[2\]\.to: .*из курса носа/,
+        );
+      });
+
+      it("у вершины лестницы, упёршейся в край окна, поворот отвергается", () => {
+        const path = [{ kind: "start", at: [-60, 97] }, markIn, { kind: "line", to: [0, 97] }, open, markOut];
+        expect(() => parsePath(path, notes)).toThrow(/за сетку окна/);
+      });
+
+      it("отрезок с null на месте координаты остаётся на ней и запоминает, какая не задана", () => {
+        const path = [{ kind: "start", at: [-60, 10] }, markIn, { kind: "line", to: [0, 10] }, open, { kind: "line", to: [60, null], basis: "unspecified" }, markOut];
+        const flown = parsePath(path, notes);
+        expect(flown.status === "ok" && flown.variants[0].kites[0].path[4]).toMatchObject({ kind: "line", to: [60, 10 + REV_SPAN], unset: 1, basis: "unspecified" });
+        const across = parsePath([start, markIn, { kind: "line", to: [null, 80], basis: "unspecified" }, markOut], notes);
+        expect(across.status === "ok" && across.variants[0].kites[0].path[2]).toMatchObject({ to: [0, 80], unset: 0 });
+      });
+
+      it.each([
+        ["null без «unspecified»", { kind: "line", to: [60, null] }, /basis: у точки с незаданной координатой/],
+        ["«unspecified» без null", { kind: "line", to: [60, 30], basis: "unspecified" }, /basis: «unspecified» пишется только у точки/],
+        ["обе координаты null", { kind: "line", to: [null, null], basis: "unspecified" }, /basis: «unspecified» пишется только у точки/],
+        ["отрезок на месте", { kind: "line", to: [-50, null], basis: "unspecified" }, /отрезок нулевой длины/],
+      ])("отвергает отрезок: %s", (_label, step, message) => {
+        expect(() => parsePath([{ kind: "start", at: [-50, 20] }, markIn, step, markOut], notes)).toThrow(message);
+      });
+
+      it("у старта, дуги и вспомогательной линии «unspecified» не пишется", () => {
+        expect(() => parsePath([{ kind: "start", at: [0, 10], basis: "unspecified" }, markIn, { kind: "line", to: [0, 50] }, markOut], notes)).toThrow(/path\[0\]\.basis/);
+        const arc = { kind: "arc", to: [0, 70], center: [0, 45], direction: "cw", sweep: 180, basis: "unspecified" };
+        expect(() => parsePath([{ kind: "start", at: [0, 20] }, markIn, arc, markOut], notes)).toThrow(/path\[2\]\.basis/);
+        const guides = { status: "ok", lines: [{ from: [0, 10], to: [50, 10], basis: "unspecified" }] };
+        expect(() =>
+          parse({ status: "ok", variants: [{ id: "main", kites: [{ id: "1", path: [{ kind: "start", at: [0, 10] }, markIn, { kind: "line", to: [0, 50] }, markOut] }], guides }], notes }),
+        ).toThrow(/guides\.lines\[0\]\.basis/);
+      });
+
+      it("после шага «unmarked» курс носа из пути не следует — незаданное положение не считается", () => {
+        const open = { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "diagram", to: { status: "unspecified", reason: "стр. 71" } };
+        const path = (unmarked: boolean) => [
+          { kind: "start", at: [-60, 10] },
+          markIn,
+          { kind: "line", to: [0, 10], ...(unmarked ? { unmarked: true } : {}) },
+          open,
+          { kind: "line", to: [60, null], basis: "unspecified" },
+          markOut,
+        ];
+        expect(parsePath(path(false), notes).status).toBe("ok");
+        expect(() => parsePath(path(true), notes)).toThrow(/path\[3\]\.to.*курса носа/);
+      });
+    });
+
     it("книга точку поворота не называет, а смещение показывает — принимается без сверки законцовки", () => {
       expect(climb({ kind: "rotate", degrees: 180, direction: "cw", about: MISSING, to: [0, 16.5] }).status).toBe("ok");
     });
@@ -290,14 +384,19 @@ describe("parseGeometry", () => {
     it("MI 02 поднимается четырьмя поворотами со смещением, без единого вертикального отрезка", () => {
       const ladder = listFigures().find((figure) => figure.slug === "mi-02-ladder-up")!;
       const path = ladder.geometry.status === "ok" ? ladder.geometry.variants[0].kites[0].path : [];
-      expect(path.filter(isSwing).map((step) => step.to)).toEqual([[0, 16.5], [0, 23], [0, 29.5], [0, 36]]);
+      // Высоты ступеней книга объявляет незаданными: чисел в файле нет, ступень — размах значка.
+      expect(path.filter(isSwing).map((step) => step.to)).toEqual([1, 2, 3, 4].map((rung) => [0, Math.round((10 + rung * REV_SPAN) * 100) / 100]));
       expect(path.filter(isSwing).map((step) => `${step.about} ${step.about_basis} ${step.basis}`)).toEqual([
-        "left-tip derived measured",
-        "right-tip derived measured",
-        "left-tip derived measured",
-        "right-tip derived measured",
+        "left-tip diagram unspecified",
+        "right-tip diagram unspecified",
+        "left-tip diagram unspecified",
+        "right-tip diagram unspecified",
       ]);
-      expect(path.filter((step) => step.kind === "line").map((step) => step.to)).toEqual([[0, 10], [60, 36]]);
+      const lines = path.filter((step) => step.kind === "line");
+      expect(lines.map((step) => step.to[0])).toEqual([0, 60]);
+      expect(lines.map((step) => `${step.basis} ${step.unset}`)).toEqual(["grid undefined", "unspecified 1"]);
+      const raw = readFileSync(join(process.cwd(), "data/figures/mi-02-ladder-up.json"), "utf8");
+      expect(raw).not.toMatch(/"measured"|16\.5|18\.4|43\.6/);
     });
   });
 

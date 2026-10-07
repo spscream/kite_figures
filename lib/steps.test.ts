@@ -146,6 +146,35 @@ describe("describeKite", () => {
     ]);
   });
 
+  it("величину, которую книга объявила незаданной, числом не называет", () => {
+    const open = { status: "unspecified", reason: "стр. 71: высота после поворота не задана" };
+    const lines = texts([
+      { kind: "start", at: [-60, 10] },
+      { kind: "mark", mark: "in" },
+      { kind: "line", to: [0, 10] },
+      { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip", about_basis: "diagram", to: open },
+      { kind: "line", to: [60, null], basis: "unspecified" },
+      { kind: "mark", mark: "out" },
+    ]).slice(2);
+    expect(lines).toEqual([
+      "Поворот на 180° против часовой стрелки вокруг левой законцовки, положение после поворота книгой не задано ◇",
+      "Прямая до (60; не задано) ◇ — выход (OUT)",
+    ]);
+    // Место на схеме — размах значка — в шаги не попадает.
+    expect(lines.join(" ")).not.toMatch(/18,4|8,4/);
+  });
+
+  it("незаданную горизонталь называет словами на месте первой координаты", () => {
+    const lines = texts([
+      { kind: "start", at: [-60, 10] },
+      { kind: "mark", mark: "in" },
+      { kind: "line", to: [-60, 40] },
+      { kind: "line", to: [null, 80], basis: "unspecified" },
+      { kind: "mark", mark: "out" },
+    ]);
+    expect(lines[lines.length - 1]).toBe("Прямая до (не задано; 80) ◇ — выход (OUT)");
+  });
+
   it("на дуге «unmarked» называет ту сторону обхода, что записана в данных и нарисована стрелкой", () => {
     expect(
       texts([
