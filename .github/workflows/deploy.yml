@@ -1,0 +1,225 @@
+# Выкат сайта после зелёного CI на main.
+#
+# Что делает. CI на main прошёл — этот воркфлоу собирает статику ровно того
+# коммита, который прошёл CI, и отдаёт собранную папку плейбуку выкладки.
+# Плейбук лежит не здесь, а в отдельном репозитории инфраструктуры, в его
+# рабочей копии на машине с раннером (где именно — говорит раннеру его
+# собственное окружение, KITES_INVENTORY_DIR): он раскладывает релиз на хосте,
+# переключает на него сайт и проверяет ответы с домена. Здесь — только
+# проводка: когда запускаться, какой коммит собирать и как убедиться, что
+# выехал именно он.
+#
+# РАННЕР — СВОЙ, и это единственное исключение из правила «все джобы на
+# ubuntu-latest» (AGENTS.md). Ключ ssh и пароль к секретам инфраструктуры
+# живут на машине с раннером и в секреты GitHub не копируются; выкатить сайт
+# можно только оттуда. Метка своя и единственная — [kites-deploy], раннер
+# зарегистрирован без меток по умолчанию: ни одна джоба CI на него не попадёт,
+# и эта джоба — никуда, кроме него.
+#
+# ЦЕНА МЕТКИ. Репозиторий публичный, а джоба на [kites-deploy] исполняется на
+# машине, где лежат эти ключи. Поэтому:
+#   - на эту метку не целится ни одна джоба, запускаемая событием
+#     pull_request, и появляться такая не должна: PR из форка исполнил бы
+#     свой код на той машине. В main это держит тест
+#     scripts/tests/test_deploy_wiring.py — но только в main: на pull_request
+#     GitHub берёт воркфлоу из ветки PR, и PR, который сам впишет эту метку в
+#     ci.yml, тест не остановит;
+#   - поэтому настоящий рубеж против форка — настройка Actions репозитория:
+#     одобрение запусков для всех внешних участников (Require approval for
+#     all external contributors). Одобрять запуск чужого PR, не прочитав его
+#     правки в .github/workflows/, нельзя;
+#   - выкатывается только голова main: первый шаг сверяет это по API ещё до
+#     чекаута. Коммит из чужой ветки роняет прогон; коммит, который в main
+#     есть, но уже не голова, пропускается — иначе опоздавший или
+#     перезапущенный прогон откатил бы сайт на старую ревизию и позеленел;
+#   - код репозитория (npm ci, сборка) исполняется не на самой машине, а в
+#     контейнере. Чекаут ему смонтирован только на чтение, сборка идёт в его
+#     собственном каталоге, наружу выходит один архив с собранной папкой.
+#
+# Чего этот воркфлоу НЕ покрывает. Коммит, влитый авто-мержем, прогона CI на
+# main не получает (мерж делает токен Actions, см. AGENTS.md), а значит и
+# выката: он уедет со следующим прямым пушем в main либо после ручного
+# запуска CI на main и затем этого воркфлоу.
+#
+# Если раннер не поднят, джоба не краснеет, а висит в queued и через сутки
+# отменяется лимитом GitHub.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Ручной выкат головы main — повторить выкат или довезти коммит авто-мержа.
+  # Нужен зелёный прогон CI у этого коммита (его проверяет второй шаг).
+  # Именно новый запуск, а не Re-run старого прогона: Re-run несёт прежний
+  # sha, и первый шаг его пропустит, если main с тех пор ушёл вперёд.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # actions: read — ради списка прогонов CI по sha на пути workflow_dispatch.
+  actions: read
+
+jobs:
+  deploy:
+    # Только push в main и только зелёный CI. `event == 'push'` отсекает
+    # прогоны CI по pull_request из ветки с именем main, в том числе из форка:
+    # фильтр `branches` выше смотрит на имя ветки, а не на репозиторий.
+    # Ручной запуск — только с ветки по умолчанию.
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: [kites-deploy]
+    timeout-minutes: 20
+    # Одна очередь на все выкаты: новый прогон ждёт, пока доиграет текущий, а
+    # не отменяет его. Из ждущих GitHub держит только самый новый.
+    #
+    # Очередь — у джобы, а не у всего воркфлоу. workflow_run приходит на
+    # КАЖДОЕ завершение CI, и красное тоже: на уровне воркфлоу такой прогон
+    # вставал бы в очередь раньше, чем проверится `if` выше, и вытеснял бы
+    # ждущий зелёный выкат. Пропущенная по `if` джоба в группу не входит.
+    concurrency:
+      group: kites-deploy
+      cancel-in-progress: false
+    env:
+      # На workflow_run github.sha — это голова main на момент запуска, а она
+      # могла уйти вперёд коммита, прошедшего CI. Собирается head_sha прогона.
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      # До чекаута и до любого кода из репозитория: дальше этот коммит будет
+      # собираться на машине с ключами. База сравнения — main, голова — наш
+      # sha: `identical` — это голова main; `behind` — коммит в истории main,
+      # но уже не голова; `ahead` и `diverged` — чужая ветка.
+      #
+      # Проверка идёт уже внутри очереди выкатов, поэтому порядок ревизий на
+      # сайте не убывает: прогон старого коммита, дождавшийся своей очереди
+      # после нового, видит `behind` и ничего не трогает.
+      - name: Коммит — голова main
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${DEFAULT_BRANCH}...${DEPLOY_SHA}" --jq '.status')
+          case "${status}" in
+            identical)
+              echo "deploy=true" >> "${GITHUB_OUTPUT}"
+              echo "${DEPLOY_SHA} — голова ${DEFAULT_BRANCH}"
+              ;;
+            behind)
+              echo "deploy=false" >> "${GITHUB_OUTPUT}"
+              echo "::notice::${DEPLOY_SHA} уже не голова ${DEFAULT_BRANCH} — выкат пропущен, сайт довезёт прогон более нового коммита"
+              {
+                echo "### Выкат пропущен"
+                echo
+                echo "\`${DEPLOY_SHA}\` уже не голова \`${DEFAULT_BRANCH}\`."
+              } >> "${GITHUB_STEP_SUMMARY}"
+              ;;
+            *)
+              echo "::error::${DEPLOY_SHA} не в ${DEFAULT_BRANCH} (compare: ${status}) — не выкатываю"
+              exit 1
+              ;;
+          esac
+
+      - name: Ручной запуск — у коммита есть зелёный прогон CI
+        if: steps.head.outputs.deploy == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          green=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${DEPLOY_SHA}&status=success" \
+            --jq "[.workflow_runs[] | select(.name == \"CI\" and .head_branch == \"${DEFAULT_BRANCH}\")] | length")
+          if [ "${green:-0}" = "0" ]; then
+            echo "::error::у ${DEPLOY_SHA} нет зелёного прогона CI на ${DEFAULT_BRANCH} — не выкатываю"
+            exit 1
+          fi
+          echo "зелёных прогонов CI у ${DEPLOY_SHA}: ${green}"
+
+      # persist-credentials: false — токен не остаётся в .git/config чекаута.
+      - uses: actions/checkout@v7
+        if: steps.head.outputs.deploy == 'true'
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      # Сборка — в контейнере, и чекаут ему смонтирован только на чтение:
+      # раннер постоянный, и всё, что код сборки записал бы в чекаут (а в нём
+      # .git с хуками и конфигом), исполнил бы следующий прогон уже на самой
+      # машине. Контейнер копирует дерево к себе, собирает там и отдаёт наружу
+      # один архив с собранной папкой — через stdout, поэтому вывод самой
+      # сборки уведён в stderr. Команды те же, что в CI (ci.yml), версия node
+      # та же. --init и timeout — чтобы отменённый или зависший прогон не
+      # оставил контейнер жить.
+      #
+      # Архив распаковывается в свежий каталог вне чекаута, и в нём допустимы
+      # только обычные файлы и каталоги: симлинк из сборки веб-сервер отдал бы
+      # как файл, на который тот указывает.
+      - name: Собрать статику
+        if: steps.head.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/kites-out"
+          rm -rf "${out}" "${out}.tar"
+          mkdir "${out}"
+          timeout -k 30 900 docker run --rm --init \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/home -e NEXT_TELEMETRY_DISABLED=1 \
+            -v "${GITHUB_WORKSPACE}:/src:ro" \
+            node:22-bookworm-slim \
+            sh -ec 'mkdir /tmp/build && tar -C /src --exclude=./.git -cf /tmp/src.tar . && tar -C /tmp/build -xf /tmp/src.tar && { npm --prefix /tmp/build ci --no-audit --no-fund && npm --prefix /tmp/build run build && npm --prefix /tmp/build run check:export; } >&2 && tar -C /tmp/build/out -cf - .' \
+            > "${out}.tar"
+          tar -xf "${out}.tar" -C "${out}" --no-same-owner --no-same-permissions
+          if find "${out}" ! -type f ! -type d | grep -q .; then
+            echo "::error::в собранной папке есть не файлы и не каталоги — не выкатываю"
+            exit 1
+          fi
+          # Ревизия едет вместе со сборкой: плейбук сверяет её с заказанной и
+          # падает, если ему смонтировали не этот каталог.
+          printf '%s\n' "${DEPLOY_SHA}" > "${out}/.revision"
+
+      - name: Выложить сборку плейбуком
+        if: steps.head.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          inv="${KITES_INVENTORY_DIR:?на раннере не задан каталог инфраструктуры}"
+          # Из каталога инфраструктуры, а не через -f: имя проекта compose
+          # берётся из имени каталога, и из другого места `run` поднял бы
+          # второй стек рядом с живым.
+          cd "${inv}"
+          KITES_OUT="${RUNNER_TEMP}/kites-out" docker compose run --rm -T inventory \
+            ansible-playbook -i inventory/hosts.yml playbooks/kites-site.yml \
+            -e "kites_expected_rev=${DEPLOY_SHA}"
+
+      # Признак того, что поехал именно этот коммит, — ревизия, которую
+      # плейбук записал на хосте, а не зелёный статус джобы. Ответы с домена
+      # (главная, страница фигуры со слешем и без, 404, соседи по хосту)
+      # проверяет сам плейбук последним play и падает, если они не прошли.
+      # Ревизия должна прийти ровно одна: сбой чтения роняет шаг сам, а два
+      # хоста с разными ревизиями дадут две строки и не сойдутся с sha.
+      - name: Ревизия на хосте — та, что выкатывали
+        if: steps.head.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          inv="${KITES_INVENTORY_DIR:?на раннере не задан каталог инфраструктуры}"
+          cd "${inv}"
+          answer=$(docker compose run --rm -T inventory ansible kites_site \
+            -i inventory/hosts.yml -b -m ansible.builtin.command \
+            -a 'cat {{ kites_root }}/.deployed-revision')
+          deployed=$(printf '%s\n' "${answer}" | tr -d '\r' | { grep -Ex '[0-9a-f]{40}' || true; } | sort -u)
+          {
+            echo "### Выкат"
+            echo
+            echo "- выкатывали: \`${DEPLOY_SHA}\`"
+            echo "- на хосте: \`${deployed:-не прочитано}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          if [ "${deployed}" != "${DEPLOY_SHA}" ]; then
+            echo "::error::на хосте ${deployed:-ревизия не прочитана}, а выкатывали ${DEPLOY_SHA}"
+            exit 1
+          fi
+          echo "на хосте ${deployed}"
