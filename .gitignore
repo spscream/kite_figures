@@ -1,0 +1,26 @@
+# Node
+node_modules/
+*.log
+
+# Next.js: кэш сборки и готовая статика
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Python (scripts/)
+__pycache__/
+*.pyc
+
+# Env
+.env
+.env.*
+
+# Локальные каталоги инструментов
+.claude/
+
+# IDE и ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

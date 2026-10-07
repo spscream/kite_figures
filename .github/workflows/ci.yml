@@ -1,0 +1,57 @@
+# CI: линт, типы, тесты, сборка статики и проверка собранного.
+#
+# Шаги — те же команды, что в `npm run gate` (package.json), в том же порядке;
+# отдельными шагами они стоят, чтобы упавший было видно по имени.
+#
+# Репозиторий публичный, минуты Actions не ограничены, но прогон держим под
+# 10 минутами — это и есть `timeout-minutes` джобы.
+#
+# Помимо PR воркфлоу идёт на пуш в `main`: каркас и правки воркфлоу попадают в
+# `main` прямым пушем, и без этого их никто бы не проверил. Коммит, влитый
+# авто-мержем, такого прогона не получает: мерж делает токен Actions, а его
+# события новых прогонов не запускают (см. AGENTS.md).
+#
+# Имя воркфлоу — «CI» — слушает automerge.yml (workflow_run), и его же ищет
+# scripts/automerge.py. Переименование ломает авто-мерж молча.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Новый пуш в ветку PR отменяет идущий прогон этого PR. Прогоны не по PR в
+# общую группу не попадают (у каждого своя, по номеру прогона): в группе ждёт
+# только один, и второй пуш в `main` подряд отменил бы ждущий прогон первого.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+      - name: eslint
+        run: npm run lint
+      - name: tsc
+        run: npm run typecheck
+      - name: Тесты каталога фигур (vitest)
+        run: npm run test
+      - name: Тесты решения об авто-мерже (scripts/automerge.py)
+        run: npm run test:automerge
+      - name: Сборка статики в out/
+        run: npm run build
+      - name: Проверка собранной статики
+        run: npm run check:export

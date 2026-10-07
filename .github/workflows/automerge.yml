@@ -1,0 +1,78 @@
+# Репозиторий вливает свои зелёные PR сам — сквошем, без участия человека.
+#
+# Что именно проверяется и почему — в scripts/automerge.py; там же решение
+# (функция `judge`) и тесты на него в scripts/tests/. Здесь только проводка:
+# когда запускаться, с какими правами и на каком коде.
+#
+# Условия мержа, и ни одним меньше:
+#   1. PR открыт владельцем репозитория, голова ветки — в этом же репозитории;
+#   2. все проверки на голове PR завершились и все зелёные;
+#   3. GitHub считает PR mergeable и mergeStateStatus равен CLEAN;
+#   4. PR не черновик и не несёт метки `hold`.
+#
+# `gh pr merge --auto` здесь нет и появляться не должен: он не ждёт проверок.
+name: Automerge
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  # Ручной запуск на один PR — разобрать накопившееся: PR, чей CI позеленел,
+  # пока авто-мерж отказал (конфликт, метка hold, которую потом сняли).
+  # Номер обязателен: запуск без него мержил бы всё открытое разом.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Номер PR, который проверить и влить"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  # Три права на чтение — то, чем проверяется условие 2: check-run'ы,
+  # commit-статусы и прогоны воркфлоу на голове PR. Блок permissions обнуляет
+  # всё, что в нём не названо, так что без этих строк запросы отдавали бы 403,
+  # и скрипт закрывался бы отказом на каждом PR.
+  checks: read
+  statuses: read
+  actions: read
+
+# Группы concurrency нет намеренно. Два запуска на один PR друг другу не
+# вредят: мерж идёт с --match-head-commit, а опоздавший увидит PR уже влитым
+# и отступит. Группа же держит в очереди только одного ждущего — третий
+# запуск молча отменил бы второго, то есть потерял бы мерж.
+
+jobs:
+  automerge:
+    # Дешёвый фильтр по данным самого события, чтобы не тратить минуты квоты
+    # на заведомо непроходные случаи: красный CI, CI не по PR, PR из форка.
+    # Это НЕ проверка условий — её целиком делает скрипт, по ответам API.
+    #
+    # Ручной запуск — только с ветки по умолчанию. Запущенный с ветки PR, он
+    # сам ложится проверкой на её голову: пока он идёт, GitHub отдаёт
+    # UNSTABLE вместо CLEAN, скрипт не дожидается и краснеет — и эта красная
+    # проверка запирает PR до следующего коммита. С другой ветки джоба
+    # пропускается.
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref_name == github.event.repository.default_branch) ||
+      (github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # На workflow_run checkout без `ref` берёт ветку по умолчанию — код PR
+      # сюда не попадает, и токен с правом записи исполняет только то, что уже
+      # лежит в main.
+      - uses: actions/checkout@v7
+      - name: Проверить условия и влить сквошем
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Данные события едут через окружение, а не подстановкой в текст
+          # команды: строки из события — чужой текст.
+          PULL_REQUESTS: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_PR: ${{ github.event.inputs.pr }}
+        run: python3 scripts/automerge.py
