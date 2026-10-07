@@ -152,3 +152,285 @@ h1 {
   margin-left: auto;
   text-align: right;
 }
+
+/* Схема фигуры. Чертёж считает lib/diagram.ts, единица — единица сетки окна.
+   Обозначения — как в книге фигур: цвета кайтов команды, зелёный вход и
+   красный выход, жёлтая остановка. Цвет только помогает: кайты различаются
+   ещё штрихом и номером, значки — формой и заливкой, и схема читается в
+   чёрно-белой печати. */
+:root {
+  --k1: #15803d;
+  --k2: #c62828;
+  --k3: #1d4ed8;
+  --k4: #b0189b;
+  --k5: var(--fg);
+  --d-in: #15803d;
+  --d-out: #c62828;
+  --d-stall: #f2c200;
+  --d-mid: #c62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --k1: #6fd98a;
+    --k2: #ff8a80;
+    --k3: #8ab4ff;
+    --k4: #f08be0;
+    --d-in: #6fd98a;
+    --d-out: #ff8a80;
+    --d-mid: #ff8a80;
+  }
+}
+
+.diagram {
+  margin: 1rem 0;
+}
+
+.d-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.d-svg text,
+.d-icon text {
+  font-family: inherit;
+  text-anchor: middle;
+}
+
+.d-grid,
+.d-mid {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 0.3;
+  stroke-dasharray: 2 1.5;
+}
+
+.d-mid {
+  stroke: var(--d-mid);
+}
+
+.d-frame {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1;
+}
+
+.d-tick {
+  fill: var(--muted);
+  font-size: 4.5px;
+}
+
+.d-tick.d-mid {
+  fill: var(--d-mid);
+  stroke: none;
+}
+
+.d-svg .d-tick-y {
+  text-anchor: end;
+}
+
+.d-track {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.k1 {
+  stroke: var(--k1);
+}
+
+.k2 {
+  stroke: var(--k2);
+  stroke-dasharray: 5 2.5;
+}
+
+.k3 {
+  stroke: var(--k3);
+  stroke-dasharray: 0.1 2.6;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+.k4 {
+  stroke: var(--k4);
+  stroke-dasharray: 7 2 1.2 2;
+}
+
+.k5 {
+  stroke: var(--k5);
+  stroke-dasharray: 10 2 1.2 2 1.2 2;
+}
+
+.d-arrow,
+.d-axel,
+.d-landing {
+  fill: var(--fg);
+}
+
+/* Значок кайта: вход залит, выход пуст, у остановки черта перед носом. */
+.d-in,
+.d-out,
+.d-stall {
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.d-in {
+  fill: var(--d-in);
+  stroke: var(--d-in);
+}
+
+.d-out {
+  fill: var(--bg);
+  stroke: var(--d-out);
+}
+
+.d-stall {
+  fill: var(--d-stall);
+  stroke: var(--fg);
+}
+
+.d-turn,
+.d-launch {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1;
+}
+
+.d-derived,
+.d-measured {
+  fill: var(--bg);
+  stroke: var(--fg);
+  stroke-width: 0.6;
+}
+
+.d-label {
+  fill: var(--fg);
+  font-size: 6px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.t-in,
+.t-k1 {
+  fill: var(--d-in);
+}
+
+.t-out,
+.t-k2 {
+  fill: var(--d-out);
+}
+
+.t-k3 {
+  fill: var(--k3);
+}
+
+.t-k4 {
+  fill: var(--k4);
+}
+
+.d-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.d-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.d-icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.d-icon-line {
+  width: 2.5rem;
+}
+
+.diagram .note {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.variant h2 {
+  margin-bottom: 0;
+}
+
+.variant-page {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: 0 1.5rem;
+}
+
+.steps h2,
+.steps h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+}
+
+.steps ol {
+  margin: 0.5rem 0;
+  padding-left: 1.6rem;
+}
+
+.unmarked {
+  padding: 0 0.3rem;
+  border: 1px dashed var(--muted);
+  border-radius: 0.2rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.notes,
+.no-diagram {
+  margin: 1rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+}
+
+.notes h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.notes ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+}
+
+@media print {
+  :root {
+    --bg: #ffffff;
+    --fg: #000000;
+    --muted: #444444;
+    --line: #bbbbbb;
+    --k1: #000000;
+    --k2: #000000;
+    --k3: #000000;
+    --k4: #000000;
+    --d-in: #000000;
+    --d-out: #000000;
+    --d-stall: #bbbbbb;
+    --d-mid: #444444;
+  }
+}

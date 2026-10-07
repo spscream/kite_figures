@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Проверка готовой статики: в `out/` есть главная с разделами, по странице на
-// каждую дисциплину и на каждый файл из `data/figures/` и индекс поиска. Тесты
+// каждую дисциплину и на каждый файл из `data/figures/` и индекс поиска, а на
+// странице фигуры — схема по её геометрии. Тесты
 // `lib/` доказывают, что каталог читается; этот скрипт — что прочитанное дошло
 // до собранного сайта. Запуск после сборки:
 //
@@ -118,6 +119,198 @@ function expectLinks(where, actual, expected) {
     expected.every((link, at) => actual[at].href === link.href && actual[at].text === escapeHtml(link.text));
   if (!same) {
     problems.push(`${where}: ожидалось ${show(expected)}; на странице ${show(actual)}`);
+  }
+}
+
+const count = (text, pattern) => (text.match(pattern) ?? []).length;
+
+// Подписи легенды повторены здесь намеренно, как и префиксы разделов: скрипт
+// сверяет страницу с данными, а не с таблицей проверяемого компонента.
+const LEGEND = {
+  in: "вход (In), нос по курсу",
+  out: "выход (Out)",
+  stall: "остановка",
+  turn: "поворот на месте",
+  axel: "аксель или его половина",
+  launch: "взлёт (значок под точкой)",
+  landing: "посадка (значок под точкой)",
+  derived: "координата выведена из подписей схемы",
+  measured: "координата снята замером по схеме",
+};
+
+// Какие значки обязаны быть на схеме варианта — по его данным.
+function expectedShapes(variant) {
+  const steps = variant.kites.flatMap((kite) => kite.path);
+  const mark = (...names) => steps.some((step) => step.kind === "mark" && names.includes(step.mark));
+  return {
+    in: true,
+    out: true,
+    stall: mark("stall"),
+    turn: steps.some((step) => step.kind === "rotate"),
+    axel: mark("axel", "half-axel"),
+    launch: mark("launch"),
+    landing: mark("landing"),
+    derived: steps.some((step) => step.basis === "derived"),
+    measured: steps.some((step) => step.basis === "measured"),
+  };
+}
+
+const isMove = (step) => step.kind === "line" || step.kind === "arc";
+
+// Схема на странице сверяется с файлом данных, а не с тем, что насчитал
+// lib/diagram.ts. На каждый вариант — свой блок: схема, её легенда и шаги.
+// В схеме по линии своего штриха на кайт и по стрелке на каждый шаг; шаг
+// «unmarked» нарисован как все, а в списке шагов несёт пометку «направление
+// в книге не показано». Значки и легенда — ровно те, что следуют из
+// данных. Картинок на странице нет вовсе: схемы свои и рисуются из данных.
+function checkDiagrams(slug, html, geometry, documentUrl) {
+  const where = `на странице figures/${slug}/`;
+  const bad = (message) => problems.push(`${where} ${message}`);
+  if (/<img|<canvas|<image|<picture|<object|<embed|url\(/.test(html)) {
+    bad("есть картинка: схемы рисуются из данных, в SVG");
+  }
+  const blocks = html.split('<section class="variant">').slice(1);
+  if (geometry.status !== "ok") {
+    if (blocks.length > 0 || html.includes('class="d-svg"')) {
+      bad("нарисована схема, а геометрии в данных нет");
+    }
+    if (!html.includes("Схемы нет.") || !html.includes(escapeHtml(geometry.reason))) {
+      bad("не сказано, почему схемы нет");
+    }
+    return;
+  }
+  if (blocks.length !== geometry.variants.length) {
+    bad(`схем ${blocks.length}, а вариантов в данных ${geometry.variants.length}`);
+    return;
+  }
+  geometry.variants.forEach((variant, index) => {
+    const block = blocks[index];
+    const say = (message) => bad(`в схеме «${variant.id}» ${message}`);
+    const diagrams = block.match(/<svg class="d-svg"[\s\S]*?<\/svg>/g) ?? [];
+    if (diagrams.length !== 1) {
+      say(`схем ${diagrams.length} вместо одной`);
+      return;
+    }
+    const svg = diagrams[0];
+    const kites = variant.kites;
+    const many = kites.length > 1;
+
+    if (variant.team_size !== undefined && !block.includes(`<h2>Состав: ${variant.team_size}`)) {
+      say(`нет заголовка «Состав: ${variant.team_size}»`);
+    }
+    if (variant.page !== undefined) {
+      const href = escapeHtml(`${documentUrl}#page=${variant.page}`);
+      if (!block.includes(`href="${href}"`) || !block.includes(`>стр. ${variant.page}</a>`)) {
+        say(`нет ссылки на страницу ${variant.page} первоисточника`);
+      }
+    }
+
+    // Линии: по одной на кайт, штрихи идут по порядку кайтов.
+    const tracks = [...svg.matchAll(/<path class="d-track k(\d)"/g)].map((match) => Number(match[1]));
+    // Одиночный кайт летит чёрной сплошной, без штриха команды.
+    const strokes = kites.map((_, kite) => (many ? (kite % 5) + 1 : 0));
+    if (tracks.join() !== strokes.join()) {
+      say(`штрихи линий [${tracks.join()}], а по числу кайтов нужны [${strokes.join()}]`);
+    }
+
+    const moves = kites.flatMap((kite) => kite.path.filter(isMove));
+    // Стрелка — замкнутый треугольник; считаются все пути стрелок схемы.
+    const arrows = [...svg.matchAll(/<path class="d-arrow" d="([^"]*)"/g)].reduce(
+      (sum, match) => sum + count(match[1], /Z/g),
+      0,
+    );
+    if (arrows !== moves.length) {
+      say(`стрелок ${arrows}, а шагов ${moves.length}`);
+    }
+    if (svg.includes("d-ask")) {
+      say("есть знак вопроса: стрелка стоит на каждом шаге");
+    }
+
+    // Подписи входа и выхода с их цветом: у одного кайта «In» и «Out», у
+    // нескольких — номер кайта его цветом, дважды.
+    const labels = [...svg.matchAll(/<text class="d-label t-([^"]*)"[^>]*>([^<]*)<\/text>/g)].map(
+      (match) => `${match[1]}:${match[2]}`,
+    );
+    const names = kites.flatMap((kite, order) => {
+      const own = `k${(order % 5) + 1}:#${kite.id}`;
+      return many ? [own, own] : ["in:In", "out:Out"];
+    });
+    if ([...labels].sort().join() !== [...names].sort().join()) {
+      say(`подписи входа и выхода [${labels.join()}], а нужны [${names.join()}]`);
+    }
+
+    // Значок есть на схеме тогда и только тогда, когда он следует из данных,
+    // и тогда же он назван в легенде этой схемы — своими словами.
+    for (const [name, expected] of Object.entries(expectedShapes(variant))) {
+      if (svg.includes(`<path class="d-${name}"`) !== expected) {
+        say(`значок «${name}» ${expected ? "не нарисован" : "нарисован без данных"}`);
+      }
+      const told = new RegExp(`<path class="d-${name}" d="[^"]*"></path></svg>${LEGEND[name].replace(/[()]/g, "\\$&")}`);
+      if (told.test(block) !== expected) {
+        say(`легенда ${expected ? "не объясняет" : "объясняет лишний"} значок «${name}»`);
+      }
+    }
+    if (block.includes("направление движения</li>") !== arrows > 0) {
+      say("легенда расходится со схемой в стрелках");
+    }
+    // Сетка: оси окна и рамка есть всегда.
+    if (!svg.includes('<path class="d-mid" d="M0 0v100M-100 50h200"') || !svg.includes('<path class="d-frame"')) {
+      say("нет рамки окна или его осей");
+    }
+    const legendKites = [...block.matchAll(/<path class="d-track k(\d)" d="M0 0h24"><\/path><\/svg>кайт #([^<]*)<\/li>/g)].map(
+      (match) => `${match[1]}:${match[2]}`,
+    );
+    const wantedKites = many ? kites.map((kite, order) => `${(order % 5) + 1}:${kite.id}`) : [];
+    if (legendKites.join() !== wantedKites.join()) {
+      say(`легенда кайтов [${legendKites.join()}], а нужна [${wantedKites.join()}]`);
+    }
+
+    // Шаги: список на кайт, строка на старт и на каждое перемещение, пометка
+    // на каждом шаге без направления.
+    const lists = block.match(/<ol>[\s\S]*?<\/ol>/g) ?? [];
+    if (lists.length !== kites.length) {
+      say(`списков шагов ${lists.length}, а кайтов ${kites.length}`);
+      return;
+    }
+    kites.forEach((kite, order) => {
+      const own = kite.path.filter(isMove);
+      const lines = count(lists[order], /<li>[^<]/g);
+      if (lines !== own.length + 1) {
+        say(`у кайта ${kite.id} строк шагов ${lines}, а нужно ${own.length + 1}`);
+      }
+      const flagged = count(lists[order], / <strong class="unmarked">направление в книге не показано<\/strong>/g);
+      const unmarked = own.filter((step) => step.unmarked === true).length;
+      if (flagged !== unmarked) {
+        say(`у кайта ${kite.id} пометок «направление в книге не показано» ${flagged}, а шагов «unmarked» ${unmarked}`);
+      }
+    });
+  });
+  for (const note of geometry.notes ?? []) {
+    if (!html.includes(`<li>${escapeHtml(note)}</li>`)) {
+      bad(`нет заметки о геометрии «${note.slice(0, 40)}…»`);
+    }
+  }
+}
+
+// Различие кайтов без цвета держится на штрихе линии, а он задан в CSS: без
+// него все линии сплошные, и разметка страницы этого не покажет.
+function checkStyles() {
+  const files = fs
+    .readdirSync(out, { recursive: true })
+    .map((name) => String(name))
+    .filter((name) => name.endsWith(".css"));
+  const css = files.map((name) => fs.readFileSync(path.join(out, name), "utf8")).join("\n");
+  // Заливка отличает вход от выхода и остановки без цвета.
+  if (!/\.d-out\{[^}]*fill:var\(--bg\)/.test(css)) {
+    problems.push("в стилях значок выхода не пустой (.d-out): без цвета он сольётся со входом");
+  }
+  for (const kite of [2, 3, 4, 5]) {
+    if (!new RegExp(`\\.k${kite}\\{[^}]*stroke-dasharray`).test(css)) {
+      problems.push(`в стилях у линии кайта ${kite} нет своего штриха (.k${kite})`);
+    }
+  }
+  if (css.includes("url(")) {
+    problems.push("стили подключают внешний файл через url(): схемы рисуются из данных, без картинок");
   }
 }
 
@@ -289,6 +482,7 @@ for (const slug of slugs) {
   if (!main.includes(`страница ${source.page}</a>`)) {
     problems.push(`${where} не названа страница первоисточника ${source.page}`);
   }
+  checkDiagrams(slug, main, record.geometry, document?.url);
   // Со страницы фигуры виден её раздел, и переход ведёт именно в него.
   expectLinks(`${where} над заголовком`, anchors(main.slice(0, main.indexOf("<h1>"))), [
     { href: "/", text: "Все разделы" },
@@ -319,6 +513,8 @@ for (const slug of slugs) {
     );
   }
 }
+
+checkStyles();
 
 // Индекс поиска: запись на каждую фигуру в порядке каталога и ничего, кроме
 // строки выдачи. Геометрии и описаний в нём быть не должно — это каталог, а не
