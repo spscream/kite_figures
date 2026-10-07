@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-team",
+  "number": 7,
+  "name": "Arch du Carousel",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 120, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Кайты скользят вправо вдоль нижней горизонтали носом вверх, затем каждый облетает свою полуокружность — четыре вложенные арки с общим центром — носом вперёд и выходит на ту же горизонталь носом вниз. Первый кайт идёт по внутренней арке, четвёртый по внешней, и после арок порядок в колонне обратный.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "team_size": 4,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-60, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-30, 10], "nose": 0},
+              {"kind": "arc", "to": [0, 40], "center": [0, 10], "direction": "cw", "sweep": 90, "sync": "top"},
+              {"kind": "arc", "to": [30, 10], "center": [0, 10], "direction": "cw", "sweep": 90},
+              {"kind": "line", "to": [60, 10], "nose": 180},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-70, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-40, 10], "nose": 0},
+              {"kind": "arc", "to": [0, 50], "center": [0, 10], "direction": "cw", "sweep": 90, "sync": "top"},
+              {"kind": "arc", "to": [40, 10], "center": [0, 10], "direction": "cw", "sweep": 90},
+              {"kind": "line", "to": [70, 10], "nose": 180},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-80, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-50, 10], "nose": 0},
+              {"kind": "arc", "to": [0, 60], "center": [0, 10], "direction": "cw", "sweep": 90, "sync": "top"},
+              {"kind": "arc", "to": [50, 10], "center": [0, 10], "direction": "cw", "sweep": 90},
+              {"kind": "line", "to": [80, 10], "nose": 180},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-90, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-60, 10], "nose": 0},
+              {"kind": "arc", "to": [0, 70], "center": [0, 10], "direction": "cw", "sweep": 90, "sync": "top"},
+              {"kind": "arc", "to": [60, 10], "center": [0, 10], "direction": "cw", "sweep": 90},
+              {"kind": "line", "to": [90, 10], "nose": 180},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Метка sync «top»: на схеме метки всех четырёх кайтов стоят в вершинах своих арок одновременно, на вертикали центра окна. Словами страница этого не говорит — пояснения на ней нет.",
+      "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка.",
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+    ]
+  }
+}

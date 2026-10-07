@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-team",
+  "number": 9,
+  "name": "The Basket",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 122, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Плетёнка из диагоналей под двускатной «крышей» с вершиной на оси окна. Кайты одновременно взлетают носом под 45° вправо и летят параллельно до правого ската, скользят по нему к вершине, там поворачиваются на четверть оборота против часовой стрелки, скользят вниз по левому скату — каждый до своей точки — и задом, параллельными диагоналями, уходят на общую посадку носом под 45° влево.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "team_size": 4,
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-10, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch", "sync": "launch"},
+              {"kind": "line", "to": [40, 50], "sync": "side"},
+              {"kind": "line", "to": [0, 90], "nose": 45},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-20, 70], "nose": 315, "basis": "derived"},
+              {"kind": "line", "to": [50, 0], "nose": "backward", "sync": "landing"},
+              {"kind": "mark", "mark": "landing", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "2",
+            "path": [
+              {"kind": "start", "at": [-23.33, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch", "sync": "launch"},
+              {"kind": "line", "to": [33.33, 56.67], "sync": "side", "basis": "derived"},
+              {"kind": "line", "to": [0, 90], "nose": 45},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-26.67, 63.33], "nose": 315, "basis": "derived"},
+              {"kind": "line", "to": [36.67, 0], "nose": "backward", "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "3",
+            "path": [
+              {"kind": "start", "at": [-36.67, 0], "basis": "derived"},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch", "sync": "launch"},
+              {"kind": "line", "to": [26.67, 63.33], "sync": "side", "basis": "derived"},
+              {"kind": "line", "to": [0, 90], "nose": 45},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-33.33, 56.67], "nose": 315, "basis": "derived"},
+              {"kind": "line", "to": [23.33, 0], "nose": "backward", "sync": "landing", "basis": "derived"},
+              {"kind": "mark", "mark": "landing", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          },
+          {
+            "id": "4",
+            "path": [
+              {"kind": "start", "at": [-50, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch", "sync": "launch"},
+              {"kind": "line", "to": [20, 70], "sync": "side", "basis": "derived"},
+              {"kind": "line", "to": [0, 90], "nose": 45},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-40, 50], "nose": 315},
+              {"kind": "line", "to": [10, 0], "nose": "backward", "sync": "landing"},
+              {"kind": "mark", "mark": "landing", "sync": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "На подписанных линиях сетки стоят точки взлёта кайтов 1 и 4 (−10 и −50), точки посадки (50 и 10), концы скатов (±40 на высоте 50) и вершина (0; 90). Точки взлёта и посадки кайтов 2 и 3 вычислены как равные трети между крайними; замер по линиям даёт −23,6 и −36,8 при вычисленных −23,33 и −36,67, точность замера — около половины единицы.",
+      "Точки на скатах, куда кайты приходят и откуда уходят, высотой не подписаны: вычислены как пересечения диагоналей под 45° из точек взлёта и посадки со скатами.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): диагонали продолжены до нижнего края сетки, на схеме они кончаются на метках, передняя кромка которых нарисована на высоте около 3,5. Вид посадки страницей не назван.",
+      "Метки sync — по пояснению на странице: взлёт одновременный, на правый скат кайты приходят одновременно, посадка одновременная.",
+      "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка. На скатах кайты скользят: нос держит курс 45° до вершины и 315° после неё.",
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+    ]
+  }
+}
