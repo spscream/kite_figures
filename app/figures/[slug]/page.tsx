@@ -49,6 +49,7 @@ export default async function FigurePage({ params }: Props) {
             title={figureTitle(figure)}
             variants={figure.geometry.variants}
             pageUrl={(page) => sourcePageUrl(figure, page)}
+            multiline={figure.discipline.startsWith("multi-line")}
           />
           {figure.geometry.notes.length > 0 && (
             <section className="notes">

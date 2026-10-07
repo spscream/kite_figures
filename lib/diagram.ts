@@ -160,11 +160,19 @@ export function noseAt(from: Point, step: Move, t: number): Point {
 
 // Значок вида `name` с центром в точке SVG; `nose` — куда смотрит нос кайта,
 // в координатах окна. Этой же функцией рисуется легенда.
-export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1], scale = 1): string {
+// `rev` — четырёхстропный кайт: у него другой силуэт.
+export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1], scale = 1, rev = false): string {
   // Точка значка кайта: `ahead` — вдоль носа, `aside` — поперёк.
   const p = (ahead: number, aside: number) =>
     `${fmt(x + (nose[0] * ahead + nose[1] * aside) * scale)} ${fmt(y + (nose[0] * aside - nose[1] * ahead) * scale)}`;
-  const kite = `M${p(3.6, 0)}L${p(-2.4, 3.3)}L${p(-0.9, 0)}L${p(-2.4, -3.3)}Z`;
+  // Двухстропный — дельта: нос, угол крыла, вырез хвоста, второй угол.
+  // Четырёхстропный — прямая передняя кромка во весь размах и два треугольных
+  // паруса за ней, сходящиеся к середине кромки.
+  const kite = rev
+    ? `M${p(1.6, -4.8)}L${p(1.6, 4.8)}L${p(-2, 2.4)}L${p(0.9, 0)}L${p(-2, -2.4)}Z`
+    : `M${p(3.6, 0)}L${p(-2.4, 3.3)}L${p(-0.9, 0)}L${p(-2.4, -3.3)}Z`;
+  // Черта остановки — перед носом дельты или перед передней кромкой.
+  const bar = rev ? 3.4 : 5.2;
   const ring = (r: number) =>
     `M${fmt(x - r)} ${fmt(y)}a${r} ${r} 0 1 0 ${fmt(2 * r)} 0a${r} ${r} 0 1 0 ${fmt(-2 * r)} 0`;
   const box = (h: number) => `M${fmt(x - h)} ${fmt(y - h)}h${fmt(2 * h)}v${fmt(2 * h)}h${fmt(-2 * h)}z`;
@@ -173,7 +181,7 @@ export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1], s
     case "out":
       return kite;
     case "stall":
-      return `${kite}M${p(5.2, 2.6)}L${p(5.2, -2.6)}`;
+      return `${kite}M${p(bar, 2.6)}L${p(bar, -2.6)}`;
     case "turn":
       return ring(3.4);
     case "axel":
@@ -189,11 +197,12 @@ export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1], s
   }
 }
 
-export function drawVariant(variant: Variant): Drawing {
+// `rev` — фигура для четырёхстропного кайта (разделы Multi-line).
+export function drawVariant(variant: Variant, rev = false): Drawing {
   const solo = variant.kites.length === 1;
   const shapes: Partial<Record<Shape, string>> = {};
   const put = (name: Shape, x: number, y: number, nose?: Point, scale?: number) => {
-    shapes[name] = (shapes[name] ?? "") + shape(name, x, y, nose, scale);
+    shapes[name] = (shapes[name] ?? "") + shape(name, x, y, nose, scale, rev);
   };
   // Точки, занятые значками на самой линии, и шаги, которым нужна стрелка:
   // стрелки расставляются после значков.

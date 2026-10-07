@@ -201,6 +201,15 @@ describe("drawVariant", () => {
     expect(nose(shapes.out!)[1]).toBeCloseTo(sign);
   });
 
+  it("четырёхстропный кайт рисует своим силуэтом: кромка во весь размах впереди, два паруса позади", () => {
+    const path = [start, markIn, { kind: "line", to: [0, 20] }, { kind: "mark", mark: "stall" }, markOut];
+    const { shapes } = drawVariant(variant(path), true);
+    // Летит вправо: кромка — вертикаль на 1,6 единицы впереди точки, паруса — позади.
+    expect(shapes.in).toBe("M-48.4 75.2L-48.4 84.8L-52 82.4L-49.1 80L-52 77.6Z");
+    expect(shapes.stall).toBe("M1.6 75.2L1.6 84.8L-2 82.4L0.9 80L-2 77.6ZM3.4 82.6L3.4 77.4");
+    expect(drawVariant(variant(path)).shapes.in).toBe("M-46.4 80L-52.4 83.3L-50.9 80L-52.4 76.7Z");
+  });
+
   it("поворот на месте разворачивает нос следующих значков", () => {
     const { shapes } = drawVariant(
       variant([

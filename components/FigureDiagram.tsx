@@ -49,7 +49,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 
 // Легенда у каждой схемы своя и называет ровно то, что на этой схеме есть:
 // лист с одним составом команды читается и в печати, без соседних.
-function Legend({ drawing, kites }: { drawing: Drawing; kites: string[] }) {
+function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; rev: boolean }) {
   const used = SHAPES.filter((name) => drawing.shapes[name]);
   return (
     <ul className="d-legend">
@@ -73,7 +73,7 @@ function Legend({ drawing, kites }: { drawing: Drawing; kites: string[] }) {
       {used.map((name) => (
         <li key={name}>
           <Icon>
-            <path className={`d-${name}`} d={shape(name, 0, 0)} />
+            <path className={`d-${name}`} d={shape(name, 0, 0, undefined, 1, rev)} />
           </Icon>
           {SHAPE_TEXT[name]}
         </li>
@@ -151,10 +151,12 @@ type Props = {
   variants: Variant[];
   // Адрес страницы первоисточника по её номеру: у варианта она бывает своя.
   pageUrl: (page: number) => string;
+  // Четырёхстропный кайт рисуется своим силуэтом.
+  multiline: boolean;
 };
 
-export function FigureDiagrams({ title, variants, pageUrl }: Props) {
-  const drawings = variants.map(drawVariant);
+export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
+  const drawings = variants.map((variant) => drawVariant(variant, multiline));
   return (
     <>
       {variants.map((variant, index) => {
@@ -185,7 +187,7 @@ export function FigureDiagrams({ title, variants, pageUrl }: Props) {
                 label={`Схема фигуры ${title}${heading ? `, ${heading.toLowerCase()}` : ""}`}
               />
               <figcaption>
-                <Legend drawing={drawings[index]} kites={variant.kites.map((kite) => kite.id)} />
+                <Legend drawing={drawings[index]} kites={variant.kites.map((kite) => kite.id)} rev={multiline} />
                 {index === 0 && (
                   <p className="note">
                     Окно полёта — 200 на 100 единиц, как его видит пилот; числа у рамки — высота и расстояние

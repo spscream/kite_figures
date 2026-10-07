@@ -163,7 +163,7 @@ const isMove = (step) => step.kind === "line" || step.kind === "arc";
 // «unmarked» нарисован как все, а в списке шагов несёт пометку «направление
 // в книге не показано». Значки и легенда — ровно те, что следуют из
 // данных. Картинок на странице нет вовсе: схемы свои и рисуются из данных.
-function checkDiagrams(slug, html, geometry, documentUrl) {
+function checkDiagrams(slug, html, geometry, documentUrl, rev) {
   const where = `на странице figures/${slug}/`;
   const bad = (message) => problems.push(`${where} ${message}`);
   if (/<img|<canvas|<image|<picture|<object|<embed|<iframe|<video|<use\b|type="image"|url\(|image-set\(/i.test(html)) {
@@ -241,6 +241,12 @@ function checkDiagrams(slug, html, geometry, documentUrl) {
     });
     if ([...labels].sort().join() !== [...names].sort().join()) {
       say(`подписи входа и выхода [${labels.join()}], а нужны [${names.join()}]`);
+    }
+
+    // Силуэт кайта по разделу: у четырёхстропного пять вершин, у дельты четыре.
+    const corners = count(svg.match(/<path class="d-in" d="([^"Z]*)Z/)?.[1] ?? "", /L/g) + 1;
+    if (corners !== (rev ? 5 : 4)) {
+      say(`значок кайта с ${corners} вершинами: ${rev ? "четырёхстропный рисуется кромкой и двумя парусами" : "двухстропный рисуется дельтой"}`);
     }
 
     // Значок есть на схеме тогда и только тогда, когда он следует из данных,
@@ -488,7 +494,7 @@ for (const slug of slugs) {
   if (!main.includes(`страница ${source.page}</a>`)) {
     problems.push(`${where} не названа страница первоисточника ${source.page}`);
   }
-  checkDiagrams(slug, main, record.geometry, document?.url);
+  checkDiagrams(slug, main, record.geometry, document?.url, discipline.startsWith("multi-line"));
   // Со страницы фигуры виден её раздел, и переход ведёт именно в него.
   expectLinks(`${where} над заголовком`, anchors(main.slice(0, main.indexOf("<h1>"))), [
     { href: "/", text: "Все разделы" },
