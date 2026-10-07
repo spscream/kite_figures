@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { FigureDiagrams } from "@/components/FigureDiagram";
 import { figurePath, getSection, neighbours, sectionPath } from "@/lib/catalog";
 import { figureTitle, getFigure, listFigures, sourcePageUrl } from "@/lib/figures";
+import { loadSources } from "@/lib/sources";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -21,6 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return figure ? { title: figureTitle(figure), description: figure.summary } : {};
 }
 
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+
+// «2011-12-05» → «5 декабря 2011 года»: дата редакции, как её читает человек.
+function longDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${day} ${MONTHS[month - 1]} ${year} года`;
+}
+
 export default async function FigurePage({ params }: Props) {
   const figure = getFigure((await params).slug);
   if (!figure) {
@@ -31,6 +40,12 @@ export default async function FigurePage({ params }: Props) {
     notFound();
   }
   const { previous, next } = neighbours(section, figure.slug);
+  // Действующая редакция — первый документ реестра. Фигура, снятая с другой
+  // редакции, говорит об этом на странице: её схема — не из действующих правил.
+  const sources = loadSources();
+  const current = sources[0];
+  const edition = sources.find((item) => item.id === figure.source.document && item.version === figure.source.version);
+  const earlier = edition !== undefined && edition !== current ? edition : undefined;
   return (
     <article>
       <nav className="crumbs" aria-label="Положение в каталоге">
@@ -41,6 +56,11 @@ export default async function FigurePage({ params }: Props) {
       <h1>{figureTitle(figure)}</h1>
       {figure.status === "obsolete" && (
         <p className="status">Фигура выведена из действующей редакции правил.</p>
+      )}
+      {earlier && (
+        <p className="edition">
+          {`Схема и шаги сняты с прежней редакции книги фигур — версии ${earlier.version} от ${longDate(earlier.dated)}: в действующей версии ${current.version} страницы этой фигуры нет.`}
+        </p>
       )}
       <p>{figure.summary}</p>
       {figure.geometry.status === "ok" ? (
@@ -70,7 +90,7 @@ export default async function FigurePage({ params }: Props) {
       <p className="note">
         Точная формулировка и официальная схема —{" "}
         <a className="source" href={figure.sourceUrl} rel="noreferrer">
-          {`в первоисточнике, страница ${figure.source.page}`}
+          {`в первоисточнике${earlier ? ` версии ${earlier.version}` : ""}, страница ${figure.source.page}`}
         </a>
         .
       </p>
