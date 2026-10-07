@@ -44,9 +44,46 @@ main {
   font-weight: 600;
 }
 
-.site-header a {
+.site-header > a {
   color: inherit;
   text-decoration: none;
+}
+
+.search {
+  display: block;
+  margin-top: 0.75rem;
+  font-weight: 400;
+}
+
+.search label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.search input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.search-results ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.search-results p {
+  margin: 0.5rem 0 0;
+}
+
+.tag {
+  margin-left: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 h1 {
@@ -59,4 +96,59 @@ h1 {
 
 .figure-list {
   padding-left: 1.2rem;
+}
+
+.figure-list .note {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.section-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.section-list li {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.section-list a {
+  font-weight: 600;
+}
+
+.section-list .note {
+  font-size: 0.875rem;
+}
+
+.crumbs {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.status {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--muted);
+  color: var(--muted);
+}
+
+.neighbours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.neighbours .next {
+  margin-left: auto;
+  text-align: right;
 }

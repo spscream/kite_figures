@@ -1,21 +1,25 @@
 import Link from "next/link";
 
-import { figureTitle, listFigures } from "@/lib/figures";
+import { countFigures, countObsolete, listSections, sectionPath } from "@/lib/catalog";
 
 export default function HomePage() {
-  const figures = listFigures();
+  const sections = listSections();
+  const total = sections.reduce((sum, section) => sum + section.figures.length, 0);
   return (
     <>
       <h1>Фигуры для спортивных кайтов</h1>
       <p className="note">
-        Сайт в работе: в каталоге пока один раздел правил, свои схемы фигур появятся здесь
-        позже.
+        {`Каталог обязательных фигур соревнований по спортивному кайту: ${countFigures(total)} по разделам книги фигур.`}
       </p>
-      <h2>Фигуры</h2>
-      <ul className="figure-list">
-        {figures.map((figure) => (
-          <li key={figure.slug}>
-            <Link href={`/figures/${figure.slug}/`}>{figureTitle(figure)}</Link>
+      <h2>Разделы</h2>
+      <ul className="section-list">
+        {sections.map((section) => (
+          <li key={section.discipline}>
+            <Link href={sectionPath(section.discipline)}>{section.title}</Link>
+            <span className="count">{countFigures(section.figures.length)}</span>
+            {section.obsolete.length > 0 && (
+              <span className="note">{`из них ${countObsolete(section.obsolete.length)}`}</span>
+            )}
           </li>
         ))}
       </ul>
