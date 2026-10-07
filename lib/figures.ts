@@ -74,6 +74,12 @@ export function figureTitle(figure: Pick<Figure, "code" | "name">): string {
   return `${figure.code} — ${figure.name}`;
 }
 
+// Адрес того же документа, открытого на другой странице: у варианта фигуры
+// схема бывает на своей.
+export function sourcePageUrl(figure: Pick<Figure, "sourceUrl">, page: number): string {
+  return `${figure.sourceUrl.slice(0, figure.sourceUrl.lastIndexOf("#"))}#page=${page}`;
+}
+
 function text(file: string, key: string, value: unknown): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`${file}: поле «${key}» должно быть непустой строкой`);

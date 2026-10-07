@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FigureDiagrams } from "@/components/FigureDiagram";
 import { figurePath, getSection, neighbours, sectionPath } from "@/lib/catalog";
-import { figureTitle, getFigure, listFigures } from "@/lib/figures";
+import { figureTitle, getFigure, listFigures, sourcePageUrl } from "@/lib/figures";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -42,6 +43,29 @@ export default async function FigurePage({ params }: Props) {
         <p className="status">Фигура выведена из действующей редакции правил.</p>
       )}
       <p>{figure.summary}</p>
+      {figure.geometry.status === "ok" ? (
+        <>
+          <FigureDiagrams
+            title={figureTitle(figure)}
+            variants={figure.geometry.variants}
+            pageUrl={(page) => sourcePageUrl(figure, page)}
+          />
+          {figure.geometry.notes.length > 0 && (
+            <section className="notes">
+              <h2>Как снята геометрия</h2>
+              <ul>
+                {figure.geometry.notes.map((note, index) => (
+                  <li key={index}>{note}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      ) : (
+        <p className="no-diagram">
+          <strong>Схемы нет.</strong> {figure.geometry.reason}
+        </p>
+      )}
       <p className="note">
         Точная формулировка и официальная схема —{" "}
         <a className="source" href={figure.sourceUrl} rel="noreferrer">
