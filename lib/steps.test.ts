@@ -5,7 +5,7 @@ import { type Kite, parseGeometry } from "./geometry";
 import { describeKite, lineText } from "./steps";
 
 function kite(path: unknown[]): Kite {
-  const raw = { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }] }], notes: ["для теста"] };
+  const raw = { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], guides: { status: "not_found", reason: "на схеме их нет" } }], notes: ["для теста"] };
   const read = parseGeometry("g", raw, 125);
   if (read.status !== "ok") {
     throw new Error("геометрия не разобрана");
@@ -16,6 +16,28 @@ function kite(path: unknown[]): Kite {
 const texts = (path: unknown[], many = false) => describeKite(kite(path)).map((line) => lineText(line, many));
 
 describe("describeKite", () => {
+  it("называет курс метки книги в остановке словом стороны, а наклонный — градусами", () => {
+    const stops = [0, 90, 180, 270, 45, 22.5];
+    expect(
+      texts([
+        { kind: "start", at: [0, 50] },
+        { kind: "mark", mark: "in" },
+        ...stops.flatMap((nose, index) => [
+          { kind: "line", to: [10 * (index + 1), 50] },
+          { kind: "mark", mark: "stall", nose },
+        ]),
+        { kind: "mark", mark: "out" },
+      ]).slice(1),
+    ).toEqual([
+      "Прямая до (10; 50) — остановка, на схеме книги кайт носом вверх",
+      "Прямая до (20; 50) — остановка, на схеме книги кайт носом вправо",
+      "Прямая до (30; 50) — остановка, на схеме книги кайт носом вниз",
+      "Прямая до (40; 50) — остановка, на схеме книги кайт носом влево",
+      "Прямая до (50; 50) — остановка, на схеме книги кайт носом по курсу 45°",
+      "Прямая до (60; 50) — остановка, на схеме книги кайт носом по курсу 22,5°, выход (OUT)",
+    ]);
+  });
+
   it("пишет строку на перемещение и дописывает к ней события в точке прибытия", () => {
     expect(
       texts([
@@ -23,7 +45,7 @@ describe("describeKite", () => {
         { kind: "mark", mark: "in" },
         { kind: "mark", mark: "launch" },
         { kind: "line", to: [0, 20.5] },
-        { kind: "mark", mark: "stall", style: "push" },
+        { kind: "mark", mark: "stall", style: "push", nose: 0 },
         { kind: "rotate", degrees: 90, direction: "cw" },
         { kind: "arc", to: [0, 60.5], center: [0, 40.5], direction: "ccw", sweep: 180 },
         { kind: "arc", to: [0, 60.5], center: [0, 40.5], direction: "cw", sweep: 360 },
@@ -33,7 +55,7 @@ describe("describeKite", () => {
       ]),
     ).toEqual([
       "Точка (0; 0) — вход (IN), взлёт",
-      "Прямая до (0; 20,5) — остановка толчком (push), поворот на 90° по часовой стрелке",
+      "Прямая до (0; 20,5) — остановка толчком (push), на схеме книги кайт носом вверх, поворот на 90° по часовой стрелке",
       "Дуга 180° против часовой стрелки вокруг (0; 40,5) до (0; 60,5)",
       "Полный круг по часовой стрелке вокруг (0; 40,5)",
       "Прямая до (−30; 60,5) — посадка на две точки, выход (OUT)",
@@ -88,7 +110,7 @@ describe("describeKite", () => {
         { kind: "rotate", degrees: 180, direction: "ccw", about: "left-tip" },
         { kind: "line", to: [40, 50], nose: 270 },
         { kind: "rotate", degrees: 180, direction: "cw", about: "right-tip" },
-        { kind: "mark", mark: "stall", style: "snap" },
+        { kind: "mark", mark: "stall", style: "snap", nose: { status: "not_found", reason: "метки нет" } },
         { kind: "arc", to: [40, 10], center: [40, 30], direction: "cw", sweep: 180, nose: "in" },
         { kind: "mark", mark: "half-axel" },
         { kind: "line", to: [40, 0], nose: 180 },

@@ -44,14 +44,24 @@ export const ROTATE_ABOUT = ["center", "left-tip", "right-tip"] as const;
 // помечает, что первоисточник его не показывает.
 type Flown = { basis: Basis; nose: Nose; unmarked?: true; sync?: string };
 
+// Чего книга не показывает: причина словами, со страницей и днём чтения.
+export type Missing = { status: "not_found"; reason: string };
+
 export type Step =
   | { kind: "start"; at: Point; basis: Basis }
   | ({ kind: "line"; to: Point } & Flown)
   | ({ kind: "arc"; to: Point; center: Point; direction: "cw" | "ccw"; sweep: number } & Flown)
-  | { kind: "mark"; mark: MarkName; style?: string; sync?: string }
+  // `nose` — только у остановки и у неё обязателен: курс метки, которой книга
+  // рисует кайт в этой точке (0 — вверх, 90 — вправо), либо запись о том, что
+  // метки там нет.
+  | { kind: "mark"; mark: MarkName; style?: string; sync?: string; nose?: number | Missing }
   | { kind: "rotate"; degrees: number; direction: "cw" | "ccw"; about: (typeof ROTATE_ABOUT)[number] };
 
 export type Kite = { id: string; path: Step[] };
+
+// Вспомогательная линия книги — тонкая серая черта, которой схема связывает
+// точки разных кайтов. Не путь: по ней никто не летит.
+export type Guide = { from: Point; to: Point; basis: Basis };
 
 export type Variant = {
   id: string;
@@ -60,6 +70,8 @@ export type Variant = {
   // Страница схемы этого варианта, когда она не та, что у фигуры.
   page?: number;
   kites: Kite[];
+  // Вспомогательные линии схемы либо запись о том, что книга их не рисует.
+  guides: { status: "ok"; lines: Guide[] } | Missing;
 };
 
 export type Geometry =
@@ -145,6 +157,19 @@ export function arcPoint(from: Point, center: Point, direction: "cw" | "ccw", sw
   ];
 }
 
+function course(where: string, value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value >= 360) {
+    fail(where, "курс носа — от 0 до 360 градусов, не включая 360");
+  }
+  return value;
+}
+
+function missing(where: string, raw: unknown): Missing {
+  const value = record(where, raw, ["status", "reason"]);
+  oneOf(`${where}.status`, value.status, ["not_found"] as const);
+  return { status: "not_found", reason: text(`${where}.reason`, value.reason) };
+}
+
 function unmarked(where: string, value: unknown): boolean {
   if (value !== undefined && value !== true) {
     fail(`${where}.unmarked`, "поле либо отсутствует, либо равно true");
@@ -156,10 +181,7 @@ function flown(where: string, value: Record<string, unknown>): Flown {
   let nose: Nose = "forward";
   if (value.nose !== undefined) {
     if (typeof value.nose === "number") {
-      if (!Number.isFinite(value.nose) || value.nose < 0 || value.nose >= 360) {
-        fail(`${where}.nose`, "курс носа — от 0 до 360 градусов, не включая 360");
-      }
-      nose = value.nose;
+      nose = course(`${where}.nose`, value.nose);
     } else {
       nose = oneOf(`${where}.nose`, value.nose, NOSE_WORDS);
     }
@@ -234,12 +256,27 @@ function parseStep(where: string, raw: unknown, position: Point | null): Step {
       return { kind, to, center, direction, sweep, ...flown(where, value) };
     }
     case "mark": {
-      const value = record(where, raw, ["kind", "mark", "style", "sync"]);
+      const value = record(where, raw, ["kind", "mark", "style", "sync", "nose"]);
       const mark = oneOf(`${where}.mark`, value.mark, Object.keys(MARKS) as MarkName[]);
       const styles: readonly string[] = MARKS[mark];
+      // Курс носа в остановке не выводится из пути: двухстропный кайт в ней
+      // стоит носом вверх, откуда бы ни пришёл, а четырёхстропный книга рисует
+      // то до поворота, то после. Поэтому поле обязательно — числом с метки
+      // книги либо записью, что метки нет.
+      if ((mark === "stall") !== (value.nose !== undefined)) {
+        fail(
+          `${where}.nose`,
+          mark === "stall"
+            ? "у остановки обязателен курс носа с метки книги либо запись «not_found» с причиной"
+            : "курс носа записывается только у остановки",
+        );
+      }
       return {
         kind,
         mark,
+        ...(value.nose === undefined
+          ? {}
+          : { nose: typeof value.nose === "number" ? course(`${where}.nose`, value.nose) : missing(`${where}.nose`, value.nose) }),
         ...(value.style === undefined ? {} : { style: oneOf(`${where}.style`, value.style, styles) }),
         ...(value.sync === undefined ? {} : { sync: text(`${where}.sync`, value.sync) }),
       };
@@ -306,13 +343,34 @@ function unique(where: string, ids: string[]) {
   }
 }
 
+function parseGuides(where: string, raw: unknown): Variant["guides"] {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    fail(where, "ожидается объект: линии либо запись «not_found» с причиной");
+  }
+  if ((raw as Record<string, unknown>).status !== "ok") {
+    return missing(where, raw);
+  }
+  const value = record(where, raw, ["status", "lines"]);
+  const lines = list(`${where}.lines`, value.lines).map((item, index) => {
+    const at = `${where}.lines[${index}]`;
+    const line = record(at, item, ["from", "to", "basis"]);
+    const from = point(`${at}.from`, line.from);
+    const to = point(`${at}.to`, line.to);
+    if (distance(from, to) < TOLERANCE) {
+      fail(at, "линия нулевой длины");
+    }
+    return { from, to, basis: line.basis === undefined ? "grid" : oneOf(`${at}.basis`, line.basis, BASES) };
+  });
+  return { status: "ok", lines };
+}
+
 function parseVariant(where: string, raw: unknown, pages: number): Variant {
-  const value = record(where, raw, ["id", "team_size", "page", "kites"]);
+  const value = record(where, raw, ["id", "team_size", "page", "kites", "guides"]);
   const kites = list(`${where}.kites`, value.kites).map((item, index) =>
     parseKite(`${where}.kites[${index}]`, item),
   );
   unique(`${where}.kites`, kites.map((kite) => kite.id));
-  const variant: Variant = { id: text(`${where}.id`, value.id), kites };
+  const variant: Variant = { id: text(`${where}.id`, value.id), kites, guides: parseGuides(`${where}.guides`, value.guides) };
   if (value.team_size !== undefined) {
     if (!Number.isInteger(value.team_size) || (value.team_size as number) < 2) {
       fail(`${where}.team_size`, "состав команды — целое число не меньше 2");
@@ -357,8 +415,10 @@ export function parseGeometry(where: string, raw: unknown, pages: number): Geome
   );
   // Координата не с подписанной линии сетки обязана быть объяснена: иначе
   // читатель данных не отличит измеренное от подписанного.
-  const unexplained = variants.some((variant) =>
-    variant.kites.some((kite) =>
+  const unexplained = variants.some(
+    (variant) =>
+      (variant.guides.status === "ok" && variant.guides.lines.some((line) => line.basis !== "grid" && line.basis !== "text")) ||
+      variant.kites.some((kite) =>
       kite.path.some(
         (step) =>
           ("basis" in step && step.basis !== "grid" && step.basis !== "text") ||
@@ -369,7 +429,7 @@ export function parseGeometry(where: string, raw: unknown, pages: number): Geome
   if (unexplained && notes.length === 0) {
     fail(
       `${where}.notes`,
-      "есть шаги с basis «derived» или «measured» либо с «unmarked» — нужна заметка, что именно не подписано и откуда взято значение",
+      "есть шаги или вспомогательные линии с basis «derived» или «measured» либо шаги с «unmarked» — нужна заметка, что именно не подписано и откуда взято значение",
     );
   }
   return { status, variants, notes };

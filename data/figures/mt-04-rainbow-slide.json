@@ -21,7 +21,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 45], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
               {"kind": "rotate", "degrees": 180, "direction": "ccw"},
-              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-45, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
               {"kind": "mark", "mark": "out"}
             ]
@@ -34,7 +34,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 60], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
               {"kind": "rotate", "degrees": 180, "direction": "ccw"},
-              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-60, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
               {"kind": "mark", "mark": "out"}
             ]
@@ -47,7 +47,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 75], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top", "basis": "measured"},
               {"kind": "rotate", "degrees": 180, "direction": "ccw"},
-              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-75, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in", "basis": "measured"},
               {"kind": "mark", "mark": "out"}
             ]
@@ -60,12 +60,13 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "arc", "to": [0, 90], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "out", "sync": "top"},
               {"kind": "rotate", "degrees": 180, "direction": "ccw"},
-              {"kind": "mark", "mark": "stall", "sync": "turned"},
+              {"kind": "mark", "mark": "stall", "sync": "turned", "nose": 0},
               {"kind": "arc", "to": [-90, 0], "center": [0, 0], "direction": "ccw", "sweep": 90, "nose": "in"},
               {"kind": "mark", "mark": "out"}
             ]
           }
-        ]
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 117, прочитана 2026-10-07) вспомогательных линий нет."}
       }
     ],
     "notes": [
@@ -73,7 +74,8 @@
       "Начало и конец дуг записаны на уровне земли (y = 0): метки стоят на нижнем крае сетки, дуги нарисованы до него. Взлёт назван в пояснении на странице; посадку страница не называет, поэтому отметки «landing» в конце нет.",
       "По пояснению развороты в вершине выполняются всеми разом и кончаются остановкой. Формат не ставит метку одновременности на сам поворот, поэтому она стоит на шагах вокруг него: «top» — приход в вершину, «turned» — остановка после разворота.",
       "Курс носа снят по меткам кайтов на схеме: прямая длинная сторона метки — передняя кромка.",
-      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет."
+      "Схема нарисована на четыре кайта; как раскладывать фигуру на другой состав, книга говорит общим правилом на странице 14, отдельных схем на другие составы в ней нет.",
+      "Курс носа в остановках («nose» у отметки «stall») снят с меток кайта на схеме (стр. 117, прочитана 2026-10-07): прямая длинная сторона метки — передняя кромка. Метка в вершине дуги нарисована носом вверх — это кайт до разворота, а остановка в данных записана после него."
     ]
   }
 }

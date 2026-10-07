@@ -36,6 +36,8 @@ export type Drawing = {
   // многострочных: двухстропный кайт летит носом вперёд, и направление
   // показывает сам значок кайта.
   arrows: { tone: "in" | "out" | "mid"; d: string }[];
+  // Вспомогательные линии книги одним путём; пусто, когда книга их не рисует.
+  guides: string;
   // Линии сетки: значения, через которые проходит фигура. Края окна и его
   // оси (x = 0, y = 50) сюда не входят: они рисуются всегда.
   grid: { xs: number[]; ys: number[] };
@@ -109,6 +111,8 @@ function segment(from: Point, step: Move): string {
 // Первая — не середина: когда кайт возвращается по той же линии, встречные
 // значки не ложатся один на другой.
 const PASS_AT = [0.6, 0.4, 0.75, 0.25, 0.5, 0.85, 0.15];
+// Ближе этого к соседнему значку значок в пути уже лежит на нём.
+const TIGHT = 5;
 // Стрелка рядом с линией встаёт у середины шага.
 const ARROW_AT = [0.5, 0.35, 0.65, 0.25, 0.75];
 // Насколько стрелка отстоит от линии — вправо по ходу полёта: встречные
@@ -156,13 +160,73 @@ const DELTA: readonly Point[] = [
   [-4.5, 0],
   [-6, -3.3],
 ];
+// Полуразмах четырёхстропного. Соседи в строю стоят через 10 единиц, и между
+// их значками должен оставаться просвет шире обводки.
+const REV_HALF = 4.2;
 const REV: readonly Point[] = [
-  [0, -4.8],
-  [0, 4.8],
-  [-3.4, 3],
+  [0, -REV_HALF],
+  [0, REV_HALF],
+  [-3.4, 2.7],
   [-2.1, 0],
-  [-3.4, -3],
+  [-3.4, -2.7],
 ];
+// Те же вершины в координатах окна — чтобы мерить, что значок закрывает.
+function outline(point: Point, nose: Point, scale: number, rev: boolean): Point[] {
+  const corners = (rev ? REV : DELTA).map(([ahead, aside]): Point => [
+    point[0] + (nose[0] * ahead + nose[1] * aside) * scale,
+    point[1] + (nose[1] * ahead - nose[0] * aside) * scale,
+  ]);
+  // Кайт у самой земли стоит на ней, как и на схеме.
+  const sunk = sunkBy(point, nose, scale, rev);
+  return corners.map(([x, y]): Point => [x, y + sunk]);
+}
+
+// На сколько значок в этой точке ушёл бы под землю — на столько он поднят.
+function sunkBy(point: Point, nose: Point, scale: number, rev: boolean): number {
+  return Math.max(
+    0,
+    ...(rev ? REV : DELTA).map(([ahead, aside]) => GRID.yMin - (point[1] + (nose[1] * ahead - nose[0] * aside) * scale)),
+  );
+}
+
+// Лежат ли два контура друг на друге: вершина одного внутри другого либо
+// ближе обводки к его стороне, либо стороны пересекаются.
+function touching(a: Point[], b: Point[]): boolean {
+  const side = (u: Point, v: Point, w: Point) => (v[0] - u[0]) * (w[1] - u[1]) - (v[1] - u[1]) * (w[0] - u[0]);
+  return (
+    a.some((corner) => clearOf(corner, b) < 0.4) ||
+    b.some((corner) => clearOf(corner, a) < 0.4) ||
+    a.some((p, i) => {
+      const q = a[(i + 1) % a.length];
+      return b.some((u, j) => {
+        const v = b[(j + 1) % b.length];
+        return side(p, q, u) * side(p, q, v) < 0 && side(u, v, p) * side(u, v, q) < 0;
+      });
+    })
+  );
+}
+
+// Расстояние от точки до контура; ноль, когда точка внутри него.
+function clearOf(spot: Point, corners: Point[]): number {
+  let inside = false;
+  let nearest = Infinity;
+  corners.forEach((a, index) => {
+    const b = corners[(index + 1) % corners.length];
+    if (a[1] > spot[1] !== b[1] > spot[1] && spot[0] < a[0] + ((spot[1] - a[1]) * (b[0] - a[0])) / (b[1] - a[1])) {
+      inside = !inside;
+    }
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((spot[0] - a[0]) * dx + (spot[1] - a[1]) * dy) / (dx * dx + dy * dy)));
+    nearest = Math.min(nearest, Math.hypot(spot[0] - a[0] - dx * t, spot[1] - a[1] - dy * t));
+  });
+  return inside ? 0 : nearest;
+}
+
+// Сколько места вокруг своей середины занимает значок координаты: круг, в
+// который входят и кружок, и квадрат вместе с обводкой.
+const DOT_R = 2.5;
+
 // Середина значка позади носа: её занимает тело кайта.
 const BODY = { delta: 3, rev: 1.7 } as const;
 
@@ -325,8 +389,8 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     const middle: Point = [point[0] - nose[0] * back, point[1] - nose[1] * back];
     const tips: Point[] = rev
       ? [
-          [point[0] + nose[1] * 4.8, point[1] - nose[0] * 4.8],
-          [point[0] - nose[1] * 4.8, point[1] + nose[0] * 4.8],
+          [point[0] + nose[1] * REV_HALF, point[1] - nose[0] * REV_HALF],
+          [point[0] - nose[1] * REV_HALF, point[1] + nose[0] * REV_HALF],
         ]
       : [];
     return [point, middle, ...tips];
@@ -335,6 +399,8 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   // что ещё стоит в той же точке.
   type Glyph = { name: KiteShape; point: Point; nose: Point; tone: string; kite: number };
   const glyphs: Glyph[] = [];
+  // Остановки, у которых метка уже стоит: кайт, точка и курс до градуса.
+  const stoodAt = new Set<string>();
   const glyph = (item: Glyph) => {
     glyphs.push(item);
     busy.push(...body(item.point, item.nose));
@@ -466,9 +532,19 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
             grounded.push({ point: here, text: (step.style && LANDING[step.style]) || "Landing" });
           } else if (step.mark === "stall") {
             stop += 1;
-            // Четырёхстропный кайт в точке остановки показан таким, каким он
-            // из неё уходит — уже после поворота, как на схемах книги.
-            glyph({ name: "stall", point: here, nose: rev && next ? noseAt(here, next, 0) : nose, tone, kite: order });
+            // Кайт в остановке стоит так, как его рисует в этой точке книга:
+            // курс метки записан в данных и из пути не выводится. Где книга
+            // метки не рисует, нет её и здесь — остаётся подпись. Две
+            // остановки в одной точке с одним курсом — одна метка, как в книге.
+            if (typeof step.nose === "number") {
+              const angle = (step.nose * Math.PI) / 180;
+              const stood: Point = [Math.sin(angle), Math.cos(angle)];
+              const key = `${order} ${at(here)} ${Math.round(step.nose) % 360}`;
+              if (!stoodAt.has(key)) {
+                stoodAt.add(key);
+                glyph({ name: "stall", point: here, nose: stood, tone, kite: order });
+              }
+            }
             notes.push({ point: here, text: stopText(step.style, rev) + (solo && stops > 1 ? ` #${stop}` : "") });
           } else {
             put("axel", "", shape("axel", sx(here), sy(here)));
@@ -482,23 +558,87 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     tracks.push({ id: kite.id, d });
   });
 
-  // Выход в точке, где уже стоит вход или остановка, рисуется крупнее и
-  // обводит их: иначе один значок закрыл бы другой.
-  for (const { name, point, nose, tone } of glyphs) {
-    const shared = name === "out" && glyphs.some((other) => other.name !== "out" && gap(other.point, point) < 1);
-    put(name, tone, shape(name, sx(point), sy(point), nose, shared ? 1.35 : 1, rev, true));
+  // Вспомогательная линия — не путь: значков и стрелок на ней нет, но подписи
+  // и стрелки её обходят, как обходят линии кайтов.
+  const guides =
+    variant.guides.status === "ok"
+      ? variant.guides.lines
+          .map(({ from, to }) => {
+            const count = Math.max(2, Math.ceil(gap(from, to) / 3));
+            traces.push(
+              Array.from({ length: count + 1 }, (_, i): Point => [
+                from[0] + ((to[0] - from[0]) * i) / count,
+                from[1] + ((to[1] - from[1]) * i) / count,
+              ]),
+            );
+            return `M${at(from)}L${at(to)}`;
+          })
+          .join("")
+      : "";
+
+  // Выход в точке, где уже стоит вход или остановка, рисуется крупнее: иначе
+  // один значок закрыл бы другой. Когда они смотрят в одну сторону, выход
+  // обводит их кольцом со всех сторон: кольцо нигде не уже 0,8 единицы, а
+  // спереди и с боков шире 1,3 — на экране в 390 пикселей это от полутора до
+  // двух пикселей. Нос такого выхода вынесен вперёд на ширину кольца; сама
+  // точка — под ним. У земли кольцо встаёт на неё, а значок внутри поднят
+  // вместе с ним и остаётся в его середине. Значки, которые смотрят в разные
+  // стороны, различает сам курс: выход лишь немного крупнее.
+  // Значки и их места на схеме: по ним встают значки координат и кайты в пути.
+  const drawnGlyphs: Point[][] = [];
+  const facing = (a: Point, b: Point) => a[0] * b[0] + a[1] * b[1] > 0.99;
+  const beneath = (item: Glyph) => glyphs.filter((other) => other.name !== "out" && gap(other.point, item.point) < 1);
+  const ringed = (item: Glyph) => item.name === "out" && beneath(item).length > 0 && beneath(item).every((other) => facing(other.nose, item.nose));
+  const RING = rev ? { lead: 1.6, scale: 2.2 } : { lead: 2.8, scale: 2.1 };
+  const tipOf = ({ point, nose }: Glyph): Point => [point[0] + nose[0] * RING.lead, point[1] + nose[1] * RING.lead];
+  for (const item of glyphs) {
+    const { name, point, nose, tone } = item;
+    if (ringed(item)) {
+      const tip = tipOf(item);
+      put(name, tone, shape(name, sx(tip), sy(tip), nose, RING.scale, rev, true));
+      drawnGlyphs.push(outline(tip, nose, RING.scale, rev));
+      continue;
+    }
+    // Значок внутри кольца поднят над землёй на столько же, на сколько кольцо.
+    const ring = name === "out" ? undefined : glyphs.find((other) => ringed(other) && gap(other.point, point) < 1);
+    const lift = ring ? sunkBy(tipOf(ring), ring.nose, RING.scale, rev) : 0;
+    const spot: Point = [point[0], point[1] + lift];
+    const scale = name === "out" && beneath(item).length > 0 ? 1.35 : 1;
+    put(name, tone, shape(name, sx(spot), sy(spot), nose, scale, rev, true));
+    drawnGlyphs.push(outline(spot, nose, scale, rev));
   }
   // Значок происхождения координаты в точке со значком кайта встаёт за его
   // хвостом: поверх он стёр бы разницу между залитым входом и пустым выходом.
   const marked = new Set<string>();
+  // Середины значков координат: кайт в пути и знак поворота на них не ложатся.
+  // Сами значки рисуются после кайтов в пути: на коротком шаге, где кайту
+  // некуда встать, отходит в сторону значок координаты.
+  const dots: Point[] = [];
+  const placed: { basis: "derived" | "measured"; point: Point; spot: Point }[] = [];
   const tail = rev ? 6 : 8.6;
+  const origins = new Set<string>();
   for (const { basis, point } of marks) {
+    // Точка, записанная в пути дважды, получает один значок.
+    if (origins.has(`${basis} ${at(point)}`)) {
+      continue;
+    }
+    origins.add(`${basis} ${at(point)}`);
     const under = glyphs.find((other) => gap(other.point, point) < 0.5);
     // У земли за хвостом места нет — там числа сетки; значок встаёт сбоку.
     const nose = under?.nose ?? [0, 0];
     const sides: Point[] = [nose, [nose[1], -nose[0]], [-nose[1], nose[0]]];
     const spots = sides.map(([bx, by]): Point => [point[0] - bx * tail, point[1] - by * tail]);
     let spot = spots[0][1] >= 2 ? spots[0] : (spots.slice(1).find((candidate) => candidate[1] >= 0) ?? spots[0]);
+    // За хвостом своего кайта может стоять сосед по строю: тогда значок
+    // отходит дальше за хвост или вбок — туда, где он не ляжет ни на один кайт.
+    const free = (candidate: Point) =>
+      candidate[1] >= 2 && Math.abs(candidate[0]) <= GRID.xMax && drawnGlyphs.every((corners) => clearOf(candidate, corners) >= DOT_R);
+    if (under && !free(spot)) {
+      const further = [1, 1.5, 2, 2.5].flatMap((far) =>
+        sides.map(([bx, by]): Point => [point[0] - bx * tail * far, point[1] - by * tail * far]),
+      );
+      spot = further.find((candidate) => free(candidate) && !marked.has(`${basis} ${at(candidate)}`)) ?? spot;
+    }
     if (marked.has(`${basis} ${at(spot)}`)) {
       continue;
     }
@@ -509,13 +649,15 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
       spot = [spot[0] + 3.6, spot[1]];
     }
     marked.add(`${basis} ${at(spot)}`);
-    put(basis, "", shape(basis, sx(spot), sy(spot)));
-    busy.push(spot);
+    placed.push({ basis, point, spot });
+    dots.push(spot);
   }
 
   // Значок кайта в пути: нос показывает, куда кайт смотрит на этом шаге, а у
   // двухстропного — и куда он летит. Шагу, у начала или конца которого уже
   // стоит значок этого кайта с тем же носом, второй не нужен.
+  type Pass = { from: Point; step: (typeof flown)[number]["step"]; tone: string; scale: number; t: number };
+  const passes: Pass[] = [];
   for (const { from, step, kite, tone } of flown) {
     const shown = ([end, t]: readonly [Point, number]) =>
       glyphs.some((other) => {
@@ -525,15 +667,90 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     if (shown([from, 0]) || shown([step.to, 1])) {
       continue;
     }
-    const room = (t: number) => Math.min(...busy.map((other) => gap(other, along(from, step, t).point)), 50);
-    const t = freest(PASS_AT, room, 7);
-    const { point } = along(from, step, t);
-    const nose = noseAt(from, step, t);
     // На шаге короче самого значка он уменьшается вместе с ним.
-    const scale = Math.max(0.6, Math.min(1, length(from, step) / 8));
-    put("pass", tone, shape("pass", sx(point), sy(point), nose, scale, rev, true));
-    busy.push(...body(point, nose));
+    passes.push({ from, step, tone, scale: Math.max(0.6, Math.min(1, length(from, step) / 8)), t: PASS_AT[0] });
   }
+  const settled = busy.slice();
+  const standing = drawnGlyphs.slice();
+  const bodyOf = (pass: Pass) => body(along(pass.from, pass.step, pass.t).point, noseAt(pass.from, pass.step, pass.t));
+  const choose = ({ from, step, scale }: Pass, others: Point[]) => {
+    const room = (t: number) => Math.min(...others.map((other) => gap(other, along(from, step, t).point)), 50);
+    // Значок не ложится на значок координаты: место — первое свободное из
+    // тех, где он его не задевает, а на шаге, где таких мест нет, — то, где до
+    // значка координаты дальше всего.
+    // Так же он обходит вход, выход и остановку: место, где он лёг бы на один
+    // из них, считается занятым.
+    const clear = (t: number) => {
+      const own = outline(along(from, step, t).point, noseAt(from, step, t), scale, rev);
+      return standing.some((other) => touching(own, other)) ? 0 : Math.min(...dots.map((dot) => clearOf(dot, own)), 50);
+    };
+    const anywhere = Array.from({ length: 17 }, (_, index) => 0.1 + index * 0.05);
+    // Сперва привычные места; в тесноте, где ни одно из них не свободно, —
+    // любое место шага, где до соседних значков дальше всего.
+    const open = PASS_AT.filter((spot) => clear(spot) >= DOT_R);
+    const wider = [...PASS_AT, ...anywhere].filter((spot) => clear(spot) >= DOT_R);
+    return open.some((spot) => room(spot) >= 7) || wider.length === 0
+      ? open.length > 0
+        ? freest(open, room, 7)
+        : anywhere.reduce((best, spot) => (clear(spot) > clear(best) + 0.01 ? spot : best), freest(PASS_AT, room, 7))
+      : wider.reduce((best, spot) => (room(spot) > room(best) + 0.01 ? spot : best));
+  };
+  // Первый проход ставит значки по очереди, и ранний не знает о поздних: на
+  // общем отрезке строя он занимает середину, а остальным остаются края. Два
+  // следующих прохода переставляют каждый значок, уже видя все остальные.
+  // Значкам, которым и после этого тесно, места на отрезке не хватает вовсе:
+  // они уменьшаются, как на коротком шаге, и встают заново.
+  for (let round = 0; round < 5; round += 1) {
+    passes.forEach((pass, index) => {
+      const others = [
+        ...settled,
+        ...passes.filter((other, at) => (round === 0 ? at < index : at !== index)).flatMap(bodyOf),
+      ];
+      pass.t = choose(pass, others);
+      const { point } = along(pass.from, pass.step, pass.t);
+      if (round === 2 && Math.min(...others.map((other) => gap(other, point)), 50) < TIGHT) {
+        pass.scale = Math.min(pass.scale, 0.7);
+      }
+    });
+  }
+  for (const pass of passes) {
+    const { point } = along(pass.from, pass.step, pass.t);
+    const nose = noseAt(pass.from, pass.step, pass.t);
+    put("pass", pass.tone, shape("pass", sx(point), sy(point), nose, pass.scale, rev, true));
+    busy.push(...body(point, nose));
+    drawnGlyphs.push(outline(point, nose, pass.scale, rev));
+  }
+
+  // Значок координаты, на который всё же лёг кайт, отходит от своей точки —
+  // туда, где не задевает ни кайтов, ни других значков координат; сперва
+  // ближе, потом дальше. Не нашлось места — остаётся, где был.
+  placed.forEach((item, index) => {
+    const hit = (spot: Point) => drawnGlyphs.some((corners) => clearOf(spot, corners) < DOT_R);
+    if (hit(item.spot)) {
+      const others = dots.filter((_, at) => at !== index);
+      const moved = [4.5, 6, 7.5, 9]
+        .flatMap((far) =>
+          [45, 135, 225, 315, 90, 270, 0, 180].map((degrees): Point => {
+            const angle = (degrees * Math.PI) / 180;
+            return [item.point[0] + far * Math.cos(angle), item.point[1] + far * Math.sin(angle)];
+          }),
+        )
+        .find(
+          (spot) =>
+            spot[1] >= 2 &&
+            spot[1] <= GRID.yMax - 2 &&
+            Math.abs(spot[0]) <= GRID.xMax - 2 &&
+            !hit(spot) &&
+            others.every((other) => gap(other, spot) >= 2 * DOT_R),
+        );
+      if (moved) {
+        item.spot = moved;
+        dots[index] = moved;
+      }
+    }
+    put(item.basis, "", shape(item.basis, sx(item.spot), sy(item.spot)));
+    busy.push(item.spot);
+  });
 
   // Стрелки — многострочным: там кайт летит и боком, и задом, и значок
   // кайта направления полёта не показывает. У двухстропного стрелку получает
@@ -575,9 +792,12 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   // Расстояние от препятствия до подписи — до отрезка во всю её ширину.
   const reachTo = (other: Point, [x, y]: Point, width: number) =>
     Math.hypot(Math.max(Math.abs(other[0] - x) - width, 0), other[1] - y);
-  const roomAt = (point: Point, spot: Point, half: number) =>
+  // `own` — считать препятствием и значок в самой точке: знаку поворота под
+  // ним не место, а слово подписи встаёт к нему вплотную.
+  const roomAt = (point: Point, spot: Point, half: number, own = false) =>
     Math.min(
-      ...busy.filter((other) => gap(other, point) > 0.5).map((other) => reachTo(other, spot, half)),
+      ...busy.filter((other) => own || gap(other, point) > 0.5).map((other) => reachTo(other, spot, half)),
+      ...(own ? dots.map((other) => reachTo(other, spot, half) - DOT_R) : []),
       ...lines.filter((other) => gap(other, point) > 4).map((other) => reachTo(other, spot, half)),
       ...taken.map((other) => reachTo(other.spot, spot, half + other.half)),
       50,
@@ -585,11 +805,17 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   const fits = ([x, y]: Point, half: number) =>
     y >= 2 && y <= GRID.yMax + MARGIN - 4 && Math.abs(x) + half <= GRID.xMax + MARGIN;
   // Лучшее из мест вокруг точки: первое свободное, иначе самое свободное.
-  const settle = (point: Point, spots: Point[], half: number, widest = false): Point => {
+  // `tall` — знак поворота: он занимает место и над серединой (дуга), и под
+  // ней (угол), и свободным должно быть всё оно, со значком в самой точке.
+  const settle = (point: Point, spots: Point[], half: number, tall = false): Point => {
     const open = spots.filter((spot) => fits(spot, half));
+    const space = (spot: Point) =>
+      tall
+        ? Math.min(...[3.4, 0, -3.4].map((dy) => roomAt(point, [spot[0], spot[1] + dy], half, true)))
+        : roomAt(point, spot, half);
     const best =
-      (widest ? undefined : open.find((spot) => roomAt(point, spot, half) >= 4)) ??
-      open.reduce((a, b) => (roomAt(point, b, half) > roomAt(point, a, half) ? b : a), open[0] ?? spots[0]);
+      (tall ? undefined : open.find((spot) => space(spot) >= 4)) ??
+      open.reduce((a, b) => (space(b) > space(a) + 0.01 ? b : a), open[0] ?? spots[0]);
     // Подпись у самого края окна сдвигается внутрь поля, а не обрезается.
     const edge = GRID.xMax + MARGIN - half;
     const placed: Point = [Math.max(-edge, Math.min(edge, best[0])), best[1]];
@@ -667,7 +893,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
             [-1.1, 0],
             [0, -1.1],
           ] as const
-        ).map(([ux, uy]) => [point[0] + ux * 8.5, point[1] + uy * 8.5]),
+        ).flatMap(([ux, uy]) => [8.5, 12.5].map((far): Point => [point[0] + ux * far, point[1] + uy * far])),
         TURN_R + 1.5,
         true,
       );
@@ -724,6 +950,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     viewBox: `${VIEW.left} ${VIEW.top} ${VIEW.width} ${fmt(bottom - VIEW.top)}`,
     tracks,
     arrows,
+    guides,
     grid: {
       xs: [...xs].filter((x) => x !== 0 && Math.abs(x) < GRID.xMax).sort((a, b) => a - b),
       ys: [...ys].filter((y) => y !== 50 && y > GRID.yMin && y < GRID.yMax).sort((a, b) => a - b),

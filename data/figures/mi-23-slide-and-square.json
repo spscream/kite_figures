@@ -20,25 +20,27 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [0, 80]},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [0, 50], "nose": "backward"},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [-30, 50], "nose": 0},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [-30, 20], "nose": "backward"},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [0, 20], "nose": 0},
-              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [0, 0], "nose": "backward"},
               {"kind": "mark", "mark": "landing"},
               {"kind": "mark", "mark": "out"}
             ]
           }
-        ]
+        ],
+        "guides": {"status": "not_found", "reason": "На схеме (стр. 85, прочитана 2026-10-07) вспомогательных линий нет."}
       }
     ],
     "notes": [
-      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна."
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна.",
+      "Курс носа в остановках («nose» у отметки «stall») снят с меток кайта на схеме (стр. 85, прочитана 2026-10-07): прямая длинная сторона метки — передняя кромка; во всех пяти точках метка нарисована носом вверх."
     ]
   }
 }

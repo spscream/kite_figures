@@ -9,8 +9,10 @@ const markIn: Raw = { kind: "mark", mark: "in" };
 const markOut: Raw = { kind: "mark", mark: "out" };
 
 function geometry(path: unknown[], over: Raw = {}): Raw {
-  return { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }] }], ...over };
+  return { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], guides: NO_GUIDES }], ...over };
 }
+
+const NO_GUIDES: Raw = { status: "not_found", reason: "на схеме их нет" };
 
 const parse = (raw: unknown) => parseGeometry("g", raw, 125);
 const parsePath = (path: unknown[], over: Raw = {}) => parse(geometry(path, over));
@@ -49,6 +51,7 @@ describe("parseGeometry", () => {
               ],
             },
           ],
+          guides: NO_GUIDES,
         },
       ],
     });
@@ -112,7 +115,7 @@ describe("parseGeometry", () => {
     [{ kind: "line", to: [0, 50], colour: "red" }, /незнакомое поле «colour»/],
     [{ kind: "curve", to: [0, 50] }, /kind: ожидается одно из: start, line, arc, mark, rotate/],
     [{ kind: "mark", mark: "loop" }, /mark: ожидается одно из/],
-    [{ kind: "mark", mark: "stall", style: "two-point" }, /style: ожидается одно из: push, snap/],
+    [{ kind: "mark", mark: "stall", style: "two-point", nose: 0 }, /style: ожидается одно из: push, snap/],
     [{ kind: "mark", mark: "launch", style: "push" }, /style: ожидается одно из/],
     [{ kind: "rotate", degrees: 0, direction: "cw" }, /degrees: угол поворота/],
     [{ kind: "rotate", degrees: 90, direction: "cw", about: "nose" }, /about: ожидается одно из/],
@@ -138,7 +141,7 @@ describe("parseGeometry", () => {
     ["путь не с start", [markIn, { kind: "line", to: [0, 50] }, markOut], /путь начинается шагом «start»/],
     ["нет ни одного отрезка", [start, markIn, markOut], /между «in» и «out» нет ни одного отрезка или дуги/],
     ["отрезок только после out", [start, markIn, markOut, { kind: "line", to: [0, 50] }], /между «in» и «out» нет/],
-    ["отрезок только до in", [start, { kind: "line", to: [0, 50] }, markIn, { kind: "mark", mark: "stall" }, markOut], /между «in» и «out» нет/],
+    ["отрезок только до in", [start, { kind: "line", to: [0, 50] }, markIn, { kind: "mark", mark: "stall", nose: 0 }, markOut], /между «in» и «out» нет/],
     ["нет in", [start, { kind: "line", to: [0, 50] }, markOut], /ровно одна отметка «in»/],
     ["нет out", [start, markIn, { kind: "line", to: [0, 50] }], /ровно одна отметка «in»/],
     ["out раньше in", [start, markOut, { kind: "line", to: [0, 50] }, markIn], /ровно одна отметка «in»/],
@@ -171,16 +174,16 @@ describe("parseGeometry", () => {
     const read = parse({
       status: "ok",
       variants: [
-        { id: "four", team_size: 4, page: 51, kites },
-        { id: "five", team_size: 5, kites },
+        { id: "four", team_size: 4, page: 51, kites, guides: NO_GUIDES },
+        { id: "five", team_size: 5, kites, guides: NO_GUIDES },
       ],
     });
     expect(read.status === "ok" && read.variants.map((variant) => variant.kites.length)).toEqual([2, 2]);
-    expect(() => parse({ status: "ok", variants: [{ id: "a", kites: [kites[0], kites[0]] }] })).toThrow(
+    expect(() => parse({ status: "ok", variants: [{ id: "a", kites: [kites[0], kites[0]], guides: NO_GUIDES }] })).toThrow(
       /повторяется id «1»/,
     );
     expect(() =>
-      parse({ status: "ok", variants: [{ id: "a", kites }, { id: "a", kites }] }),
+      parse({ status: "ok", variants: [{ id: "a", kites, guides: NO_GUIDES }, { id: "a", kites, guides: NO_GUIDES }] }),
     ).toThrow(/повторяется id «a»/);
   });
 
@@ -192,7 +195,91 @@ describe("parseGeometry", () => {
     [{ id: "a", colour: "red" }, /незнакомое поле «colour»/],
   ])("отвергает вариант %j", (over, message) => {
     const kites = [{ id: "1", path: [start, markIn, { kind: "line", to: [0, 50] }, markOut] }];
-    expect(() => parse({ status: "ok", variants: [{ kites, ...over }] })).toThrow(message);
+    expect(() => parse({ status: "ok", variants: [{ kites, guides: NO_GUIDES, ...over }] })).toThrow(message);
+  });
+
+  // Курс носа в остановке не выводится из пути: его называет книга либо
+  // данные прямо говорят, что она его не показывает.
+  it("у остановки читает курс носа с метки книги либо запись, что метки нет", () => {
+    const missing = { status: "not_found", reason: "На схеме (стр. 112) метки нет." };
+    const read = parsePath([
+      start,
+      markIn,
+      { kind: "line", to: [0, 50] },
+      { kind: "mark", mark: "stall", style: "snap", nose: 270 },
+      { kind: "mark", mark: "stall", nose: missing },
+      markOut,
+    ]);
+    const marks = read.status === "ok" ? read.variants[0].kites[0].path.filter((step) => step.kind === "mark") : [];
+    expect(marks.slice(1, 3)).toEqual([
+      { kind: "mark", mark: "stall", style: "snap", nose: 270 },
+      { kind: "mark", mark: "stall", nose: missing },
+    ]);
+  });
+
+  it.each([
+    [{ kind: "mark", mark: "stall" }, /nose: у остановки обязателен курс носа/],
+    [{ kind: "mark", mark: "stall", nose: 360 }, /nose: курс носа — от 0 до 360/],
+    [{ kind: "mark", mark: "stall", nose: -90 }, /nose: курс носа — от 0 до 360/],
+    [{ kind: "mark", mark: "stall", nose: "forward" }, /nose: ожидается объект/],
+    [{ kind: "mark", mark: "stall", nose: { status: "not_found" } }, /nose\.reason: должно быть непустой строкой/],
+    [{ kind: "mark", mark: "stall", nose: { status: "ok", reason: "есть" } }, /nose\.status: ожидается одно из: not_found/],
+    [{ kind: "mark", mark: "stall", nose: { status: "not_found", reason: "нет", page: 1 } }, /незнакомое поле «page»/],
+    [{ kind: "mark", mark: "launch", nose: 0 }, /nose: курс носа записывается только у остановки/],
+    [{ kind: "mark", mark: "half-axel", nose: 0 }, /nose: курс носа записывается только у остановки/],
+  ])("отвергает курс носа в отметке %j", (step, message) => {
+    expect(() => parsePath([start, markIn, { kind: "line", to: [0, 40] }, step, markOut])).toThrow(message);
+  });
+
+  describe("вспомогательные линии", () => {
+    const kites = [{ id: "1", path: [start, markIn, { kind: "line", to: [0, 50] }, markOut] }];
+    const withGuides = (guides: unknown, notes: string[] = ["линия снята замером"]) =>
+      parse({ status: "ok", variants: [{ id: "a", kites, ...(guides === undefined ? {} : { guides }) }], notes });
+
+    it("читает линии и подставляет basis «grid»", () => {
+      const read = withGuides({
+        status: "ok",
+        lines: [
+          { from: [-20, 10], to: [40, 87.5], basis: "measured" },
+          { from: [0, 0], to: [0, 100] },
+        ],
+      });
+      expect(read.status === "ok" && read.variants[0].guides).toEqual({
+        status: "ok",
+        lines: [
+          { from: [-20, 10], to: [40, 87.5], basis: "measured" },
+          { from: [0, 0], to: [0, 100], basis: "grid" },
+        ],
+      });
+    });
+
+    it("читает запись о том, что книга линий не рисует", () => {
+      const read = withGuides({ status: "not_found", reason: "На схеме (стр. 16) их нет." });
+      expect(read.status === "ok" && read.variants[0].guides).toEqual({ status: "not_found", reason: "На схеме (стр. 16) их нет." });
+    });
+
+    it.each([
+      [undefined, /guides: ожидается объект: линии либо запись «not_found» с причиной/],
+      [[], /guides: ожидается объект/],
+      [{ status: "not_found" }, /guides\.reason: должно быть непустой строкой/],
+      [{ status: "none", reason: "нет" }, /guides\.status: ожидается одно из: not_found/],
+      [{ status: "ok" }, /guides\.lines: ожидается непустой список/],
+      [{ status: "ok", lines: [] }, /guides\.lines: ожидается непустой список/],
+      [{ status: "ok", lines: [{ from: [0, 0] }] }, /lines\[0\]\.to: ожидается точка/],
+      [{ status: "ok", lines: [{ from: [0, 0], to: [0, 101] }] }, /вне сетки окна/],
+      [{ status: "ok", lines: [{ from: [5, 5], to: [5, 5] }] }, /линия нулевой длины/],
+      [{ status: "ok", lines: [{ from: [0, 0], to: [5, 5], basis: "guess" }] }, /basis: ожидается одно из/],
+      [{ status: "ok", lines: [{ from: [0, 0], to: [5, 5], colour: "grey" }] }, /незнакомое поле «colour»/],
+      [{ status: "ok", lines: [{ from: [0, 0], to: [5, 5] }], reason: "есть" }, /незнакомое поле «reason»/],
+    ])("отвергает %j", (guides, message) => {
+      expect(() => withGuides(guides)).toThrow(message);
+    });
+
+    it("линия, снятая замером, требует заметки, как и шаг", () => {
+      const measured = { status: "ok", lines: [{ from: [0, 0], to: [5, 5], basis: "measured" }] };
+      expect(() => withGuides(measured, [])).toThrow(/нужна заметка/);
+      expect(() => withGuides({ status: "ok", lines: [{ from: [0, 0], to: [5, 5] }] }, [])).not.toThrow();
+    });
   });
 
   it.each([
