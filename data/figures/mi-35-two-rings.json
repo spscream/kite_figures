@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 35,
+  "name": "Two Rings",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 97, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Подъём по центру окна до высоты 70, остановка и непрерывный спуск задним ходом, в который вписаны два малых круга: с высоты 50 — слева от вертикали по часовой стрелке, с высоты 30 — справа против часовой.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 70]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 50], "nose": "backward"},
+              {"kind": "arc", "to": [0, 50], "center": [-5, 50], "direction": "cw", "sweep": 360, "nose": "backward"},
+              {"kind": "line", "to": [0, 30], "basis": "text", "nose": "backward"},
+              {"kind": "arc", "to": [0, 30], "center": [5, 30], "direction": "ccw", "sweep": 360, "nose": "backward"},
+              {"kind": "line", "to": [0, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Высоты, с которых начинаются круги, названы в пояснении; на высоте 30 подписанной линии сетки нет. Радиус 5 — по подписанным линиям 45 и 55, 25 и 35 и линиям x = ±10, которых круги касаются. Направление кругов — по стрелкам на схеме.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна."
+    ]
+  }
+}

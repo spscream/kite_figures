@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 17,
+  "name": "Reverse Octagon",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 80, "read_on": "2026-10-07", "page_version": "2006-07-20"},
+  "summary": "Горизонтальный проход вправо на высоте 10, из середины которого кайт уходит на восьмиугольник против часовой стрелки и возвращается на ту же линию. Вперёд кайт не летит ни на одном отрезке.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-40, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [15, 10], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [35, 30], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [35, 60], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [15, 80], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [-15, 80], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [-35, 60], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [-35, 30], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [-15, 10], "basis": "measured", "nose": "backward"},
+              {"kind": "line", "to": [40, 10], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Вершины восьмиугольника не стоят на подписанных линиях по горизонтали: x = ±15 и x = ±35 сняты замером по схеме, точность — около половины единицы. Высоты 10, 30, 60 и 80 подписаны.",
+      "Пояснение требует равных сторон, а на схеме они не равны: горизонтальные и вертикальные — 30 единиц, наклонные — около 28,3. В данных — то, что нарисовано.",
+      "Нижняя сторона восьмиугольника пролетается дважды — при входе и при выходе; порядок взят по стрелкам на схеме."
+    ]
+  }
+}

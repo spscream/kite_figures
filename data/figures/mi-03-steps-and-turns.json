@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 3,
+  "name": "Steps and Turns",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 72, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Лестница из трёх ступеней сверху слева вниз направо: шесть углов, и в каждом — четверть оборота по часовой стрелке вокруг центра кайта, поэтому два отрезка вперёд сменяются двумя отрезками назад.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-40, 70]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [-20, 70]},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-20, 50]},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 50], "nose": "backward"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 30], "nose": "backward"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [20, 30]},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [20, 10]},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [40, 10], "nose": "backward"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта."
+    ]
+  }
+}

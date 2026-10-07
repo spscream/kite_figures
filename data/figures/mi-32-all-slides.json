@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 32,
+  "name": "All Slides",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 94, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Пять равных отрезков по 30 единиц, и все — слайды: вверх, влево, вниз, влево и вверх. В четырёх углах кайт поворачивается на 90°: в первых трёх против часовой стрелки, в четвёртом — по часовой.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [30, 10]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [30, 40], "nose": 90},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [0, 40], "nose": 0},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [0, 10], "nose": 270},
+              {"kind": "rotate", "degrees": 90, "direction": "ccw"},
+              {"kind": "line", "to": [-30, 10], "nose": 180},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [-30, 40], "nose": 270},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта."
+    ]
+  }
+}

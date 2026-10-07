@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 25,
+  "name": "The Arch",
+  "level": "Intermediate",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 87, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Арка от земли до земли без остановок: вертикаль вверх до высоты 50, полукруг через высоту 80 и вертикаль вниз до посадки.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-30, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-30, 50]},
+              {"kind": "arc", "to": [30, 50], "center": [0, 50], "direction": "cw", "sweep": 180},
+              {"kind": "line", "to": [30, 0]},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна. Метка Out стоит носом вниз; вид посадки страница не называет."
+    ]
+  }
+}

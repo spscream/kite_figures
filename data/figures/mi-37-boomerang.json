@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 37,
+  "name": "Boomerang",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 99, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Проход вправо на высоте 20 до центра окна, оттуда задним ходом по полукругу, выгнутому влево, до высоты 70 и выход полётом вперёд влево, над точкой входа.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-50, 20]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "line", "to": [0, 20]},
+              {"kind": "arc", "to": [0, 70], "center": [0, 45], "direction": "cw", "sweep": 180, "nose": "backward"},
+              {"kind": "line", "to": [-50, 70]},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": []
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 30,
+  "name": "Vertical Pivots",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 92, "read_on": "2026-10-07", "page_version": "2017-04-01"},
+  "summary": "Подъём по центру окна до высоты 90 и спуск по той же вертикали с остановкой и поворотом на 90° по часовой стрелке через каждые 20 единиц — на высотах 70, 50, 30 и 10 — до посадки в точке взлёта.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 90]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 70], "nose": "backward"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 50], "nose": 90},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 30]},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 10], "nose": 270},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "rotate", "degrees": 90, "direction": "cw"},
+              {"kind": "line", "to": [0, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна."
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 8,
+  "name": "Camel Back",
+  "level": "Master",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 75, "read_on": "2026-10-07", "page_version": "2005-07-07"},
+  "summary": "Два горба от земли до земли, целиком задним ходом: вертикаль вверх, полукруг, встречный полукруг вниз до высоты 10, ещё один полукруг и вертикаль вниз.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [-60, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [-60, 30], "nose": "backward"},
+              {"kind": "arc", "to": [-20, 30], "center": [-40, 30], "direction": "cw", "sweep": 180, "nose": "backward"},
+              {"kind": "arc", "to": [20, 30], "center": [0, 30], "direction": "ccw", "sweep": 180, "nose": "backward"},
+              {"kind": "arc", "to": [60, 30], "center": [40, 30], "direction": "cw", "sweep": 180, "nose": "backward"},
+              {"kind": "line", "to": [60, 0], "nose": "backward"},
+              {"kind": "mark", "mark": "landing"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Курс носа на каждом шаге снят по меткам кайта на схеме: прямая кромка метки — передняя кромка кайта. Метка In стоит носом вниз, метка Out — носом вверх. Пояснения на странице нет.",
+      "Взлёт и посадка записаны на уровне земли (y = 0): метки кайта на схеме стоят на нижней рамке окна."
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "discipline": "multi-line-individual",
+  "number": 20,
+  "name": "Lift",
+  "level": "Experienced",
+  "status": "current",
+  "source": {"document": "iskcb", "version": "3.0", "page": 82, "read_on": "2026-10-07", "page_version": "2006-06-30"},
+  "summary": "Вертикаль по центру окна носом вниз: с земли задним ходом до высоты 90, остановка, спуск вперёд до высоты 5 и зависание.",
+  "geometry": {
+    "status": "ok",
+    "variants": [
+      {
+        "id": "main",
+        "kites": [
+          {
+            "id": "1",
+            "path": [
+              {"kind": "start", "at": [0, 0]},
+              {"kind": "mark", "mark": "in"},
+              {"kind": "mark", "mark": "launch"},
+              {"kind": "line", "to": [0, 90], "nose": "backward"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "line", "to": [0, 5], "basis": "text"},
+              {"kind": "mark", "mark": "stall"},
+              {"kind": "mark", "mark": "out"}
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Взлёт записан на уровне земли (y = 0): метка In на схеме стоит на нижней рамке окна. Высота выхода 5 названа в пояснении, линии сетки на ней нет."
+    ]
+  }
+}
