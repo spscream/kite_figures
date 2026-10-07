@@ -49,18 +49,20 @@ export default async function FigurePage({ params }: Props) {
         </a>
         .
       </p>
-      <nav className="neighbours" aria-label="Соседние фигуры раздела">
-        {previous && (
-          <Link className="previous" href={figurePath(previous.slug)} rel="prev">
-            {`← ${figureTitle(previous)}`}
-          </Link>
-        )}
-        {next && (
-          <Link className="next" href={figurePath(next.slug)} rel="next">
-            {`${figureTitle(next)} →`}
-          </Link>
-        )}
-      </nav>
+      {(previous || next) && (
+        <nav className="neighbours" aria-label="Соседние фигуры раздела">
+          {previous && (
+            <Link className="previous" href={figurePath(previous.slug)} rel="prev">
+              {`← ${figureTitle(previous)}`}
+            </Link>
+          )}
+          {next && (
+            <Link className="next" href={figurePath(next.slug)} rel="next">
+              {`${figureTitle(next)} →`}
+            </Link>
+          )}
+        </nav>
+      )}
     </article>
   );
 }

@@ -1,9 +1,12 @@
 import { DISCIPLINES, type Discipline, type Figure, listFigures } from "./figures";
 
+export { figurePath, sectionPath } from "./paths";
+
 // Разделы каталога. Они выводятся из самих фигур: раздел есть, пока в
 // `data/figures/` лежит хотя бы одна его фигура, и отдельного списка разделов
 // для страниц нигде нет. Новая дисциплина в данных даёт и карточку на главной,
-// и свою страницу без правок здесь.
+// и свою страницу без правок в страницах; завести её в формате — значит
+// назвать её префикс в `DISCIPLINES`, без этого файл с ней не пройдёт проверку.
 export type Section = {
   discipline: Discipline;
   // Префикс, которым книга нумерует фигуры раздела («DI»).
@@ -24,14 +27,6 @@ export function sectionTitle(discipline: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ")
     .replace(/^(\S+) Line\b/, "$1-line");
-}
-
-export function sectionPath(discipline: string): string {
-  return `/disciplines/${discipline}/`;
-}
-
-export function figurePath(slug: string): string {
-  return `/figures/${slug}/`;
 }
 
 // Разделы в том порядке, в каком идут фигуры: `listFigures` отдаёт их по

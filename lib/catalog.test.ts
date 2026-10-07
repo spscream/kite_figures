@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   countFigures,
   countObsolete,
+  figurePath,
   getSection,
   listSections,
   neighbours,
@@ -55,7 +56,7 @@ describe("listSections", () => {
       "dual-line-individual",
       "multi-line-team",
     ]);
-    expect(sections[0].prefix).toBe("DI");
+    expect(sections.map((section) => section.prefix)).toEqual(["DI", "MT"]);
     expect(sections[0].title).toBe("Dual-line Individual");
     expect(sections[0].figures.map((item) => item.number)).toEqual([2, 5, 7]);
   });
@@ -96,16 +97,25 @@ describe("neighbours", () => {
 
 describe("счёт фигур словами", () => {
   it("склоняет «фигура» по числу", () => {
-    expect([1, 2, 5, 11, 13, 21, 22, 30, 111].map(countFigures)).toEqual([
+    expect([1, 2, 3, 4, 5, 11, 12, 13, 14, 15, 21, 22, 24, 25, 30, 111, 112, 114].map(countFigures)).toEqual([
       "1 фигура",
       "2 фигуры",
+      "3 фигуры",
+      "4 фигуры",
       "5 фигур",
       "11 фигур",
+      "12 фигур",
       "13 фигур",
+      "14 фигур",
+      "15 фигур",
       "21 фигура",
       "22 фигуры",
+      "24 фигуры",
+      "25 фигур",
       "30 фигур",
       "111 фигур",
+      "112 фигур",
+      "114 фигур",
     ]);
   });
 
@@ -152,5 +162,20 @@ describe("разделы каталога в data/figures/", () => {
   it("у разделов разные адреса", () => {
     const paths = sections.map((section) => sectionPath(section.discipline));
     expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  it("префикс раздела — тот, которым обозначены его фигуры", () => {
+    for (const section of sections) {
+      for (const item of section.figures) {
+        expect([item.slug, item.code.split(" ")[0]]).toEqual([item.slug, section.prefix]);
+      }
+    }
+  });
+});
+
+describe("адреса страниц", () => {
+  it("раздел живёт в /disciplines/, фигура — в /figures/", () => {
+    expect(sectionPath("dual-line-team")).toBe("/disciplines/dual-line-team/");
+    expect(figurePath("di-02-circle")).toBe("/figures/di-02-circle/");
   });
 });
