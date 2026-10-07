@@ -160,10 +160,10 @@ export function noseAt(from: Point, step: Move, t: number): Point {
 
 // Значок вида `name` с центром в точке SVG; `nose` — куда смотрит нос кайта,
 // в координатах окна. Этой же функцией рисуется легенда.
-export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1]): string {
+export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1], scale = 1): string {
   // Точка значка кайта: `ahead` — вдоль носа, `aside` — поперёк.
   const p = (ahead: number, aside: number) =>
-    `${fmt(x + nose[0] * ahead + nose[1] * aside)} ${fmt(y - nose[1] * ahead + nose[0] * aside)}`;
+    `${fmt(x + (nose[0] * ahead + nose[1] * aside) * scale)} ${fmt(y + (nose[0] * aside - nose[1] * ahead) * scale)}`;
   const kite = `M${p(3.6, 0)}L${p(-2.4, 3.3)}L${p(-0.9, 0)}L${p(-2.4, -3.3)}Z`;
   const ring = (r: number) =>
     `M${fmt(x - r)} ${fmt(y)}a${r} ${r} 0 1 0 ${fmt(2 * r)} 0a${r} ${r} 0 1 0 ${fmt(-2 * r)} 0`;
@@ -192,17 +192,29 @@ export function shape(name: Shape, x: number, y: number, nose: Point = [0, 1]): 
 export function drawVariant(variant: Variant): Drawing {
   const solo = variant.kites.length === 1;
   const shapes: Partial<Record<Shape, string>> = {};
-  const put = (name: Shape, x: number, y: number, nose?: Point) => {
-    shapes[name] = (shapes[name] ?? "") + shape(name, x, y, nose);
+  const put = (name: Shape, x: number, y: number, nose?: Point, scale?: number) => {
+    shapes[name] = (shapes[name] ?? "") + shape(name, x, y, nose, scale);
   };
   // Точки, занятые значками на самой линии, и шаги, которым нужна стрелка:
   // стрелки расставляются после значков.
   const busy: Point[] = [];
   const flown: { from: Point; step: Move }[] = [];
-  const event = (name: Shape, point: Point, nose?: Point) => {
-    put(name, sx(point), sy(point), nose);
+  const event = (name: Shape, point: Point) => {
+    put(name, sx(point), sy(point));
     busy.push(point);
   };
+  // Значки кайта и значки происхождения координат рисуются после обхода всех
+  // кайтов: их вид зависит от того, что ещё стоит в той же точке.
+  const glyphs: { name: "in" | "out" | "stall"; point: Point; nose: Point }[] = [];
+  const glyph = (name: "in" | "out" | "stall", point: Point, nose: Point) => {
+    glyphs.push({ name, point, nose });
+    busy.push(point);
+    if (name === "stall") {
+      // Черта перед носом тоже занята.
+      busy.push([point[0] + nose[0] * 5.2, point[1] + nose[1] * 5.2]);
+    }
+  };
+  const marks: { basis: "derived" | "measured"; point: Point }[] = [];
 
   // Значения сетки, через которые проходит фигура: концы шагов, стоящие на
   // линиях сетки, и крайние точки дуг, если они пришлись на круглое число.
@@ -215,7 +227,9 @@ export function drawVariant(variant: Variant): Drawing {
     }
   };
   const extremes = (from: Point, step: Move) => {
-    if (step.kind !== "arc") {
+    // Дуга, снятая замером, проходит между подписанными линиями: её край
+    // линию сетки не даёт, как не даёт и её конец.
+    if (step.kind !== "arc" || step.basis === "measured") {
       return;
     }
     const [cx, cy] = step.center;
@@ -256,7 +270,7 @@ export function drawVariant(variant: Variant): Drawing {
 
   const offGrid = (basis: string, point: Point) => {
     if (basis === "derived" || basis === "measured") {
-      put(basis, sx(point), sy(point));
+      marks.push({ basis, point });
     }
   };
 
@@ -287,24 +301,31 @@ export function drawVariant(variant: Variant): Drawing {
           onGrid(step.basis, here);
           break;
         }
-        case "rotate":
+        case "rotate": {
           event("turn", here);
+          // Поворот на месте разворачивает нос: по часовой курс растёт.
+          const angle = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
+          nose = [
+            nose[0] * Math.cos(angle) + nose[1] * Math.sin(angle),
+            nose[1] * Math.cos(angle) - nose[0] * Math.sin(angle),
+          ];
           break;
+        }
         case "mark":
           if (step.mark === "in") {
             // Подпись входа — позади кайта, откуда он пришёл бы: туда линия
             // фигуры не идёт.
             const next = nextMove(kite, index);
             const ahead = next ? along(here, next, 0).heading : heading;
-            event("in", here, next ? noseAt(here, next, 0) : nose);
+            glyph("in", here, next ? noseAt(here, next, 0) : nose);
             wanted.push({ point: here, toward: [-ahead[0], -ahead[1]], text: solo ? "In" : `#${kite.id}`, tone: tone("in") });
           } else if (step.mark === "out") {
-            event("out", here, nose);
+            glyph("out", here, nose);
             wanted.push({ point: here, toward: heading, text: solo ? "Out" : `#${kite.id}`, tone: tone("out") });
           } else if (step.mark === "launch" || step.mark === "landing") {
             put(step.mark, sx(here), below(here));
           } else if (step.mark === "stall") {
-            event("stall", here, nose);
+            glyph("stall", here, nose);
           } else {
             event("axel", here);
           }
@@ -313,6 +334,28 @@ export function drawVariant(variant: Variant): Drawing {
     });
     tracks.push({ id: kite.id, d });
   });
+
+  // Выход в точке, где уже стоит вход или остановка, рисуется крупнее и
+  // обводит их: иначе один значок закрыл бы другой.
+  for (const { name, point, nose } of glyphs) {
+    const shared = name === "out" && glyphs.some((other) => other.name !== "out" && gap(other.point, point) < 1);
+    put(name, sx(point), sy(point), nose, shared ? 1.6 : 1);
+  }
+  // Значок происхождения координаты в точке со значком кайта встаёт за его
+  // хвостом: поверх он стёр бы разницу между залитым входом и пустым выходом.
+  const marked = new Set<string>();
+  for (const { basis, point } of marks) {
+    const under = glyphs.find((other) => gap(other.point, point) < 0.5);
+    // У земли за хвостом места нет — там числа сетки; значок встаёт сбоку.
+    const [bx, by] = under && point[1] - under.nose[1] * 5.2 < 2 ? [under.nose[1], -under.nose[0]] : (under?.nose ?? [0, 0]);
+    const spot: Point = [point[0] - bx * 5.2, point[1] - by * 5.2];
+    const key = `${basis} ${at(spot)}`;
+    if (!marked.has(key)) {
+      marked.add(key);
+      put(basis, sx(spot), sy(spot));
+      busy.push(spot);
+    }
+  }
 
   const traces = flown.map(({ from, step }) => {
     const count = Math.max(2, Math.ceil(length(from, step) / 3));

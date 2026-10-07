@@ -18,11 +18,15 @@ const SHAPE_TEXT: Record<Shape, string> = {
   measured: "координата снята замером по схеме, приблизительно (в шагах — □)",
 };
 
-// Числа сетки: сперва оси, потом остальные по порядку; число, которому не
+// Слои схемы снизу вверх: пустой выход лежит под залитым входом и остановкой.
+const LAYERS: Shape[] = ["out", "in", "stall", "turn", "axel", "launch", "landing", "derived", "measured"];
+
+// Числа сетки: сперва оси, потом остальные; число, которому не
 // хватило места рядом с уже поставленным, пропускается — линия остаётся.
 function ticks(mid: number, values: number[], room: number): number[] {
   const placed = [mid];
-  for (const value of values) {
+  // От оси наружу: зеркальная сетка получает зеркальные числа.
+  for (const value of [...values].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))) {
     if (placed.every((other) => Math.abs(other - value) >= room)) {
       placed.push(value);
     }
@@ -88,12 +92,12 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
       {lines && <path className="d-grid" d={lines} />}
       <path className="d-mid" d="M0 0v100M-100 50h200" />
       <path className="d-frame" d="M-100 0h200v100h-200z" />
-      {ticks(0, xs, 8).map((x) => (
+      {ticks(0, xs, 9).map((x) => (
         <text key={`x${x}`} className={x === 0 ? "d-tick d-mid" : "d-tick"} x={x} y={107.5}>
           {Math.abs(x)}
         </text>
       ))}
-      {ticks(50, ys, 5.5).map((y) => (
+      {ticks(50, ys, 6).map((y) => (
         <text key={`y${y}`} className={y === 50 ? "d-tick d-tick-y d-mid" : "d-tick d-tick-y"} x={-102} y={100 - y + 1.6}>
           {y}
         </text>
@@ -102,7 +106,7 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
         <path key={track.id} className={trackClass(index, many)} d={track.d} />
       ))}
       {drawing.arrows && <path className="d-arrow" d={drawing.arrows} />}
-      {SHAPES.map(
+      {LAYERS.map(
         (name) => drawing.shapes[name] && <path key={name} className={`d-${name}`} d={drawing.shapes[name]} />,
       )}
       {drawing.labels.map(({ x, y, text, tone }, index) => (
@@ -185,7 +189,11 @@ export function FigureDiagrams({ title, variants, pageUrl }: Props) {
                 {index === 0 && (
                   <p className="note">
                     Окно полёта — 200 на 100 единиц, как его видит пилот; числа у рамки — высота и расстояние
-                    от середины окна. Стрелки идут в порядке полёта. Курс носа на каждом шаге, вид остановок и
+                    от середины окна. Стрелки идут в порядке полёта
+                    {variants.some((item) => item.kites.some((kite) => kite.path.some((step) => "unmarked" in step && step.unmarked)))
+                      ? "; на шагах с пометкой «" + UNMARKED_TEXT + "» порядок записан один из возможных"
+                      : ""}
+                    . Курс носа на каждом шаге, вид остановок и
                     посадок
                     {variant.kites.length > 1
                       ? ", одновременность (одинаковые метки в квадратных скобках) и порядок там, где кайты летят по одной линии и штрихи сливаются,"

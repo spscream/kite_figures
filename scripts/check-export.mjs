@@ -134,8 +134,8 @@ const LEGEND = {
   axel: "аксель или его половина",
   launch: "взлёт (значок под точкой)",
   landing: "посадка (значок под точкой)",
-  derived: "координата выведена из подписей схемы",
-  measured: "координата снята замером по схеме",
+  derived: "координата выведена из подписей схемы, а не стоит на линии сетки (в шагах — ○)",
+  measured: "координата снята замером по схеме, приблизительно (в шагах — □)",
 };
 
 // Какие значки обязаны быть на схеме варианта — по его данным.
@@ -166,7 +166,7 @@ const isMove = (step) => step.kind === "line" || step.kind === "arc";
 function checkDiagrams(slug, html, geometry, documentUrl) {
   const where = `на странице figures/${slug}/`;
   const bad = (message) => problems.push(`${where} ${message}`);
-  if (/<img|<canvas|<image|<picture|<object|<embed|url\(/.test(html)) {
+  if (/<img|<canvas|<image|<picture|<object|<embed|<iframe|<video|<use\b|type="image"|url\(|image-set\(/i.test(html)) {
     bad("есть картинка: схемы рисуются из данных, в SVG");
   }
   const blocks = html.split('<section class="variant">').slice(1);
@@ -214,9 +214,13 @@ function checkDiagrams(slug, html, geometry, documentUrl) {
     }
 
     const moves = kites.flatMap((kite) => kite.path.filter(isMove));
-    // Стрелка — замкнутый треугольник; считаются все пути стрелок схемы.
+    // Стрелка — замкнутый треугольник из трёх разных точек; считаются все
+    // пути стрелок схемы.
+    const corner = "(-?[\\d.]+ -?[\\d.]+)";
+    const triangle = new RegExp(`M${corner}L${corner}L${corner}Z`, "g");
     const arrows = [...svg.matchAll(/<path class="d-arrow" d="([^"]*)"/g)].reduce(
-      (sum, match) => sum + count(match[1], /Z/g),
+      (sum, match) =>
+        sum + [...match[1].matchAll(triangle)].filter(([, a, b, c]) => a !== b && b !== c && a !== c).length,
       0,
     );
     if (arrows !== moves.length) {
@@ -245,7 +249,9 @@ function checkDiagrams(slug, html, geometry, documentUrl) {
       if (svg.includes(`<path class="d-${name}"`) !== expected) {
         say(`значок «${name}» ${expected ? "не нарисован" : "нарисован без данных"}`);
       }
-      const told = new RegExp(`<path class="d-${name}" d="[^"]*"></path></svg>${LEGEND[name].replace(/[()]/g, "\\$&")}`);
+      // Текст легенды сверяется целиком, до конца строки.
+      const text = LEGEND[name].replace(/[()]/g, "\\$&");
+      const told = new RegExp(`<path class="d-${name}" d="[^"]+"></path></svg>${text}</li>`);
       if (told.test(block) !== expected) {
         say(`легенда ${expected ? "не объясняет" : "объясняет лишний"} значок «${name}»`);
       }

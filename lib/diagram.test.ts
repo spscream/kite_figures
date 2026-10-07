@@ -120,8 +120,9 @@ describe("drawVariant", () => {
     // Первая строка под землёй — числа сетки.
     expect(shapes.launch).toBe("M0 112.1l2.8 4.8h-5.6z");
     expect(shapes.landing).toBe("M60 116.9l2.8-4.8h-5.6z");
-    // Старт не с линии сетки отмечен так же, как конец шага.
-    expect(shapes.measured).toBe("M-1.5 98.5h3v3h-3z");
+    // Старт не с линии сетки отмечен так же, как конец шага; под значком
+    // кайта отметка не прячется, а встаёт рядом — у земли сбоку.
+    expect(shapes.measured).toBe("M-6.7 98.5h3v3h-3z");
   });
 
   it("подпись выхода у самой земли не ложится на землю и на вход", () => {
@@ -198,6 +199,53 @@ describe("drawVariant", () => {
     // Вход в правой точке круга, выход — в верхней.
     expect(nose(shapes.in!)[0]).toBeCloseTo(sign);
     expect(nose(shapes.out!)[1]).toBeCloseTo(sign);
+  });
+
+  it("поворот на месте разворачивает нос следующих значков", () => {
+    const { shapes } = drawVariant(
+      variant([
+        start,
+        markIn,
+        { kind: "line", to: [0, 20] },
+        { kind: "rotate", degrees: 90, direction: "ccw" },
+        { kind: "mark", mark: "stall" },
+        { kind: "rotate", degrees: 180, direction: "cw" },
+        markOut,
+      ]),
+    );
+    // Летел вправо; после четверти против часовой нос вверх, ещё полоборота — вниз.
+    expect(nose(shapes.stall!)[1]).toBeCloseTo(1);
+    expect(nose(shapes.out!)[1]).toBeCloseTo(-1);
+  });
+
+  it("остановка смотрит носом, а не по ходу шага", () => {
+    const { shapes } = drawVariant(
+      variant([start, markIn, { kind: "line", to: [0, 20], nose: 0 }, { kind: "mark", mark: "stall" }, markOut]),
+    );
+    expect(nose(shapes.stall!)[1]).toBeCloseTo(1);
+  });
+
+  it("выход в точке входа рисует крупнее, чтобы вход остался виден", () => {
+    const circle = { kind: "arc", to: [0, 70], center: [0, 50], direction: "ccw", sweep: 360 };
+    const { shapes } = drawVariant(variant([{ kind: "start", at: [0, 70] }, markIn, circle, markOut]));
+    const reach = (d: string) => Math.abs(Number(d.match(/^M(\S+) /)![1]));
+    // Нос влево: остриё входа в 3,6 единицы от точки, выхода — в 1,6 раза дальше.
+    expect(reach(shapes.in!)).toBeCloseTo(3.6);
+    expect(reach(shapes.out!)).toBeCloseTo(5.76);
+  });
+
+  it("отметку координаты ставит за хвостом значка кайта, а не поверх него", () => {
+    const { shapes } = drawVariant(
+      variant([{ kind: "start", at: [-50, 20], basis: "derived" }, markIn, { kind: "line", to: [0, 20] }, markOut]),
+    );
+    // Вход смотрит вправо, отметка — в 5,2 единицы левее точки.
+    expect(shapes.derived).toContain("M-56.9 80");
+  });
+
+  it("край дуги, снятой замером, линию сетки не даёт", () => {
+    const arc = { kind: "arc", to: [20, 50], center: [0, 50], direction: "cw", sweep: 180, basis: "measured" };
+    const drawing = drawVariant(variant([{ kind: "start", at: [-20, 50] }, markIn, arc, markOut]));
+    expect(drawing.grid).toEqual({ xs: [-20], ys: [] });
   });
 
   it("линии сетки проводит через точки фигуры на сетке и крайние точки дуг, без осей и краёв", () => {
