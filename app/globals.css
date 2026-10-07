@@ -168,6 +168,7 @@ h1 {
   --d-out: #c62828;
   --d-stall: #f2c200;
   --d-mid: #c62828;
+  --d-tick: #1d4ed8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -179,6 +180,7 @@ h1 {
     --d-in: #6fd98a;
     --d-out: #ff8a80;
     --d-mid: #ff8a80;
+    --d-tick: #8ab4ff;
   }
 }
 
@@ -217,7 +219,7 @@ h1 {
 }
 
 .d-tick {
-  fill: var(--muted);
+  fill: var(--d-tick);
   font-size: 5.5px;
 }
 
@@ -263,17 +265,36 @@ h1 {
   stroke-dasharray: 10 2 1.2 2 1.2 2;
 }
 
-.d-arrow,
-.d-axel,
-.d-landing {
+/* Стрелка рядом с линией: зелёная — первый проход от входа, красная —
+   последний к выходу, как на схемах книги. */
+.d-arrow {
+  fill: var(--fg);
+  stroke: var(--fg);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+
+.a-in {
+  fill: var(--d-in);
+  stroke: var(--d-in);
+}
+
+.a-out {
+  fill: var(--d-out);
+  stroke: var(--d-out);
+}
+
+.d-axel {
   fill: var(--fg);
 }
 
-/* Значок кайта: вход залит, выход пуст, у остановки черта перед носом. */
+/* Значок кайта: вход залит, выход пуст; остановка и кайт в пути залиты
+   цветом пути — жёлтым у одного кайта, цветом кайта у команды. */
 .d-in,
 .d-out,
-.d-stall {
-  stroke-width: 0.8;
+.d-stall,
+.d-pass {
+  stroke-width: 0.7;
   stroke-linejoin: round;
 }
 
@@ -287,16 +308,82 @@ h1 {
   stroke: var(--d-out);
 }
 
-.d-stall {
+.d-stall,
+.d-pass {
   fill: var(--d-stall);
   stroke: var(--fg);
 }
 
-.d-turn,
-.d-launch {
+.g-k1 {
+  fill: var(--k1);
+}
+
+.g-k2 {
+  fill: var(--k2);
+}
+
+.g-k3 {
+  fill: var(--k3);
+}
+
+.g-k4 {
+  fill: var(--k4);
+}
+
+.g-k5 {
+  fill: var(--k5);
+}
+
+.d-in.g-k1,
+.d-out.g-k1 {
+  stroke: var(--k1);
+}
+
+.d-in.g-k2,
+.d-out.g-k2 {
+  stroke: var(--k2);
+}
+
+.d-in.g-k3,
+.d-out.g-k3 {
+  stroke: var(--k3);
+}
+
+.d-in.g-k4,
+.d-out.g-k4 {
+  stroke: var(--k4);
+}
+
+.d-in.g-k5,
+.d-out.g-k5 {
+  stroke: var(--k5);
+}
+
+.d-svg .d-out,
+.d-icon .d-out {
+  fill: var(--bg);
+}
+
+/* Остановка от кайта в пути отличается обводкой: у команды заливка у обоих
+   одна — цвет кайта, а слово «Stop» стоит не у каждого. */
+.d-stall {
+  stroke-width: 1.3;
+}
+
+.d-turn {
   fill: none;
   stroke: var(--fg);
-  stroke-width: 1;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+}
+
+.d-note {
+  fill: var(--fg);
+  font-size: 4.6px;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
 }
 
 .d-derived,
@@ -432,5 +519,16 @@ h1 {
     --d-out: #000000;
     --d-stall: #bbbbbb;
     --d-mid: #444444;
+    --d-tick: #444444;
+    --k5: #000000;
+  }
+
+  /* В печати цвет кайта — чёрный у всех; кайт в пути и остановка остаются
+     серыми, иначе они сольются со входом. */
+  .d-svg .d-pass,
+  .d-svg .d-stall,
+  .d-icon .d-pass,
+  .d-icon .d-stall {
+    fill: var(--d-stall);
   }
 }

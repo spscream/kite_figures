@@ -1,4 +1,4 @@
-import { type Drawing, drawVariant, shape, type Shape, SHAPES } from "@/lib/diagram";
+import { type Drawing, drawVariant, KITE_SHAPES, shape, type Shape, SHAPES, wordOf, WORDS } from "@/lib/diagram";
 import type { Variant } from "@/lib/geometry";
 import { describeKite, lineText, UNMARKED_TEXT } from "@/lib/steps";
 
@@ -7,19 +7,24 @@ import { describeKite, lineText, UNMARKED_TEXT } from "@/lib/steps";
 // `lib/diagram.ts`, здесь только разметка. Оформление — классы `d-*` в `app/globals.css`.
 
 const SHAPE_TEXT: Record<Shape, string> = {
-  in: "вход (In), нос по курсу",
+  in: "вход (In): кайт носом по курсу, координата — по носу",
   out: "выход (Out)",
-  stall: "остановка",
-  turn: "поворот на месте",
+  stall: "кайт в точке остановки",
+  pass: "кайт в пути: куда смотрит нос",
+  turn: "поворот на месте: сторона и угол",
   axel: "аксель или его половина",
-  launch: "взлёт (значок под точкой)",
-  landing: "посадка (значок под точкой)",
   derived: "координата выведена из подписей схемы, а не стоит на линии сетки (в шагах — ○)",
   measured: "координата снята замером по схеме, приблизительно (в шагах — □)",
 };
 
+// У четырёхстропного кайта значок в пути показывает только нос, у
+// двухстропного — ещё и направление: он летит носом вперёд.
+const PASS_TEXT_DELTA = "кайт в пути: летит туда, куда смотрит нос, если рядом нет стрелки";
+
 // Слои схемы снизу вверх: пустой выход лежит под залитым входом и остановкой.
-const LAYERS: Shape[] = ["out", "in", "stall", "turn", "axel", "launch", "landing", "derived", "measured"];
+const LAYERS: Shape[] = ["out", "pass", "in", "stall", "turn", "axel", "derived", "measured"];
+
+const isKite = (name: Shape) => (KITE_SHAPES as readonly string[]).includes(name);
 
 // Числа сетки: сперва оси, потом остальные; число, которому не
 // хватило места рядом с уже поставленным, пропускается — линия остаётся.
@@ -51,6 +56,10 @@ function Icon({ children }: { children: React.ReactNode }) {
 // лист с одним составом команды читается и в печати, без соседних.
 function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; rev: boolean }) {
   const used = SHAPES.filter((name) => drawing.shapes[name]);
+  // Слова подписей схемы — как в книге, по-английски; легенда их переводит.
+  const words = [...new Set(drawing.labels.filter((label) => label.kind === "note").map((label) => wordOf(label.text)))].filter(
+    (word) => word in WORDS,
+  );
   return (
     <ul className="d-legend">
       {kites.length > 1 &&
@@ -62,20 +71,31 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
             {`кайт #${id}`}
           </li>
         ))}
-      {drawing.arrows && (
-        <li>
-          <Icon>
-            <path className="d-arrow" d="M5 0L-3 4V-4Z" />
-          </Icon>
-          направление движения
-        </li>
-      )}
       {used.map((name) => (
         <li key={name}>
           <Icon>
-            <path className={`d-${name}`} d={shape(name, 0, 0, undefined, 1, rev)} />
+            <path
+              className={isKite(name) && kites.length > 1 ? `d-${name} g-k1` : `d-${name}`}
+              d={shape(name, 0, isKite(name) ? (rev ? -1.7 : -3) : name === "turn" ? 1.5 : 0, undefined, 1, rev)}
+            />
           </Icon>
-          {SHAPE_TEXT[name]}
+          {name === "pass" && !rev ? PASS_TEXT_DELTA : SHAPE_TEXT[name]}
+        </li>
+      ))}
+      {drawing.arrows.length > 0 && (
+        <li>
+          <Icon>
+            <path className="d-arrow" d="M-5 0L5 0M5 0L2.4 1.1L2.4 -1.1Z" />
+          </Icon>
+          {drawing.arrows.some(({ tone }) => tone !== "mid")
+            ? "направление движения (стрелка идёт рядом с линией; зелёная — от входа, красная — к выходу)"
+            : "направление движения (стрелка идёт рядом с линией)"}
+        </li>
+      )}
+      {words.map((word) => (
+        <li key={word} className="d-word">
+          <b>{word}</b>
+          {` — ${WORDS[word]}`}
         </li>
       ))}
     </ul>
@@ -105,15 +125,26 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
       {drawing.tracks.map((track, index) => (
         <path key={track.id} className={trackClass(index, many)} d={track.d} />
       ))}
-      {drawing.arrows && <path className="d-arrow" d={drawing.arrows} />}
-      {LAYERS.map(
-        (name) => drawing.shapes[name] && <path key={name} className={`d-${name}`} d={drawing.shapes[name]} />,
+      {LAYERS.flatMap((name) =>
+        (drawing.shapes[name] ?? []).map(({ tone, d }) => (
+          <path key={`${name}${tone}`} className={tone ? `d-${name} g-${tone}` : `d-${name}`} d={d} />
+        )),
       )}
-      {drawing.labels.map(({ x, y, text, tone }, index) => (
-        <text key={index} className={`d-label ${tone}`} x={x} y={y + 2}>
-          {text}
-        </text>
+      {/* Стрелки — поверх значков: в тесном месте наконечник не должен уйти под кайт. */}
+      {drawing.arrows.map(({ tone, d }) => (
+        <path key={tone} className={`d-arrow a-${tone}`} d={d} />
       ))}
+      {drawing.labels.map(({ x, y, text, tone, kind }, index) =>
+        kind === "name" ? (
+          <text key={index} className={`d-label ${tone}`} x={x} y={y + 2}>
+            {text}
+          </text>
+        ) : (
+          <text key={index} className="d-note" x={x} y={y + 1.5}>
+            {text}
+          </text>
+        ),
+      )}
     </svg>
   );
 }
@@ -191,12 +222,12 @@ export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
                 {index === 0 && (
                   <p className="note">
                     Окно полёта — 200 на 100 единиц, как его видит пилот; числа у рамки — высота и расстояние
-                    от середины окна. Стрелки идут в порядке полёта
+                    от середины окна. Обозначения — как на схемах книги: значок кайта стоит носом в точке и смотрит туда же,
+                    куда кайт{multiline ? "; тонкая стрелка рядом с линией показывает, куда он летит" : ", и летит он носом вперёд — кроме шагов, у которых рядом с линией стоит стрелка"}
                     {variants.some((item) => item.kites.some((kite) => kite.path.some((step) => "unmarked" in step && step.unmarked)))
-                      ? "; на шагах с пометкой «" + UNMARKED_TEXT + "» порядок записан один из возможных"
+                      ? ". На шагах с пометкой «" + UNMARKED_TEXT + "» знака направления нет: книга его не показывает"
                       : ""}
-                    . Курс носа на каждом шаге, вид остановок и
-                    посадок
+                    . Курс носа на каждом шаге, вид остановок и посадок
                     {variant.kites.length > 1
                       ? ", одновременность (одинаковые метки в квадратных скобках) и порядок там, где кайты летят по одной линии и штрихи сливаются,"
                       : ""}{" "}
