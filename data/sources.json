@@ -12,6 +12,19 @@
       "bytes": 2934736,
       "sha256": "0753c538fbbbf7a5bc15c2529a88d4969d1aee3b460b049ee6d0bdf3754c711e",
       "checked_on": "2026-10-07"
+    },
+    {
+      "id": "iskcb",
+      "version": "2.2.1",
+      "title": "International Sport Kite Compulsories Book",
+      "dated": "2011-12-05",
+      "publisher": "International Rule Book Committee (IRBC)",
+      "url": "http://www.worldsportkite.com/wp-content/uploads/2012/04/ISK-Compulsories-Book-v2.2.1.pdf",
+      "landing": "https://web.archive.org/web/20120908040336/http://www.worldsportkite.com/irbc-rules/",
+      "pages": 108,
+      "bytes": 1638773,
+      "sha256": "a9ff65bf3204c8525592619231382a0bcb9f6e7542a8c97f9d99d1eb2cffb731",
+      "checked_on": "2026-10-08"
     }
   ]
 }
