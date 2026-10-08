@@ -50,6 +50,7 @@ function figure(over: Record<string, unknown> = {}): Record<string, unknown> {
               ],
             },
           ],
+          grid: { x: [0], y: [50] },
           guides: { status: "not_found", reason: "на схеме их нет" },
         },
       ],

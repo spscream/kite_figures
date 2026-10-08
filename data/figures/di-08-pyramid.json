@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-40, 0, 40], "y": [10, 50, 80]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -18,7 +20,7 @@
               {"kind": "start", "at": [-40, 80]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [0, 80]},
-              {"kind": "line", "to": [40, 10]},
+              {"kind": "line", "to": [40, 10], "kites": 1},
               {"kind": "line", "to": [-40, 10]},
               {"kind": "line", "to": [0, 80]},
               {"kind": "line", "to": [40, 80]},

@@ -11,17 +11,19 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -40, -30, 0, 30, 40], "y": [10, 20, 50, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
             "path": [
               {"kind": "start", "at": [-40, 90]},
               {"kind": "mark", "mark": "in"},
-              {"kind": "line", "to": [0, 50]},
-              {"kind": "line", "to": [30, 80]},
-              {"kind": "arc", "to": [-30, 20], "center": [0, 50], "direction": "ccw", "sweep": 180},
-              {"kind": "line", "to": [0, 50]},
-              {"kind": "line", "to": [40, 10]},
+              {"kind": "line", "to": [0, 50], "kites": 1},
+              {"kind": "line", "to": [30, 80], "kites": 1},
+              {"kind": "arc", "to": [-30, 20], "center": [0, 50], "direction": "ccw", "sweep": 180, "kites": 2},
+              {"kind": "line", "to": [0, 50], "kites": 1},
+              {"kind": "line", "to": [40, 10], "kites": 1},
               {"kind": "mark", "mark": "out"}
             ]
           }

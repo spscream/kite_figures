@@ -377,6 +377,8 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     const svg = diagrams[0];
     const kites = variant.kites;
     const many = kites.length > 1;
+    // Цвет кайта — по месту в списке, пока данные не назвали другой.
+    const colorOf = (order) => kites[order].color ?? (order % 5) + 1;
 
     if (variant.team_size !== undefined && !block.includes(`<h2>Состав: ${variant.team_size}`)) {
       say(`нет заголовка «Состав: ${variant.team_size}»`);
@@ -388,12 +390,12 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
       }
     }
 
-    // Линии: по одной на кайт, штрихи идут по порядку кайтов.
+    // Линии: по одной на кайт, штрих — по цвету кайта.
     const tracks = [...svg.matchAll(/<path class="d-track k(\d)"/g)].map((match) => Number(match[1]));
     // Одиночный кайт летит чёрной сплошной, без штриха команды.
-    const strokes = kites.map((_, kite) => (many ? (kite % 5) + 1 : 0));
+    const strokes = kites.map((_, kite) => (many ? colorOf(kite) : 0));
     if (tracks.join() !== strokes.join()) {
-      say(`штрихи линий [${tracks.join()}], а по числу кайтов нужны [${strokes.join()}]`);
+      say(`штрихи линий [${tracks.join()}], а по кайтам нужны [${strokes.join()}]`);
     }
 
     // Поворот со смещением: линия кайта на нём рвётся — пролёта между точками
@@ -507,7 +509,7 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
       const tones = (name) => glyphs(name).map((item) => `${item.tone}×${item.parts.length}`).sort().join();
       const byKite = {};
       kites.forEach((_, order) => {
-        const tone = `g-k${(order % 5) + 1}`;
+        const tone = `g-k${colorOf(order)}`;
         byKite[tone] = (byKite[tone] ?? 0) + 1;
       });
       const need = Object.entries(byKite).map(([tone, number]) => `${tone}×${number}`).sort().join();
@@ -538,7 +540,16 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
         }
       }
     }
-    if (passes > directed + swingSpots.size) {
+    // Где значки в пути сняты с книги, их ровно столько, сколько записано на
+    // шагах; в остальных вариантах число на шаге не пишется вовсе.
+    const written = moves.reduce((sum, step) => sum + (step.kites ?? 0), 0);
+    if (variant.path_kites === "book") {
+      if (passes < written || passes > written + swingSpots.size) {
+        say(`значков кайта в пути ${passes}, а с книги записано ${written}`);
+      }
+    } else if (written > 0) {
+      say("число значков на шаге записано в варианте без path_kites «book»");
+    } else if (passes > directed + swingSpots.size) {
       say(`значков кайта в пути ${passes}, а шагов с известным направлением ${directed} и точек поворотов со смещением ${swingSpots.size}`);
     }
     // Величина, которую книга объявила незаданной, линии сетки не получает,
@@ -551,9 +562,35 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
       [...gridPath.matchAll(/M-100 (-?[\d.]+)h200/g)].map((match) => 100 - Number(match[1])),
     ];
     const drawnTicks = [
-      [...svg.matchAll(/<text class="d-tick" x="(-?[\d.]+)"/g)].map((match) => Number(match[1])),
-      [...svg.matchAll(/<text class="d-tick d-tick-y"[^>]*>([^<]*)<\/text>/g)].map((match) => Number(match[1].replace(",", ".").replace("−", "-"))),
+      [...svg.matchAll(/<text class="d-tick(?: d-mid)?" x="(-?[\d.]+)"/g)].map((match) => Number(match[1])),
+      [...svg.matchAll(/<text class="d-tick d-tick-y(?: d-mid)?"[^>]*>([^<]*)<\/text>/g)].map((match) => Number(match[1].replace(",", ".").replace("−", "-"))),
     ];
+    // Линии сетки — ровно те, что записаны в данных как проведённые книгой;
+    // оси окна (x = 0, y = 50) рисуются отдельным путём и тоже по данным.
+    const MID = [0, 50];
+    for (const axis of [0, 1]) {
+      const wantedLines = variant.grid[axis === 0 ? "x" : "y"].filter((value) => value !== MID[axis]);
+      if ([...drawnLines[axis]].sort((a, b) => a - b).join() !== wantedLines.join()) {
+        say(`линии сетки по ${axis === 0 ? "x" : "y"} [${drawnLines[axis].join()}], а в данных [${wantedLines.join()}]`);
+      }
+      const all = variant.grid[axis === 0 ? "x" : "y"];
+      const strayTicks = drawnTicks[axis].filter((value) => !all.includes(value));
+      if (strayTicks.length > 0) {
+        say(`число у рамки [${strayTicks.join()}] стоит там, где линии в данных нет`);
+      }
+      // Число пропускается только в тесноте: линия, от которой до соседних не
+      // меньше 9 единиц, подписана всегда.
+      const lonely = all.filter((value) => all.every((other) => other === value || Math.abs(other - value) >= 9));
+      const bare = lonely.filter((value) => !drawnTicks[axis].includes(value));
+      if (bare.length > 0) {
+        say(`у линий ${axis === 0 ? "x" : "y"} = [${bare.join()}] нет числа у рамки`);
+      }
+    }
+    const wantedMid = `${variant.grid.x.includes(0) ? "M0 0v100" : ""}${variant.grid.y.includes(50) ? "M-100 50h200" : ""}`;
+    const drawnMid = svg.match(/<path class="d-mid" d="([^"]*)"/)?.[1] ?? "";
+    if (drawnMid !== wantedMid) {
+      say(`оси окна «${drawnMid}», а по данным «${wantedMid}»`);
+    }
     const near = (list, value, by = 0.01) => list.some((other) => Math.abs(other - value) < by);
     const AXIS = ["x", "y"];
     const steps = kites.flatMap((kite) => kite.path);
@@ -575,16 +612,6 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
         if (free && !near(given[axis], value) && (near(drawnLines[axis], value) || (axis === 1 && near(drawnTicks[axis], value)))) {
           say(`линия сетки или число у рамки стоит на ${AXIS[axis]} = ${value} — величине, которую книга объявила незаданной`);
         }
-        // Оси окна (x = 0, y = 50) и рамка рисуются отдельно от линий сетки.
-        const framed = axis === 0 ? value === 0 || Math.abs(value) >= 100 : value === 50 || value <= 0 || value >= 100;
-        if (!free && !framed && !near(drawnLines[axis], value)) {
-          say(`нет линии сетки на ${AXIS[axis]} = ${value}: она подписана в книге, не задана только вторая координата`);
-        }
-        // Число у рамки пропускается, когда рядом, ближе 9 единиц, уже стоит другое.
-        const crowded = drawnLines[0].some((other) => other !== value && Math.abs(other - value) < 9) || Math.abs(value) < 9;
-        if (!free && axis === 0 && !framed && !crowded && !near(drawnTicks[0], value)) {
-          say(`нет числа ${Math.abs(value)} у рамки на x = ${value}`);
-        }
       }
     }
     if (svg.includes("d-ask") || svg.includes("d-launch") || svg.includes("d-landing")) {
@@ -599,7 +626,7 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     const names = [
       "in:In",
       "out:Out",
-      ...kites.flatMap((kite, order) => (many ? Array(2).fill(`k${(order % 5) + 1}:#${kite.id}`) : [])),
+      ...kites.flatMap((kite, order) => (many ? Array(2).fill(`k${colorOf(order)}:#${kite.id}`) : [])),
     ];
     if ([...labels].sort().join() !== [...names].sort().join()) {
       say(`подписи входа и выхода [${labels.join()}], а нужны [${names.join()}]`);
@@ -611,7 +638,7 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     // В легенде команды значок кайта показан цветом первого кайта.
     const told = (name, text) =>
       new RegExp(
-        `<path class="d-${name}${many && ["in", "out", "stall", "pass"].includes(name) ? " g-k1" : ""}" d="[^"]+"></path></svg>${text.replace(/[()]/g, "\\$&")}</li>`,
+        `<path class="d-${name}${many && ["in", "out", "stall", "pass"].includes(name) ? ` g-k${colorOf(0)}` : ""}" d="[^"]+"></path></svg>${text.replace(/[()]/g, "\\$&")}</li>`,
       ).test(block);
     for (const [name, expected] of Object.entries(expectedShapes(variant))) {
       if (drawn(name) !== expected) {
@@ -708,14 +735,14 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     if (index === 0 && block.includes(caveat) !== geometry.variants.some((item) => item.kites.some((kite) => kite.path.some((step) => step.unmarked === true)))) {
       say("пояснение расходится с данными в шагах без направления");
     }
-    // Сетка: оси окна и рамка есть всегда.
-    if (!svg.includes('<path class="d-mid" d="M0 0v100M-100 50h200"') || !svg.includes('<path class="d-frame"')) {
-      say("нет рамки окна или его осей");
+    // Рамка окна есть всегда; оси сверены выше по данным.
+    if (!svg.includes('<path class="d-frame"')) {
+      say("нет рамки окна");
     }
     const legendKites = [...block.matchAll(/<path class="d-track k(\d)" d="M0 0h24"><\/path><\/svg>кайт #([^<]*)<\/li>/g)].map(
       (match) => `${match[1]}:${match[2]}`,
     );
-    const wantedKites = many ? kites.map((kite, order) => `${(order % 5) + 1}:${kite.id}`) : [];
+    const wantedKites = many ? kites.map((kite, order) => `${colorOf(order)}:${kite.id}`) : [];
     if (legendKites.join() !== wantedKites.join()) {
       say(`легенда кайтов [${legendKites.join()}], а нужна [${wantedKites.join()}]`);
     }

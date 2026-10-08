@@ -12,6 +12,7 @@
       {
         "id": "main",
         "team_size": 4,
+        "grid": {"x": [-90, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 90], "y": [10, 30, 50, 70, 90]},
         "kites": [
           {
             "id": "1",
@@ -20,7 +21,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-90, 10]},
               {"kind": "line", "to": [30, 10], "nose": 180},
-              {"kind": "arc", "to": [30, 10], "center": [30, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
+              {"kind": "arc", "to": [30, 10], "center": [30, 35], "direction": "ccw", "sweep": 360, "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
               {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 90]},
@@ -34,7 +35,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-90, 10]},
               {"kind": "line", "to": [10, 10], "nose": 180},
-              {"kind": "arc", "to": [10, 10], "center": [10, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
+              {"kind": "arc", "to": [10, 10], "center": [10, 35], "direction": "ccw", "sweep": 360, "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
               {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 70]},
@@ -48,7 +49,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-90, 10]},
               {"kind": "line", "to": [-10, 10], "nose": 180},
-              {"kind": "arc", "to": [-10, 10], "center": [-10, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
+              {"kind": "arc", "to": [-10, 10], "center": [-10, 35], "direction": "ccw", "sweep": 360, "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
               {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 50]},
@@ -62,7 +63,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [-90, 10]},
               {"kind": "line", "to": [-30, 10], "nose": 180},
-              {"kind": "arc", "to": [-30, 10], "center": [-30, 35], "direction": "ccw", "sweep": 360, "basis": "measured", "nose": "out", "unmarked": true},
+              {"kind": "arc", "to": [-30, 10], "center": [-30, 35], "direction": "ccw", "sweep": 360, "nose": "out", "unmarked": true},
               {"kind": "line", "to": [90, 10], "nose": 180},
               {"kind": "rotate", "degrees": 180, "direction": "cw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [90, 30]},

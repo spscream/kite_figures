@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -20, -10, 0, 10, 20, 50], "y": [10, 20, 30, 40, 50, 80]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -18,13 +20,13 @@
               {"kind": "start", "at": [-50, 50]},
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [0, 50]},
-              {"kind": "arc", "to": [0, 50], "center": [0, 65], "direction": "ccw", "sweep": 360},
+              {"kind": "arc", "to": [0, 50], "center": [0, 65], "direction": "ccw", "sweep": 360, "kites": 1},
               {"kind": "line", "to": [50, 50]},
               {"kind": "line", "to": [50, 10]},
               {"kind": "line", "to": [0, 10]},
-              {"kind": "line", "to": [-15, 25], "basis": "derived"},
+              {"kind": "line", "to": [-15, 25], "basis": "derived", "kites": 1},
               {"kind": "line", "to": [0, 40]},
-              {"kind": "line", "to": [15, 25], "basis": "derived"},
+              {"kind": "line", "to": [15, 25], "basis": "derived", "kites": 1},
               {"kind": "line", "to": [0, 10]},
               {"kind": "line", "to": [-50, 10]},
               {"kind": "mark", "mark": "out"}

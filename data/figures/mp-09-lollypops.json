@@ -11,6 +11,7 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -30, -10, 0, 10, 30, 50], "y": [20, 50, 60]},
         "kites": [
           {
             "id": "1",
@@ -31,7 +32,7 @@
               {"kind": "line", "to": [-27.32, 50], "nose": 180, "basis": "measured", "sync": "a"},
               {"kind": "arc", "to": [-27.32, 50], "center": [-10, 40], "direction": "ccw", "sweep": 360, "nose": 180, "basis": "measured", "sync": "b"},
               {"kind": "line", "to": [50, 0], "nose": 180, "sync": "c"},
-              {"kind": "mark", "mark": "out"}
+              {"kind": "mark", "mark": "out", "word": true}
             ]
           }
         ],

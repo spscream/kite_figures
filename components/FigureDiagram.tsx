@@ -1,4 +1,4 @@
-import { type Drawing, drawVariant, KITE_SHAPES, shape, type Shape, SHAPES, wordOf, WORDS } from "@/lib/diagram";
+import { colorOf, type Drawing, drawVariant, KITE_SHAPES, roomX, roomY, shape, type Shape, SHAPES, ticks, wordOf, WORDS } from "@/lib/diagram";
 import type { Variant } from "@/lib/geometry";
 import { describeKite, lineText, UNMARKED_TEXT } from "@/lib/steps";
 
@@ -33,23 +33,10 @@ const LAYERS: Shape[] = ["out", "pass", "in", "stall", "turn", "axel", "derived"
 
 const isKite = (name: Shape) => (KITE_SHAPES as readonly string[]).includes(name);
 
-// Числа сетки: сперва оси, потом остальные; число, которому не
-// хватило места рядом с уже поставленным, пропускается — линия остаётся.
-function ticks(mid: number, values: number[], room: number): number[] {
-  const placed = [mid];
-  // От оси наружу: зеркальная сетка получает зеркальные числа.
-  for (const value of [...values].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))) {
-    if (placed.every((other) => Math.abs(other - value) >= room)) {
-      placed.push(value);
-    }
-  }
-  return placed;
-}
-
 // Кайты команды различаются цветом, как в книге, а без цвета — штрихом линии
 // и номером у входа и выхода. Штрихов пять — по самому большому составу.
 // Одиночный кайт летит чёрной сплошной.
-const trackClass = (index: number, many: boolean) => `d-track k${many ? (index % 5) + 1 : 0}`;
+const trackClass = (color: number, many: boolean) => `d-track k${many ? color : 0}`;
 
 function Icon({ children }: { children: React.ReactNode }) {
   return (
@@ -61,7 +48,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 
 // Легенда у каждой схемы своя и называет ровно то, что на этой схеме есть:
 // лист с одним составом команды читается и в печати, без соседних.
-function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; rev: boolean }) {
+function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: { id: string; color: number }[]; rev: boolean }) {
   const used = SHAPES.filter((name) => drawing.shapes[name]);
   // Слова подписей схемы — как в книге, по-английски; легенда их переводит.
   const words = [...new Set(drawing.labels.filter((label) => label.kind === "note").map((label) => wordOf(label.text)))].filter(
@@ -70,10 +57,10 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
   return (
     <ul className="d-legend">
       {kites.length > 1 &&
-        kites.map((id, index) => (
+        kites.map(({ id, color }) => (
           <li key={`kite-${id}`}>
             <svg className="d-icon d-icon-line" viewBox="0 -6 24 12" aria-hidden="true">
-              <path className={trackClass(index, true)} d="M0 0h24" />
+              <path className={trackClass(color, true)} d="M0 0h24" />
             </svg>
             {`кайт #${id}`}
           </li>
@@ -82,7 +69,7 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
         <li key={name}>
           <Icon>
             <path
-              className={isKite(name) && kites.length > 1 ? `d-${name} g-k1` : `d-${name}`}
+              className={isKite(name) && kites.length > 1 ? `d-${name} g-k${kites[0].color}` : `d-${name}`}
               d={shape(name, 0, isKite(name) ? (rev ? -1.7 : -3) : name === "turn" ? 1.5 : 0, undefined, 1, rev)}
             />
           </Icon>
@@ -125,22 +112,23 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: string[]; re
   );
 }
 
-function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
-  const { xs, ys } = drawing.grid;
+function Diagram({ drawing, label, colors }: { drawing: Drawing; label: string; colors: number[] }) {
+  const { xs, ys, axes } = drawing.grid;
+  const mid = `${axes.x ? "M0 0v100" : ""}${axes.y ? "M-100 50h200" : ""}`;
   const many = drawing.tracks.length > 1;
   const lines = [...xs.map((x) => `M${x} 0v100`), ...ys.map((y) => `M-100 ${100 - y}h200`)].join("");
   return (
     <svg className="d-svg" viewBox={drawing.viewBox} role="img" aria-label={label}>
-      {/* Линии сетки — только там, где проходит фигура; оси окна — всегда. */}
+      {/* Линии сетки и оси окна — те, что книга проводит на этой схеме. */}
       {lines && <path className="d-grid" d={lines} />}
-      <path className="d-mid" d="M0 0v100M-100 50h200" />
+      {mid && <path className="d-mid" d={mid} />}
       <path className="d-frame" d="M-100 0h200v100h-200z" />
-      {ticks(0, xs, 9).map((x) => (
+      {ticks(0, axes.x ? [0, ...xs] : xs, roomX).map((x) => (
         <text key={`x${x}`} className={x === 0 ? "d-tick d-mid" : "d-tick"} x={x} y={107.5}>
           {Math.abs(x)}
         </text>
       ))}
-      {ticks(50, ys, 6).map((y) => (
+      {ticks(50, axes.y ? [50, ...ys] : ys, roomY).map((y) => (
         <text key={`y${y}`} className={y === 50 ? "d-tick d-tick-y d-mid" : "d-tick d-tick-y"} x={-102} y={100 - y + 1.6}>
           {y}
         </text>
@@ -148,7 +136,7 @@ function Diagram({ drawing, label }: { drawing: Drawing; label: string }) {
       {/* Вспомогательная линия книги — под путями: она их не перечёркивает. */}
       {drawing.guides && <path className="d-guide" d={drawing.guides} />}
       {drawing.tracks.map((track, index) => (
-        <path key={track.id} className={trackClass(index, many)} d={track.d} />
+        <path key={track.id} className={trackClass(colors[index], many)} d={track.d} />
       ))}
       {/* Поворот со смещением — тонкой дугой: это не пролёт. */}
       {drawing.swings && <path className="d-swing" d={drawing.swings} />}
@@ -243,9 +231,10 @@ export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
               <Diagram
                 drawing={drawings[index]}
                 label={`Схема фигуры ${title}${heading ? `, ${heading.toLowerCase()}` : ""}`}
+                colors={variant.kites.map(colorOf)}
               />
               <figcaption>
-                <Legend drawing={drawings[index]} kites={variant.kites.map((kite) => kite.id)} rev={multiline} />
+                <Legend drawing={drawings[index]} kites={variant.kites.map((kite, order) => ({ id: kite.id, color: colorOf(kite, order) }))} rev={multiline} />
                 {index === 0 && (
                   <p className="note">
                     Окно полёта — 200 на 100 единиц, как его видит пилот; числа у рамки — высота и расстояние

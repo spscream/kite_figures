@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -25, 0], "y": [20, 50, 70]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -19,7 +21,7 @@
               {"kind": "mark", "mark": "in"},
               {"kind": "line", "to": [0, 20]},
               {"kind": "mark", "mark": "half-axel"},
-              {"kind": "arc", "to": [0, 70], "center": [0, 45], "direction": "cw", "sweep": 180},
+              {"kind": "arc", "to": [0, 70], "center": [0, 45], "direction": "cw", "sweep": 180, "kites": 1},
               {"kind": "mark", "mark": "half-axel"},
               {"kind": "line", "to": [-50, 70]},
               {"kind": "mark", "mark": "out"}

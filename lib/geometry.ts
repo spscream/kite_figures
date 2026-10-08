@@ -60,7 +60,9 @@ export type AboutBasis = (typeof ABOUT_BASES)[number];
 // шаг (замкнутая петля без стрелки). Шаг записан в одном из возможных
 // порядков; линия верна. Схема знака направления на нём не ставит, а в шагах
 // помечает, что первоисточник его не показывает.
-type Flown = { basis: Basis; nose: Nose; unmarked?: true; sync?: string };
+// `kites` — сколько значков кайта книга рисует на этом шаге между его концами;
+// пишется только в варианте, где значки в пути сняты с книги (`path_kites`).
+type Flown = { basis: Basis; nose: Nose; unmarked?: true; sync?: string; kites?: number };
 
 // Чего книга не показывает: причина словами, со страницей и днём чтения.
 export type Missing = { status: "not_found"; reason: string };
@@ -74,7 +76,9 @@ export type Step =
   // `nose` — только у остановки и у неё обязателен: курс метки, которой книга
   // рисует кайт в этой точке (0 — вверх, 90 — вправо), либо запись о том, что
   // метки там нет.
-  | { kind: "mark"; mark: MarkName; style?: string; sync?: string; nose?: number | Missing }
+  // `word` — только у входа и выхода пары или команды: слово «In» или «Out»
+  // книга ставит на схеме один раз, и стоит оно у этого кайта.
+  | { kind: "mark"; mark: MarkName; style?: string; sync?: string; nose?: number | Missing; word?: true }
   // Поворот. `to` — куда он привёл нос кайта: поворот вокруг законцовки сам
   // перемещает кайт, и это смещение принадлежит ему, а не отрезку после него.
   // Без `to` нос остаётся в той же точке сетки.
@@ -95,7 +99,14 @@ export function isSwing(step: Step): step is Swing {
   return step.kind === "rotate" && step.to !== undefined;
 }
 
-export type Kite = { id: string; path: Step[] };
+// `color` — номер цвета, которым книга рисует кайт на этой схеме, когда он не
+// совпадает с местом кайта в списке (1 — зелёный … 5 — чёрный).
+export type Kite = { id: string; path: Step[]; color?: number };
+
+// Линии сетки, которые книга на этой схеме проводит и подписывает, вместе с
+// осями окна (x = 0, y = 50), когда они на схеме есть. Набор у каждой схемы
+// свой и из пути не следует: это факт о странице.
+export type GridLines = { x: number[]; y: number[] };
 
 // Вспомогательная линия книги — тонкая серая черта, которой схема связывает
 // точки разных кайтов. Не путь: по ней никто не летит.
@@ -108,6 +119,11 @@ export type Variant = {
   // Страница схемы этого варианта, когда она не та, что у фигуры.
   page?: number;
   kites: Kite[];
+  grid: GridLines;
+  // Значки кайта вдоль пути сняты со схемы книги: у шага записано, сколько их
+  // на нём (`kites`), шаг без поля значка не несёт. Без поля схема расставляет
+  // значки в пути по своему правилу.
+  path_kites?: "book";
   // Вспомогательные линии схемы либо запись о том, что книга их не рисует.
   guides: { status: "ok"; lines: Guide[] } | Missing;
 };
@@ -272,6 +288,13 @@ function unmarked(where: string, value: unknown): boolean {
   return value === true;
 }
 
+function word(where: string, mark: MarkName, value: unknown): boolean {
+  if (value !== undefined && (value !== true || (mark !== "in" && mark !== "out"))) {
+    fail(`${where}.word`, "поле либо отсутствует, либо равно true, и пишется только у входа и выхода");
+  }
+  return value === true;
+}
+
 function flown(where: string, value: Record<string, unknown>): Flown {
   let nose: Nose = "forward";
   if (value.nose !== undefined) {
@@ -286,7 +309,16 @@ function flown(where: string, value: Record<string, unknown>): Flown {
     nose,
     ...(unmarked(where, value.unmarked) ? { unmarked: true as const } : {}),
     ...(value.sync === undefined ? {} : { sync: text(`${where}.sync`, value.sync) }),
+    ...(value.kites === undefined ? {} : { kites: kitesOn(`${where}.kites`, value.kites) }),
   };
+}
+
+// Больше четырёх значков на одном шаге книга не рисует нигде.
+function kitesOn(where: string, value: unknown): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 4) {
+    fail(where, "число значков кайта на шаге — целое от 1 до 4; шаг без значков поля не несёт");
+  }
+  return value;
 }
 
 // `heading` — куда смотрит нос перед шагом, если это следует из пути.
@@ -305,7 +337,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       };
     }
     case "line": {
-      const value = record(where, raw, ["kind", "to", "basis", "nose", "unmarked", "sync"]);
+      const value = record(where, raw, ["kind", "to", "basis", "nose", "unmarked", "sync", "kites"]);
       // Координата, которую книга объявила незаданной, пишется как `null`:
       // кайт остаётся на той, с которой пришёл. Незаданной бывает одна из двух.
       const open = Array.isArray(value.to) && value.to.length === 2 ? value.to.map((part) => part === null) : [false, false];
@@ -335,7 +367,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       return unset === undefined ? { kind, to, ...rest } : { kind, to, unset, ...rest, basis: UNSPECIFIED };
     }
     case "arc": {
-      const value = record(where, raw, ["kind", "to", "center", "direction", "sweep", "basis", "nose", "unmarked", "sync"]);
+      const value = record(where, raw, ["kind", "to", "center", "direction", "sweep", "basis", "nose", "unmarked", "sync", "kites"]);
       const to = point(`${where}.to`, value.to);
       const center = point(`${where}.center`, value.center, true);
       const direction = oneOf(`${where}.direction`, value.direction, ["cw", "ccw"] as const);
@@ -370,7 +402,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       return { kind, to, center, direction, sweep, ...flown(where, value) };
     }
     case "mark": {
-      const value = record(where, raw, ["kind", "mark", "style", "sync", "nose"]);
+      const value = record(where, raw, ["kind", "mark", "style", "sync", "nose", "word"]);
       const mark = oneOf(`${where}.mark`, value.mark, Object.keys(MARKS) as MarkName[]);
       const styles: readonly string[] = MARKS[mark];
       // Курс носа в остановке не выводится из пути: двухстропный кайт в ней
@@ -393,6 +425,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
           : { nose: typeof value.nose === "number" ? course(`${where}.nose`, value.nose) : missing(`${where}.nose`, value.nose) }),
         ...(value.style === undefined ? {} : { style: oneOf(`${where}.style`, value.style, styles) }),
         ...(value.sync === undefined ? {} : { sync: text(`${where}.sync`, value.sync) }),
+        ...(word(where, mark, value.word) ? { word: true as const } : {}),
       };
     }
     case "rotate": {
@@ -506,7 +539,10 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
 }
 
 function parseKite(where: string, raw: unknown): Kite {
-  const value = record(where, raw, ["id", "path"]);
+  const value = record(where, raw, ["id", "path", "color"]);
+  if (value.color !== undefined && (typeof value.color !== "number" || !Number.isInteger(value.color) || value.color < 1 || value.color > 5)) {
+    fail(`${where}.color`, "номер цвета кайта — целое от 1 до 5");
+  }
   const id = text(`${where}.id`, value.id);
   const path: Step[] = [];
   let position: Point | null = null;
@@ -553,7 +589,7 @@ function parseKite(where: string, raw: unknown): Kite {
   if (judged === 0) {
     fail(`${where}.path`, "между «in» и «out» нет ни одного отрезка или дуги");
   }
-  return { id, path };
+  return { id, path, ...(value.color === undefined ? {} : { color: value.color as number }) };
 }
 
 function unique(where: string, ids: string[]) {
@@ -587,13 +623,74 @@ function parseGuides(where: string, raw: unknown): Variant["guides"] {
   return { status: "ok", lines };
 }
 
+// Линии сетки одной оси: кратные пяти, внутри окна, по возрастанию.
+function gridAxis(where: string, raw: unknown, min: number, max: number): number[] {
+  if (!Array.isArray(raw)) {
+    fail(where, "ожидается список значений сетки");
+  }
+  raw.forEach((item, index) => {
+    if (typeof item !== "number" || !Number.isInteger(item) || item % 5 !== 0 || item <= min || item >= max) {
+      fail(`${where}[${index}]`, `линия сетки — число, кратное пяти, больше ${min} и меньше ${max}`);
+    }
+    if (index > 0 && item <= (raw[index - 1] as number)) {
+      fail(`${where}[${index}]`, "линии сетки идут по возрастанию и не повторяются");
+    }
+  });
+  return raw as number[];
+}
+
+function parseGrid(where: string, raw: unknown): GridLines {
+  if (raw === undefined) {
+    fail(where, "обязательны линии сетки, которые книга подписывает на схеме: {\"x\": […], \"y\": […]}");
+  }
+  const value = record(where, raw, ["x", "y"]);
+  return {
+    x: gridAxis(`${where}.x`, value.x, GRID.xMin, GRID.xMax),
+    y: gridAxis(`${where}.y`, value.y, GRID.yMin, GRID.yMax),
+  };
+}
+
 function parseVariant(where: string, raw: unknown, pages: number): Variant {
-  const value = record(where, raw, ["id", "team_size", "page", "kites", "guides"]);
+  const value = record(where, raw, ["id", "team_size", "page", "kites", "grid", "path_kites", "guides"]);
   const kites = list(`${where}.kites`, value.kites).map((item, index) =>
     parseKite(`${where}.kites[${index}]`, item),
   );
   unique(`${where}.kites`, kites.map((kite) => kite.id));
-  const variant: Variant = { id: text(`${where}.id`, value.id), kites, guides: parseGuides(`${where}.guides`, value.guides) };
+  const variant: Variant = {
+    id: text(`${where}.id`, value.id),
+    kites,
+    grid: parseGrid(`${where}.grid`, value.grid),
+    guides: parseGuides(`${where}.guides`, value.guides),
+  };
+  if (value.path_kites !== undefined) {
+    variant.path_kites = oneOf(`${where}.path_kites`, value.path_kites, ["book"] as const);
+  }
+  kites.forEach((kite, index) => {
+    kite.path.forEach((step, at) => {
+      if ((step.kind === "line" || step.kind === "arc") && step.kites !== undefined) {
+        const here = `${where}.kites[${index}].path[${at}].kites`;
+        if (variant.path_kites !== "book") {
+          fail(here, "значки кайта на шаге записываются только в варианте с path_kites «book»");
+        }
+        // На шаге без показанного направления значок показывает только нос —
+        // его курс обязан быть записан и от порядка обхода не зависеть.
+        if (step.unmarked && typeof step.nose !== "number" && step.nose !== "out" && step.nose !== "in") {
+          fail(here, "на шаге «unmarked» значок кайта возможен только при курсе носа, который от направления обхода не зависит");
+        }
+      }
+    });
+  });
+  // Слово «In» и слово «Out» на схеме стоят по разу.
+  for (const mark of ["in", "out"] as const) {
+    const worded = kites.filter((kite) => kite.path.some((step) => step.kind === "mark" && step.mark === mark && step.word)).length;
+    if (worded > 1 || (worded === 1 && kites.length === 1)) {
+      fail(`${where}.kites`, `отметка «word» у «${mark}» — у одного кайта из нескольких`);
+    }
+  }
+  const colors = kites.map((kite, index) => kite.color ?? (index % 5) + 1);
+  if (kites.some((kite) => kite.color !== undefined) && new Set(colors).size !== colors.length) {
+    fail(`${where}.kites`, "цвета кайтов повторяются: «color» записывается у каждого кайта, чей цвет не следует его месту в списке");
+  }
   if (value.team_size !== undefined) {
     if (!Number.isInteger(value.team_size) || (value.team_size as number) < 2) {
       fail(`${where}.team_size`, "состав команды — целое число не меньше 2");

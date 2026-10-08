@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -40, -10, 0, 30], "y": [10, 40, 50, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -20,12 +22,12 @@
               {"kind": "line", "to": [-10, 10]},
               {"kind": "mark", "mark": "stall", "nose": 0},
               {"kind": "line", "to": [-10, 40]},
-              {"kind": "line", "to": [-40, 40]},
+              {"kind": "line", "to": [-40, 40], "kites": 1},
               {"kind": "line", "to": [-40, 10]},
               {"kind": "line", "to": [-10, 10]},
-              {"kind": "line", "to": [30, 10]},
+              {"kind": "line", "to": [30, 10], "kites": 1},
               {"kind": "line", "to": [30, 80]},
-              {"kind": "line", "to": [0, 80]},
+              {"kind": "line", "to": [0, 80], "kites": 1},
               {"kind": "line", "to": [0, 50]},
               {"kind": "line", "to": [30, 50]},
               {"kind": "mark", "mark": "stall", "nose": 0},

@@ -13,10 +13,12 @@ const markIn: Raw = { kind: "mark", mark: "in" };
 const markOut: Raw = { kind: "mark", mark: "out" };
 
 function geometry(path: unknown[], over: Raw = {}): Raw {
-  return { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], guides: NO_GUIDES }], ...over };
+  return { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], grid: GRID_LINES, guides: NO_GUIDES }], ...over };
 }
 
 const NO_GUIDES: Raw = { status: "not_found", reason: "на схеме их нет" };
+// Оси окна; линий сетки у схемы теста нет.
+const GRID_LINES: Raw = { x: [0], y: [50] };
 const CENTER: Raw = { about: "center", about_basis: "text" };
 const MISSING: Raw = { status: "not_found", reason: "страница точку поворота не называет" };
 
@@ -57,6 +59,7 @@ describe("parseGeometry", () => {
               ],
             },
           ],
+          grid: GRID_LINES,
           guides: NO_GUIDES,
         },
       ],
@@ -304,7 +307,7 @@ describe("parseGeometry", () => {
         expect(() => parsePath([{ kind: "start", at: [0, 20] }, markIn, arc, markOut], notes)).toThrow(/path\[2\]\.basis/);
         const guides = { status: "ok", lines: [{ from: [0, 10], to: [50, 10], basis: "unspecified" }] };
         expect(() =>
-          parse({ status: "ok", variants: [{ id: "main", kites: [{ id: "1", path: [{ kind: "start", at: [0, 10] }, markIn, { kind: "line", to: [0, 50] }, markOut] }], guides }], notes }),
+          parse({ status: "ok", variants: [{ id: "main", kites: [{ id: "1", path: [{ kind: "start", at: [0, 10] }, markIn, { kind: "line", to: [0, 50] }, markOut] }], grid: GRID_LINES, guides }], notes }),
         ).toThrow(/guides\.lines\[0\]\.basis/);
       });
 
@@ -423,16 +426,16 @@ describe("parseGeometry", () => {
     const read = parse({
       status: "ok",
       variants: [
-        { id: "four", team_size: 4, page: 51, kites, guides: NO_GUIDES },
-        { id: "five", team_size: 5, kites, guides: NO_GUIDES },
+        { id: "four", team_size: 4, page: 51, kites, grid: GRID_LINES, guides: NO_GUIDES },
+        { id: "five", team_size: 5, kites, grid: GRID_LINES, guides: NO_GUIDES },
       ],
     });
     expect(read.status === "ok" && read.variants.map((variant) => variant.kites.length)).toEqual([2, 2]);
-    expect(() => parse({ status: "ok", variants: [{ id: "a", kites: [kites[0], kites[0]], guides: NO_GUIDES }] })).toThrow(
+    expect(() => parse({ status: "ok", variants: [{ id: "a", kites: [kites[0], kites[0]], grid: GRID_LINES, guides: NO_GUIDES }] })).toThrow(
       /повторяется id «1»/,
     );
     expect(() =>
-      parse({ status: "ok", variants: [{ id: "a", kites, guides: NO_GUIDES }, { id: "a", kites, guides: NO_GUIDES }] }),
+      parse({ status: "ok", variants: [{ id: "a", kites, grid: GRID_LINES, guides: NO_GUIDES }, { id: "a", kites, grid: GRID_LINES, guides: NO_GUIDES }] }),
     ).toThrow(/повторяется id «a»/);
   });
 
@@ -444,7 +447,7 @@ describe("parseGeometry", () => {
     [{ id: "a", colour: "red" }, /незнакомое поле «colour»/],
   ])("отвергает вариант %j", (over, message) => {
     const kites = [{ id: "1", path: [start, markIn, { kind: "line", to: [0, 50] }, markOut] }];
-    expect(() => parse({ status: "ok", variants: [{ kites, guides: NO_GUIDES, ...over }] })).toThrow(message);
+    expect(() => parse({ status: "ok", variants: [{ kites, grid: GRID_LINES, guides: NO_GUIDES, ...over }] })).toThrow(message);
   });
 
   // Курс носа в остановке не выводится из пути: его называет книга либо
@@ -483,7 +486,7 @@ describe("parseGeometry", () => {
   describe("вспомогательные линии", () => {
     const kites = [{ id: "1", path: [start, markIn, { kind: "line", to: [0, 50] }, markOut] }];
     const withGuides = (guides: unknown, notes: string[] = ["линия снята замером"]) =>
-      parse({ status: "ok", variants: [{ id: "a", kites, ...(guides === undefined ? {} : { guides }) }], notes });
+      parse({ status: "ok", variants: [{ id: "a", kites, grid: GRID_LINES, ...(guides === undefined ? {} : { guides }) }], notes });
 
     it("читает линии и подставляет basis «grid»", () => {
       const read = withGuides({
@@ -542,5 +545,200 @@ describe("parseGeometry", () => {
     [null, /ожидается объект/],
   ])("отвергает геометрию %j", (raw, message) => {
     expect(() => parse(raw)).toThrow(message);
+  });
+
+  describe("сетка, значки и подписи, снятые с книги", () => {
+    const path = [start, markIn, { kind: "line", to: [0, 50] }, markOut];
+    const one = (over: Raw, steps: unknown[] = path) =>
+      parse({ status: "ok", variants: [{ id: "main", kites: [{ id: "1", path: steps }], grid: GRID_LINES, guides: NO_GUIDES, ...over }], notes: ["для теста"] });
+    const two = (first: Raw, second: Raw, marks: [Raw, Raw] = [{}, {}]) =>
+      parse({
+        status: "ok",
+        variants: [
+          {
+            id: "main",
+            kites: [
+              { id: "1", path: [start, { ...markIn, ...marks[0] }, { kind: "line", to: [0, 50] }, markOut], ...first },
+              { id: "2", path: [{ kind: "start", at: [20, 10] }, { ...markIn, ...marks[1] }, { kind: "line", to: [20, 50] }, markOut], ...second },
+            ],
+            grid: GRID_LINES,
+            guides: NO_GUIDES,
+          },
+        ],
+      });
+
+    it("линии сетки читает как записаны: оси окна — такие же строки списка", () => {
+      const read = one({ grid: { x: [-60, 0, 30], y: [10, 50, 70] } });
+      expect(read.status === "ok" && read.variants[0].grid).toEqual({ x: [-60, 0, 30], y: [10, 50, 70] });
+      // Схема без оси: её просто нет в списке.
+      expect(one({ grid: { x: [0], y: [10] } }).status).toBe("ok");
+    });
+
+    it.each([
+      [undefined, /grid: обязательны линии сетки/],
+      [{ x: [0] }, /grid\.y: ожидается список значений сетки/],
+      [{ x: [0, 12], y: [50] }, /grid\.x\[1\]: линия сетки — число, кратное пяти/],
+      [{ x: [0, 100], y: [50] }, /grid\.x\[1\]: линия сетки — число, кратное пяти/],
+      [{ x: [0], y: [0, 50] }, /grid\.y\[0\]: линия сетки — число, кратное пяти/],
+      [{ x: [20, 0], y: [50] }, /grid\.x\[1\]: линии сетки идут по возрастанию и не повторяются/],
+      [{ x: [0, 0], y: [50] }, /grid\.x\[1\]: линии сетки идут по возрастанию и не повторяются/],
+      [{ x: [0], y: [50], z: [] }, /незнакомое поле «z»/],
+    ])("отвергает сетку %j", (grid, message) => {
+      expect(() => one({ grid })).toThrow(message);
+    });
+
+    it("число значков на шаге читает только в варианте, где значки сняты с книги", () => {
+      const counted = [start, markIn, { kind: "line", to: [0, 50], kites: 2 }, markOut];
+      const read = one({ path_kites: "book" }, counted);
+      expect(read.status === "ok" && read.variants[0].path_kites).toBe("book");
+      expect(read.status === "ok" && read.variants[0].kites[0].path[2]).toMatchObject({ kites: 2 });
+      expect(() => one({}, counted)).toThrow(/kites: значки кайта на шаге записываются только в варианте с path_kites «book»/);
+      expect(() => one({ path_kites: "auto" }, path)).toThrow(/path_kites: ожидается одно из: book/);
+    });
+
+    it.each([0, 5, 1.5, "1"])("отвергает число значков %j", (count) => {
+      expect(() => one({ path_kites: "book" }, [start, markIn, { kind: "line", to: [0, 50], kites: count }, markOut])).toThrow(/kites/);
+    });
+
+    it("на шаге без показанного направления значок требует курса носа, не зависящего от обхода", () => {
+      const hidden = (extra: Raw) => [start, markIn, { kind: "line", to: [0, 50], unmarked: true, kites: 1, ...extra }, markOut];
+      expect(() => one({ path_kites: "book" }, hidden({}))).toThrow(/на шаге «unmarked» значок кайта возможен только при курсе носа/);
+      expect(one({ path_kites: "book" }, hidden({ nose: 90 })).status).toBe("ok");
+    });
+
+    it("слово In или Out принимает у одного кайта из нескольких", () => {
+      expect(two({}, {}, [{}, { word: true }]).status).toBe("ok");
+      expect(() => two({}, {}, [{ word: true }, { word: true }])).toThrow(/отметка «word» у «in» — у одного кайта из нескольких/);
+      expect(() => one({}, [start, { ...markIn, word: true }, { kind: "line", to: [0, 50] }, markOut])).toThrow(/отметка «word» у «in»/);
+      expect(() => one({}, [start, markIn, { kind: "line", to: [0, 50] }, { kind: "mark", mark: "launch", word: true }, markOut])).toThrow(/word/);
+      expect(() => two({}, {}, [{}, { word: false }])).toThrow(/word: поле либо отсутствует, либо равно true/);
+    });
+
+    it("цвет кайта — номер от 1 до 5, без повторов на схеме", () => {
+      const read = two({ color: 2 }, { color: 1 });
+      expect(read.status === "ok" && read.variants[0].kites.map((kite) => kite.color)).toEqual([2, 1]);
+      expect(() => two({ color: 0 }, {})).toThrow(/color: номер цвета кайта — целое от 1 до 5/);
+      expect(() => two({ color: 6 }, {})).toThrow(/color: номер цвета кайта — целое от 1 до 5/);
+      // Первому отдан цвет второго, а второй остался при своём по месту.
+      expect(() => two({ color: 2 }, {})).toThrow(/цвета кайтов повторяются/);
+    });
+  });
+
+  // Проводка: правила выше ничего не стоят, если каталог ими не пользуется.
+  describe("каталог: снятое с книги", () => {
+    const variants = listFigures().flatMap((figure) =>
+      figure.geometry.status === "ok" ? figure.geometry.variants.map((variant) => ({ figure, variant })) : [],
+    );
+
+    it("значки в пути сняты с книги у всех двухстропных индивидуальных и командных фигур и у MI 16", () => {
+      const booked = variants.filter(({ variant }) => variant.path_kites === "book").map(({ figure, variant }) => `${figure.slug} ${variant.id}`);
+      const due = variants
+        .filter(({ figure }) => figure.discipline === "dual-line-individual" || figure.discipline === "dual-line-team" || figure.slug === "mi-16-lollypop")
+        .map(({ figure, variant }) => `${figure.slug} ${variant.id}`);
+      expect(booked).toEqual(due);
+      // И хотя бы где-то значки действительно записаны.
+      expect(variants.filter(({ variant }) => variant.kites.some((kite) => kite.path.some((step) => (step.kind === "line" || step.kind === "arc") && step.kites))).length).toBeGreaterThan(40);
+    });
+
+    // Числа сняты со страниц книги (docs/verification/di.md, dt.md, mi-16-30.md):
+    // сколько значков кайта в пути на схеме каждого состава.
+    const BOOK_KITES: Record<string, number[]> = {
+      "di-02-circle": [0],
+      "di-03-circle-over-diamond": [3],
+      "di-05-lap-and-snap": [0],
+      "di-07-jump": [0],
+      "di-08-pyramid": [1],
+      "di-09-octagon": [1],
+      "di-11-split-figure-eight": [0],
+      "di-12-stops": [0],
+      "di-13-steps": [0],
+      "di-14-register": [6],
+      "di-15-lsi": [0],
+      "di-16-two-squares-and-stalls": [3],
+      "di-17-wedge": [1],
+      "di-18-square-cuts": [1],
+      "di-19-launch-circle-and-land-2p": [1],
+      "di-20-boomerang": [1],
+      "dt-02-pick-up-sticks": [9, 10, 10],
+      "dt-03-follow-flank-up-and-square": [3, 4, 5],
+      "dt-04-team-hairpin": [6, 8, 10],
+      "dt-05-arch-de-triomph": [3, 4, 5],
+      "dt-07-sorted-rectangle": [6, 8, 10],
+      "dt-08-the-basket": [3, 4, 5],
+      "dt-10-team-diamonds": [0, 0, 0],
+      "dt-11-cascade": [3, 4, 5],
+      "dt-12-loops-and-vertical-threads": [3, 4, 5],
+      "dt-14-have-fun": [15, 20, 25],
+      "dt-15-solaris": [3, 4, 0],
+      "dt-16-team-square-cuts": [9, 12, 15],
+      "dt-17-boomerang": [3, 4, 5],
+      "mi-16-lollypop": [4],
+    };
+
+    it("число значков в пути у каждого состава — то, что прочитано со страницы", () => {
+      const counted: Record<string, number[]> = {};
+      for (const { figure, variant } of variants.filter((item) => item.variant.path_kites === "book")) {
+        const sum = variant.kites.reduce((all, kite) => all + kite.path.reduce((part, step) => part + ((step.kind === "line" || step.kind === "arc") && step.kites ? step.kites : 0), 0), 0);
+        (counted[figure.slug] ??= []).push(sum);
+      }
+      expect(counted).toEqual(BOOK_KITES);
+    });
+
+    it("точка, записанная как стоящая на подписанных линиях, стоит на линиях сетки варианта или на рамке", () => {
+      // Набор линий из пути не выводится, но обратное обязано держаться:
+      // потерянная в `grid` линия сняла бы со схемы подпись точки пути.
+      // MI 35: конец первого кольца (0; 30) записан без метки, а линии 30 на
+      // странице 97 нет — об этом говорит заметка фигуры; основание точки —
+      // вопрос данных, этой проверкой он только назван.
+      const KNOWN = ["mi-35-two-rings main 1 y=30"];
+      const off = variants.flatMap(({ figure, variant }) =>
+        variant.kites.flatMap((kite) =>
+          kite.path.flatMap((step) => {
+            const point = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || isSwing(step) ? step.to : undefined;
+            if (!point || !("basis" in step) || step.basis !== "grid") {
+              return [];
+            }
+            const unset = step.kind === "line" ? step.unset : undefined;
+            const onX = unset === 0 || variant.grid.x.includes(point[0]) || Math.abs(point[0]) === 100;
+            const onY = unset === 1 || variant.grid.y.includes(point[1]) || point[1] === 0 || point[1] === 100;
+            return [...(onX ? [] : [`${figure.slug} ${variant.id} ${kite.id} x=${point[0]}`]), ...(onY ? [] : [`${figure.slug} ${variant.id} ${kite.id} y=${point[1]}`])];
+          }),
+        ),
+      );
+      expect([...new Set(off)]).toEqual(KNOWN);
+    });
+
+    it("оси окна есть на каждой схеме, кроме MI 02, где книга не проводит ось 50", () => {
+      const bare = variants.filter(({ variant }) => !variant.grid.x.includes(0) || !variant.grid.y.includes(50)).map(({ figure, variant }) => `${figure.slug} ${variant.id}`);
+      expect(bare).toEqual(["mi-02-ladder-up main"]);
+    });
+
+    it("метка «measured» или «derived» не стоит на пересечении подписанных линий сетки", () => {
+      // DP 07: линии схемы идут в двух единицах от подписанных, и «derived»
+      // там говорит не о точности, а о том, какое чтение взято, — см. заметки.
+      const marked = variants
+        .filter(({ figure }) => figure.slug !== "dp-07-h")
+        .flatMap(({ figure, variant }) =>
+          variant.kites.flatMap((kite) =>
+            kite.path.flatMap((step, index) => {
+              const point = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || isSwing(step) ? step.to : undefined;
+              const basis = "basis" in step ? step.basis : undefined;
+              return point && (basis === "measured" || basis === "derived") && variant.grid.x.includes(point[0]) && variant.grid.y.includes(point[1])
+                ? [`${figure.slug} ${variant.id} ${kite.id}:${index}`]
+                : [];
+            }),
+          ),
+        );
+      expect(marked).toEqual([]);
+    });
+
+    it("слово у входа или выхода и свой цвет записаны там, где книга ставит их не по общему правилу", () => {
+      const worded = variants.flatMap(({ figure, variant }) =>
+        variant.kites.flatMap((kite) => kite.path.flatMap((step) => (step.kind === "mark" && step.word ? [`${figure.slug} ${kite.id} ${step.mark}`] : []))),
+      );
+      expect(worded).toEqual(["mp-05-sticky-wicket 2 out", "mp-09-lollypops 2 out", "mp-10-parallel-boxes 2 out", "mp-13-pair-pivots 2 in"]);
+      const colored = variants.flatMap(({ figure, variant }) => variant.kites.flatMap((kite) => (kite.color ? [`${figure.slug} ${kite.id}=${kite.color}`] : [])));
+      expect(colored).toEqual(["mp-13-pair-pivots 1=2", "mp-13-pair-pivots 2=1"]);
+    });
   });
 });

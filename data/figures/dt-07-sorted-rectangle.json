@@ -12,6 +12,8 @@
       {
         "id": "team-3",
         "team_size": 3,
+        "grid": {"x": [-90, -80, 0, 80, 90], "y": [10, 20, 30, 40, 50, 60, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -21,9 +23,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
-              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 70], "kites": 1},
               {"kind": "line", "to": [-80, 50]},
-              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 50], "kites": 1},
               {"kind": "line", "to": [0, 90]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -36,9 +38,9 @@
               {"kind": "line", "to": [90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 60]},
-              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 60], "kites": 1},
               {"kind": "line", "to": [80, 40]},
-              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 40], "kites": 1},
               {"kind": "line", "to": [0, 80]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -51,9 +53,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 50]},
-              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 50], "kites": 1},
               {"kind": "line", "to": [-80, 30]},
-              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 30], "kites": 1},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -65,6 +67,8 @@
         "id": "team-4",
         "team_size": 4,
         "page": 57,
+        "grid": {"x": [-90, -80, 0, 80, 90], "y": [10, 20, 30, 40, 50, 60, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -74,9 +78,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
-              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 70], "kites": 1},
               {"kind": "line", "to": [-80, 50]},
-              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 50], "kites": 1},
               {"kind": "line", "to": [0, 90]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -89,9 +93,9 @@
               {"kind": "line", "to": [90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 60]},
-              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 60], "kites": 1},
               {"kind": "line", "to": [80, 40]},
-              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 40], "kites": 1},
               {"kind": "line", "to": [0, 80]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -104,9 +108,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 50]},
-              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 50], "kites": 1},
               {"kind": "line", "to": [-80, 30]},
-              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 30], "kites": 1},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -119,9 +123,9 @@
               {"kind": "line", "to": [90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 40]},
-              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [80, 40], "kites": 1},
               {"kind": "line", "to": [80, 20]},
-              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [0, 20], "kites": 1},
               {"kind": "line", "to": [0, 60]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -133,6 +137,8 @@
         "id": "team-5",
         "team_size": 5,
         "page": 57,
+        "grid": {"x": [-90, -80, 0, 80, 90], "y": [10, 20, 30, 40, 50, 60, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -142,9 +148,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
-              {"kind": "line", "to": [-80, 70]},
+              {"kind": "line", "to": [-80, 70], "kites": 1},
               {"kind": "line", "to": [-80, 50]},
-              {"kind": "line", "to": [0, 50]},
+              {"kind": "line", "to": [0, 50], "kites": 1},
               {"kind": "line", "to": [0, 90]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -157,9 +163,9 @@
               {"kind": "line", "to": [90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 60]},
-              {"kind": "line", "to": [80, 60]},
+              {"kind": "line", "to": [80, 60], "kites": 1},
               {"kind": "line", "to": [80, 40]},
-              {"kind": "line", "to": [0, 40]},
+              {"kind": "line", "to": [0, 40], "kites": 1},
               {"kind": "line", "to": [0, 80]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -172,9 +178,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 50]},
-              {"kind": "line", "to": [-80, 50]},
+              {"kind": "line", "to": [-80, 50], "kites": 1},
               {"kind": "line", "to": [-80, 30]},
-              {"kind": "line", "to": [0, 30]},
+              {"kind": "line", "to": [0, 30], "kites": 1},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -187,9 +193,9 @@
               {"kind": "line", "to": [90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 40]},
-              {"kind": "line", "to": [80, 40]},
+              {"kind": "line", "to": [80, 40], "kites": 1},
               {"kind": "line", "to": [80, 20]},
-              {"kind": "line", "to": [0, 20]},
+              {"kind": "line", "to": [0, 20], "kites": 1},
               {"kind": "line", "to": [0, 60]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -202,9 +208,9 @@
               {"kind": "line", "to": [-90, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 5], "basis": "measured"},
               {"kind": "line", "to": [0, 30]},
-              {"kind": "line", "to": [-80, 30]},
+              {"kind": "line", "to": [-80, 30], "kites": 1},
               {"kind": "line", "to": [-80, 10]},
-              {"kind": "line", "to": [0, 10]},
+              {"kind": "line", "to": [0, 10], "kites": 1},
               {"kind": "line", "to": [0, 50]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
