@@ -11,6 +11,7 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-80, -10, 0, 10, 80], "y": [30, 40, 50, 60, 70, 80]},
         "kites": [
           {
             "id": "1",
@@ -18,7 +19,7 @@
               {"kind": "start", "at": [-80, 30]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [0, 30]},
-              {"kind": "arc", "to": [0, 30], "center": [0, 37.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [0, 30], "center": [0, 37.5], "direction": "ccw", "sweep": 360},
               {"kind": "line", "to": [80, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]
@@ -29,7 +30,7 @@
               {"kind": "start", "at": [80, 60]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [0, 60]},
-              {"kind": "arc", "to": [0, 60], "center": [0, 67.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [0, 60], "center": [0, 67.5], "direction": "cw", "sweep": 360},
               {"kind": "line", "to": [-80, 60]},
               {"kind": "mark", "mark": "out", "sync": "out"}
             ]

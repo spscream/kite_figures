@@ -11,6 +11,7 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-60, -40, -10, 0, 10, 40, 60], "y": [10, 40, 50]},
         "kites": [
           {
             "id": "1",
@@ -20,7 +21,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [-40, 40]},
               {"kind": "line", "to": [10, 40]},
-              {"kind": "arc", "to": [10, 40], "center": [10, 22.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [10, 40], "center": [10, 22.5], "direction": "cw", "sweep": 360},
               {"kind": "line", "to": [60, 40]},
               {"kind": "line", "to": [60, 0]},
               {"kind": "mark", "mark": "landing", "style": "two-point"},
@@ -35,7 +36,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [-60, 40]},
               {"kind": "line", "to": [-10, 40]},
-              {"kind": "arc", "to": [-10, 40], "center": [-10, 22.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-10, 40], "center": [-10, 22.5], "direction": "cw", "sweep": 360},
               {"kind": "line", "to": [40, 40]},
               {"kind": "line", "to": [40, 0]},
               {"kind": "mark", "mark": "landing", "style": "two-point"},

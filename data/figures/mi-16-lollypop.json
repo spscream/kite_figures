@@ -12,6 +12,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-60, 0, 30, 40], "y": [10, 50, 70]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -19,8 +21,8 @@
               {"kind": "start", "at": [35, 0], "basis": "measured"},
               {"kind": "mark", "mark": "in"},
               {"kind": "mark", "mark": "launch"},
-              {"kind": "line", "to": [-55.55, 55.72], "basis": "derived", "nose": 180},
-              {"kind": "arc", "to": [-55.55, 55.72], "center": [-30, 40], "direction": "cw", "sweep": 360, "basis": "derived", "nose": 180, "unmarked": true},
+              {"kind": "line", "to": [-55.55, 55.72], "basis": "derived", "nose": 180, "kites": 2},
+              {"kind": "arc", "to": [-55.55, 55.72], "center": [-30, 40], "direction": "cw", "sweep": 360, "basis": "derived", "nose": 180, "unmarked": true, "kites": 2},
               {"kind": "line", "to": [35, 0], "basis": "measured", "nose": 180},
               {"kind": "mark", "mark": "landing"},
               {"kind": "mark", "mark": "out"}

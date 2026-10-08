@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-80, 0, 80], "y": [20, 50, 80]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",

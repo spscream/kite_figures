@@ -11,6 +11,8 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-50, -20, 0, 20, 50], "y": [10, 40, 50]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -20,7 +22,7 @@
               {"kind": "mark", "mark": "launch"},
               {"kind": "line", "to": [-50, 40]},
               {"kind": "line", "to": [0, 40]},
-              {"kind": "arc", "to": [0, 40], "center": [0, 22.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [0, 40], "center": [0, 22.5], "direction": "cw", "sweep": 360, "kites": 1},
               {"kind": "line", "to": [50, 40]},
               {"kind": "line", "to": [50, 0]},
               {"kind": "mark", "mark": "landing", "style": "two-point"},

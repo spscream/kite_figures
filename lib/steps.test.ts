@@ -5,7 +5,7 @@ import { isSwing, type Kite, parseGeometry } from "./geometry";
 import { describeKite, lineText } from "./steps";
 
 function kite(path: unknown[]): Kite {
-  const raw = { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], guides: { status: "not_found", reason: "на схеме их нет" } }], notes: ["для теста"] };
+  const raw = { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], grid: { x: [0], y: [50] }, guides: { status: "not_found", reason: "на схеме их нет" } }], notes: ["для теста"] };
   const read = parseGeometry("g", raw, 125);
   if (read.status !== "ok") {
     throw new Error("геометрия не разобрана");

@@ -11,6 +11,7 @@
     "variants": [
       {
         "id": "main",
+        "grid": {"x": [-70, -40, -20, 0, 20, 40, 70], "y": [30, 50, 70]},
         "kites": [
           {
             "id": "1",
@@ -41,7 +42,7 @@
               {"kind": "line", "to": [40, 30], "nose": 180, "sync": "b"},
               {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "about_basis": "text"},
               {"kind": "line", "to": [70, 30]},
-              {"kind": "mark", "mark": "out", "sync": "out"}
+              {"kind": "mark", "mark": "out", "word": true, "sync": "out"}
             ]
           }
         ],

@@ -12,6 +12,8 @@
       {
         "id": "team-3",
         "team_size": 3,
+        "grid": {"x": [-50, -40, -30, -20, -10, 0, 10, 20], "y": [10, 20, 30, 50, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -19,7 +21,7 @@
               {"kind": "start", "at": [-30, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [12.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [20, 17.5], "center": [12.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [20, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -31,7 +33,7 @@
               {"kind": "start", "at": [-40, 90]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [2.5, 90], "basis": "measured"},
-              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [10, 82.5], "center": [2.5, 82.5], "direction": "cw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [10, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -43,7 +45,7 @@
               {"kind": "start", "at": [-50, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-7.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [0, 17.5], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -56,6 +58,8 @@
         "id": "team-4",
         "team_size": 4,
         "page": 65,
+        "grid": {"x": [-60, -50, -40, -30, -20, -10, 0, 10, 20], "y": [10, 20, 30, 50, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -63,7 +67,7 @@
               {"kind": "start", "at": [-30, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [12.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [20, 17.5], "center": [12.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [20, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -75,7 +79,7 @@
               {"kind": "start", "at": [-40, 90]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [2.5, 90], "basis": "measured"},
-              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [10, 82.5], "center": [2.5, 82.5], "direction": "cw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [10, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -87,7 +91,7 @@
               {"kind": "start", "at": [-50, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-7.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [0, 17.5], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -99,7 +103,7 @@
               {"kind": "start", "at": [-60, 90]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-17.5, 90], "basis": "measured"},
-              {"kind": "arc", "to": [-17.5, 90], "center": [-17.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-17.5, 90], "center": [-17.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [-10, 82.5], "center": [-17.5, 82.5], "direction": "cw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [-10, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -112,6 +116,8 @@
         "id": "team-5",
         "team_size": 5,
         "page": 65,
+        "grid": {"x": [-70, -60, -50, -40, -30, -20, -10, 0, 10, 20], "y": [10, 20, 30, 50, 70, 80, 90]},
+        "path_kites": "book",
         "kites": [
           {
             "id": "1",
@@ -119,7 +125,7 @@
               {"kind": "start", "at": [-30, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [12.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [12.5, 10], "center": [12.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [20, 17.5], "center": [12.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [20, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -131,7 +137,7 @@
               {"kind": "start", "at": [-40, 90]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [2.5, 90], "basis": "measured"},
-              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [2.5, 90], "center": [2.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [10, 82.5], "center": [2.5, 82.5], "direction": "cw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [10, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -143,7 +149,7 @@
               {"kind": "start", "at": [-50, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-7.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-7.5, 10], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [0, 17.5], "center": [-7.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [0, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -155,7 +161,7 @@
               {"kind": "start", "at": [-60, 90]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-17.5, 90], "basis": "measured"},
-              {"kind": "arc", "to": [-17.5, 90], "center": [-17.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-17.5, 90], "center": [-17.5, 82.5], "direction": "cw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [-10, 82.5], "center": [-17.5, 82.5], "direction": "cw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [-10, 30]},
               {"kind": "mark", "mark": "out", "sync": "out"}
@@ -167,7 +173,7 @@
               {"kind": "start", "at": [-70, 10]},
               {"kind": "mark", "mark": "in", "sync": "in"},
               {"kind": "line", "to": [-27.5, 10], "basis": "measured"},
-              {"kind": "arc", "to": [-27.5, 10], "center": [-27.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured"},
+              {"kind": "arc", "to": [-27.5, 10], "center": [-27.5, 17.5], "direction": "ccw", "sweep": 360, "basis": "measured", "kites": 1},
               {"kind": "arc", "to": [-20, 17.5], "center": [-27.5, 17.5], "direction": "ccw", "sweep": 90, "basis": "measured"},
               {"kind": "line", "to": [-20, 70]},
               {"kind": "mark", "mark": "out", "sync": "out"}

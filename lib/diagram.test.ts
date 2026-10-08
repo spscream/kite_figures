@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { along, drawVariant } from "./diagram";
+import { along, drawVariant, roomX, roomY, ticks } from "./diagram";
 import { listFigures } from "./figures";
 import { isSwing, parseGeometry, type Variant } from "./geometry";
 
@@ -18,8 +18,16 @@ function variant(...paths: unknown[][]): Variant {
 }
 
 function guided(guides: unknown, ...paths: unknown[][]): Variant {
+  return made({ guides }, ...paths);
+}
+
+// Оси окна есть на каждой схеме книги, кроме одной; линий сетки по умолчанию нет.
+const AXES = { x: [0], y: [50] };
+
+// `over` — поля варианта сверх умолчаний: линии сетки, значки с книги.
+function made(over: object, ...paths: unknown[][]): Variant {
   const kites = paths.map((path, index) => ({ id: String(index + 1), path }));
-  const raw = { status: "ok", variants: [{ id: "main", kites, guides }], notes: ["для теста"] };
+  const raw = { status: "ok", variants: [{ id: "main", kites, grid: AXES, guides: NO_GUIDES, ...over }], notes: ["для теста"] };
   const read = parseGeometry("g", raw, 125);
   if (read.status !== "ok") {
     throw new Error("геометрия не разобрана");
@@ -274,8 +282,9 @@ describe("drawVariant", () => {
     // Значок кайта: нос, угол крыла, вырез хвоста, второй угол; нос — в точке.
     // На земле кайт стоит на ней: значок поднят на длину хвоста.
     expect(drawn(shapes, "in")).toBe("M0 94L3.3 100L0 98.5L-3.3 100Z");
-    // На выходе кайт смотрит по последнему шагу — вниз, нос в точке.
-    expect(drawn(shapes, "out")).toBe("M60 100L56.7 94L60 95.5L63.3 94Z");
+    // Севший на оба конца крыла стоит на земле носом вверх, как взлетающий:
+    // так его рисует книга, а не по курсу спуска.
+    expect(drawn(shapes, "out")).toBe("M60 94L63.3 100L60 98.5L56.7 100Z");
     expect(drawn(shapes, "stall")).toBe("M0 60L3.3 66L0 64.5L-3.3 66Z");
     // Аксель — точка на линии, поворот — дуга со стрелкой рядом с точкой.
     expect(drawn(shapes, "axel")).toBe("M58.4 60a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0");
@@ -505,8 +514,6 @@ describe("drawVariant", () => {
 
     it("незаданной может быть и горизонталь: на сетку встаёт высота, ромб стоит у точки", () => {
       const free = drawVariant(variant([{ kind: "start", at: [-60, 10] }, markIn, line([0, 10]), line([0, 40]), { kind: "line", to: [null, 80], basis: "unspecified" }, markOut]), true);
-      expect(free.grid.xs).toEqual([-60]);
-      expect(free.grid.ys).toEqual([10, 40, 80]);
       expect(drawn(free.shapes, "unspecified").match(/M/g)).toHaveLength(1);
     });
 
@@ -542,9 +549,6 @@ describe("drawVariant", () => {
       // Два ромба: конец поворота и конец отрезка. Замером это не помечено.
       expect(drawn(free.shapes, "unspecified").match(/M/g)).toHaveLength(2);
       expect(free.shapes.measured).toBeUndefined();
-      // Справа от центра 60 подписано в книге; высота линии сетки не получает.
-      expect(free.grid.xs).toEqual([-60, 60]);
-      expect(free.grid.ys).toEqual([10]);
       // Ступень — размах значка: метки стоят законцовка к законцовке.
       expect(free.tracks[0].d).toBe("M-60 90L0 90M0 81.6L60 81.6");
       const stood = polygonsOf(drawn(free.shapes, "pass"));
@@ -639,26 +643,156 @@ describe("drawVariant", () => {
     expect(drawn(shapes, "derived")).toContain("M-60.3 80");
   });
 
-  it("край дуги, снятой замером, линию сетки не даёт", () => {
-    const arc = { kind: "arc", to: [20, 50], center: [0, 50], direction: "cw", sweep: 180, basis: "measured" };
-    const drawing = drawVariant(variant([{ kind: "start", at: [-20, 50] }, markIn, arc, markOut]));
-    expect(drawing.grid).toEqual({ xs: [-20], ys: [] });
+  it("линии сетки берёт из данных, а не из пути: оси окна называет отдельно", () => {
+    const path = [{ kind: "start", at: [-100, 50] }, markIn, line([-20, 50]), { kind: "arc", to: [20, 50], center: [0, 50], direction: "cw", sweep: 180 }, line([0, 10]), markOut];
+    // Книга провела 60 и 90, где путь не проходит, и не провела ±20 и 70.
+    const drawing = drawVariant(made({ grid: { x: [0, 60, 90], y: [10, 50] } }, path));
+    expect(drawing.grid).toEqual({ xs: [60, 90], ys: [10], axes: { x: true, y: true } });
+    // Оси, которой на схеме книги нет, нет и в чертеже.
+    const bare = drawVariant(made({ grid: { x: [-60, 0], y: [10] } }, path));
+    expect(bare.grid).toEqual({ xs: [-60], ys: [10], axes: { x: true, y: false } });
   });
 
-  it("линии сетки проводит через точки фигуры на сетке и крайние точки дуг, без осей и краёв", () => {
-    const drawing = drawVariant(
-      variant([
-        { kind: "start", at: [-100, 50] },
+  it("число у рамки пропускает только там, где ему тесно: место считает по ширине числа", () => {
+    // «5» рядом с «0» помещается, «10» рядом с «5» — уже нет.
+    expect(ticks(0, [-5, 0, 5, 10], roomX)).toEqual([0, -5, 5]);
+    // Двузначные с шагом 10 стоят все, с шагом 5 — через одно.
+    expect(ticks(0, [0, 10, 20, 30], roomX)).toEqual([0, 10, 20, 30]);
+    expect(ticks(0, [0, 80, 85, 90], roomX)).toEqual([0, 80, 90]);
+    // Слева от рамки место одно на все: 50 остаётся, 45 и 55 уступают ему.
+    expect(ticks(50, [45, 50, 55, 70], roomY)).toEqual([50, 70]);
+  });
+
+  describe("значки в пути, снятые с книги", () => {
+    const book = { path_kites: "book", grid: { x: [-60, 0, 60], y: [20, 50, 80] } };
+    const lap = (first: object, second: object, third: object) => [
+      { kind: "start", at: [-60, 20] },
+      markIn,
+      line([60, 20], first),
+      line([60, 80], second),
+      line([-60, 80], third),
+      markOut,
+    ];
+
+    it("ставит на шаг столько значков, сколько записано, а на шаг без записи — ни одного", () => {
+      const drawing = drawVariant(made(book, lap({ kites: 2 }, {}, { kites: 1 })));
+      const passes = kites(drawn(drawing.shapes, "pass"));
+      expect(passes).toHaveLength(3);
+      // Два на нижнем проходе, один на верхнем; на вертикали пусто.
+      expect(passes.filter((mark) => Math.abs(mark.at[1] - 80) < 0.01)).toHaveLength(2);
+      expect(passes.filter((mark) => Math.abs(mark.at[1] - 20) < 0.01)).toHaveLength(1);
+      // Два значка одного шага не стоят в одной точке.
+      const [a, b] = passes.filter((mark) => Math.abs(mark.at[1] - 80) < 0.01);
+      expect(Math.abs(a.at[0] - b.at[0])).toBeGreaterThan(20);
+    });
+
+    it("в варианте с книги без единой записи значков в пути нет вовсе", () => {
+      const drawing = drawVariant(made(book, lap({}, {}, {})));
+      expect(drawing.shapes.pass).toBeUndefined();
+      // Без режима книги тот же путь значки получает по общему правилу.
+      const plain = drawVariant(made({ grid: book.grid }, lap({}, {}, {})));
+      expect(kites(drawn(plain.shapes, "pass")).length).toBeGreaterThan(0);
+    });
+
+    it("на шаге без показанного направления значок стоит по записанному курсу носа", () => {
+      const drawing = drawVariant(made(book, lap({}, { unmarked: true, nose: 90, kites: 1 }, {})));
+      const passes = kites(drawn(drawing.shapes, "pass"));
+      expect(passes).toHaveLength(1);
+      expect(passes[0].at[0]).toBeCloseTo(60, 1);
+      // Курс 90 — нос вправо, хотя шаг идёт вверх.
+      expect(passes[0].nose[0]).toBeCloseTo(1, 1);
+      expect(passes[0].nose[1]).toBeCloseTo(0, 1);
+    });
+  });
+
+  describe("посадка двухстропного", () => {
+    const landed = (style: string) => [{ kind: "start", at: [0, 40] }, markIn, line([60, 40]), line([60, 0]), { kind: "mark", mark: "landing", style }, markOut];
+
+    it.each(["two-point", "snap-two-point", "stall-two-point", "spin-two-point"])("севший на оба конца крыла («%s») стоит носом вверх", (style) => {
+      const [out] = kites(drawn(drawVariant(variant(landed(style))).shapes, "out"));
+      expect(out.nose[0]).toBeCloseTo(0, 5);
+      expect(out.nose[1]).toBeCloseTo(1, 5);
+    });
+
+    it("посадка другого вида и выход без посадки смотрят по последнему шагу", () => {
+      const [edge] = kites(drawn(drawVariant(variant(landed("leading-edge"))).shapes, "out"));
+      expect(edge.nose[1]).toBeCloseTo(-1, 5);
+      const flying = [{ kind: "start", at: [0, 40] }, markIn, line([60, 40]), line([60, 10]), markOut];
+      const [out] = kites(drawn(drawVariant(variant(flying)).shapes, "out"));
+      expect(out.nose[1]).toBeCloseTo(-1, 5);
+    });
+
+    it("значок севшего кайта не добавляет значка в пути на спуске: правило пропуска смотрит на курс спуска", () => {
+      const count = (style: string) => kites(drawn(drawVariant(variant(landed(style))).shapes, "pass")).length;
+      expect(count("two-point")).toBe(count("leading-edge"));
+    });
+
+    it("у четырёхстропного посадка курс носа не меняет", () => {
+      const down = [{ kind: "start", at: [0, 40] }, markIn, line([60, 40]), line([60, 0], { nose: 180 }), { kind: "mark", mark: "landing", style: "two-point" }, markOut];
+      const [out] = kites(drawn(drawVariant(variant(down), true).shapes, "out"), true);
+      expect(out.nose[1]).toBeCloseTo(-1, 5);
+    });
+  });
+
+  describe("подписи как в книге", () => {
+    const pair = (first: object, second: object, outFirst: object = {}, outSecond: object = {}) => [
+      [{ kind: "start", at: [-60, 30] }, { ...markIn, ...first }, line([-20, 30]), { ...markOut, ...outFirst }],
+      [{ kind: "start", at: [20, 30] }, { ...markIn, ...second }, line([60, 30]), { ...markOut, ...outSecond }],
+    ];
+    const near = (labels: { x: number; text: string }[], text: string) => labels.find((label) => label.text === text)!.x;
+
+    it("слова In и Out стоят у первого кайта, пока данные не назвали другого", () => {
+      const plain = drawVariant(variant(...pair({}, {}))).labels;
+      expect(near(plain, "In")).toBeLessThan(0);
+      expect(near(plain, "Out")).toBeLessThan(0);
+      const moved = drawVariant(variant(...pair({}, { word: true }, {}, { word: true }))).labels;
+      expect(near(moved, "In")).toBeGreaterThan(0);
+      expect(near(moved, "Out")).toBeGreaterThan(0);
+      // Слово одно: у первого кайта оно при этом не остаётся.
+      expect(moved.filter((label) => label.text === "In" || label.text === "Out")).toHaveLength(2);
+    });
+
+    it("цвет кайта берёт из данных, а без записи — по месту в списке", () => {
+      const [first, second] = pair({}, {});
+      const swapped = made({}, first, second);
+      const raw = { ...swapped, kites: [{ ...swapped.kites[0], color: 2 }, { ...swapped.kites[1], color: 1 }] };
+      const tones = (item: Variant) => (drawVariant(item).shapes.in ?? []).map((shape) => [shape.tone, kites(shape.d)[0].at[0] < 0 ? "left" : "right"]);
+      expect(tones(swapped)).toEqual([["k1", "left"], ["k2", "right"]]);
+      expect(tones(raw)).toEqual([["k2", "left"], ["k1", "right"]]);
+      // Номер кайта красится тем же цветом, что и его значок.
+      expect(drawVariant(raw).labels.filter((label) => label.text === "#1").every((label) => label.tone === "t-k2")).toBe(true);
+    });
+
+    it("у четырёхстропного слово Stop встаёт над остановкой, а не сбоку от неё", () => {
+      // Кайт в остановке стоит боком, как у MI 15 на 40 и −40: прямо над
+      // точкой его крыло, и слово поднимается выше, а не уходит вправо.
+      const path = [{ kind: "start", at: [-60, 30] }, markIn, line([0, 30]), stallAt(90), line([60, 30]), markOut];
+      const stop = drawVariant(variant(path), true).labels.find((label) => label.text === "Stop")!;
+      expect(stop.x).toBeCloseTo(0, 1);
+      expect(stop.y).toBeLessThan(70);
+    });
+
+    it("два поворота в одной точке разводит по сторонам: каждый — туда, куда кайт после него уходит", () => {
+      // Ромб от земли и обратно, как у MI 21: первый поворот — перед уходом
+      // влево-вверх, последний — после прихода справа, перед спуском.
+      const turn = (degrees: number, direction: string) => ({ kind: "rotate", degrees, direction, ...CENTER });
+      const path = [
+        { kind: "start", at: [0, 0] },
         markIn,
-        line([-20, 50]),
-        // Полукруг через верх: крайняя точка — на высоте 70.
-        { kind: "arc", to: [20, 50], center: [0, 50], direction: "cw", sweep: 180 },
-        line([33.3, 15], { basis: "measured" }),
         line([0, 10]),
+        turn(45, "ccw"),
+        line([-30, 40]),
+        line([0, 70]),
+        line([30, 40]),
+        line([0, 10]),
+        turn(135, "cw"),
+        line([0, 0], { nose: "backward" }),
         markOut,
-      ]),
-    );
-    expect(drawing.grid).toEqual({ xs: [-20, 20], ys: [10, 70] });
+      ];
+      const labels = drawVariant(variant(path), true).labels;
+      expect(labels.find((label) => label.text === "45°")!.x).toBeLessThan(0);
+      expect(labels.find((label) => label.text === "135°")!.x).toBeGreaterThan(0);
+    });
   });
 
   it("отмечает выведенные и измеренные координаты разными значками, подписанные — никакими", () => {
@@ -772,9 +906,18 @@ describe("чертежи каталога", () => {
       });
       const swingEnds = swings.flatMap((swing) => swing.ends);
       const atSwing = (mark: { at: number[] }) => swingEnds.some((end) => Math.hypot(end[0] - mark.at[0], 100 - end[1] - mark.at[1]) < 0.01);
-      expect(passes.filter((mark) => !atSwing(mark)).length).toBeLessThanOrEqual(directed.length);
+      // Где значки сняты с книги, их ровно столько, сколько записано на шагах.
+      const byBook = item.path_kites === "book";
+      const written = moves.reduce((sum, step) => sum + (step.kites ?? 0), 0);
+      if (byBook) {
+        expect(passes.filter((mark) => !atSwing(mark))).toHaveLength(written);
+      } else {
+        expect(written).toBe(0);
+        expect(passes.filter((mark) => !atSwing(mark)).length).toBeLessThanOrEqual(directed.length);
+      }
       // Ни один значок в пути не стоит на шаге «unmarked»: нос его лежит на
-      // линии шага с известным направлением.
+      // линии шага с известным направлением. Значок с книги стоит на шаге,
+      // где он записан.
       const lines = item.kites.flatMap((kite) => {
         let here: readonly [number, number] = [0, 0];
         return kite.path.flatMap((step) => {
@@ -786,7 +929,7 @@ describe("чертежи каталога", () => {
           }
           const from = here;
           here = step.to;
-          return [{ unmarked: step.unmarked === true, points: Array.from({ length: 401 }, (_, i) => along(from, step, i / 400).point) }];
+          return [{ unmarked: byBook ? !step.kites : step.unmarked === true, points: Array.from({ length: 401 }, (_, i) => along(from, step, i / 400).point) }];
         });
       });
       const reach = (mark: { at: number[] }, unmarked: boolean) =>
