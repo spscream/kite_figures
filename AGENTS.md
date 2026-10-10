@@ -41,6 +41,7 @@ handlers, server actions, `headers()`, оптимизация картинок),
 | `.github/workflows/` | `ci.yml` (джоба `gate`), `automerge.yml`, `deploy.yml` (выкат), `catchup.yml` (довоз), `catchup-schedule.yml` (его почасовой запуск) |
 | `docs/sources.md` | рамка работы с источниками — читать до любой правки данных |
 | `docs/routines.md` | формат файла рутины |
+| `docs/routine-elements.md` | разбор словаря элементов рутины: что называют правила и что выражается шагом пути |
 
 ## Данные фигур
 
