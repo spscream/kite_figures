@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DISCIPLINES, type Discipline, listFigures } from "./figures";
+import { DISCIPLINES, type Discipline, type Figure, listFigures } from "./figures";
 import { parseGeometry } from "./geometry";
 import { crewOf, kiteSteps, listRoutines, parseRoutine, ROUTINES_DIR } from "./routines";
 
@@ -125,9 +125,16 @@ describe("parseRoutine", () => {
     ["ноль", line([0, 20], { seconds: 0 }), /\.seconds: длительность — положительное число секунд/],
     ["строка", line([0, 20], { seconds: "4" }), /\.seconds: длительность/],
     ["null", line([0, 20], { seconds: null }), /\.seconds: длительность/],
+    ["отрицательная", line([0, 20], { seconds: -1 }), /\.seconds: длительность/],
     ["у «out»", { ...markOut, seconds: 1 }, /\.seconds: у старта и у вызовов «in» и «out» длительности нет/],
   ])("отвергает длительность: %s", (_label, step, message) => {
     expect(() => segments([own([start([-50, 20]), markIn, step, line([10, 30]), markOut])])).toThrow(message);
+  });
+
+  it("у вызова «in» длительности нет", () => {
+    expect(() => segments([own([start([0, 20]), { ...markIn, seconds: 1 }, line([10, 20]), markOut])])).toThrow(
+      /\.seconds: у старта и у вызовов/,
+    );
   });
 
   it("у первого шага «start» длительности нет", () => {
@@ -162,6 +169,8 @@ describe("parseRoutine", () => {
     ["discipline", { discipline: "multi-line" }, /поле «discipline» — одно из/],
     ["kites не список", { kites: "1" }, /kites: ожидается непустой список/],
     ["kites пуст", { kites: [] }, /kites: ожидается непустой список/],
+    ["кайт «__proto__»", { kites: ["__proto__"] }, /kites\[0\]: номер кайта — строка из латинских букв и цифр/],
+    ["кайт числом", { kites: [1] }, /kites\[0\]: номер кайта/],
     ["повтор кайта", { discipline: "multi-line-pair", kites: ["1", "1"] }, /номера кайтов повторяются/],
     ["двое в одиночном разделе", { kites: ["1", "2"] }, /кайтов ровно 1, а записано 2/],
     ["один в паре", { discipline: "multi-line-pair" }, /кайтов ровно 2, а записано 1/],
@@ -347,7 +356,97 @@ describe("ссылка на фигуру каталога", () => {
         count += 1;
       }
     }
+    // Ни один вариант не пропущен: геометрия снята у всех, состав в границах раздела.
+    expect(count).toBe(figures.reduce((sum, item) => sum + (item.geometry.status === "ok" ? item.geometry.variants.length : 0), 0));
     expect(count).toBeGreaterThanOrEqual(figures.length);
+  });
+});
+
+// Каталог из своих фигур: в настоящем у каждого пути «in» стоит сразу за
+// стартом, «out» — последним, и срез ссылки на нём не отличить от «всё, кроме
+// краёв». Здесь до входа и после выхода есть пролёты, а вход и выход — в
+// разных точках.
+describe("ссылка на фигуру: срез, вход и выход", () => {
+  const fake = (slug: string, number: number, geometry: Raw): Figure => ({
+    slug,
+    discipline: "multi-line-pair",
+    number,
+    code: `MP ${number}`,
+    name: slug,
+    status: "current",
+    source: { document: "book", version: "1.0", page: 1, read_on: "2026-10-10" },
+    sourceUrl: "https://example.org/book.pdf#page=1",
+    summary: "Фигура теста.",
+    geometry: parseGeometry(slug, geometry, 10),
+  });
+  const kite = (id: string, x: number): Raw => ({
+    id,
+    path: [start([x, 10]), line([x, 30]), markIn, line([x, 50]), { kind: "mark", mark: "stall", nose: 0 }, line([x + 10, 50], { nose: 0 }), markOut, line([x + 10, 80])],
+  });
+  const variant = (ids: string[]): Raw => ({ id: "main", kites: ids.map((id, index) => kite(id, index * 40 - 40)), grid: { x: [0], y: [50] }, guides: { status: "not_found", reason: "нет" } });
+  const catalog = [
+    fake("mp-90-proba", 90, { status: "ok", variants: [variant(["1", "2"])] }),
+    fake("mp-91-chuzhie", 91, { status: "ok", variants: [variant(["1", "3"])] }),
+    fake("mp-92-pusto", 92, { status: "not_found", reason: "схемы нет" }),
+  ];
+  const pair = (list: unknown[]) =>
+    parseRoutine("para.json", JSON.stringify(routine({ discipline: "multi-line-pair", kites: ["1", "2"], segments: list })), catalog);
+  const open = (first: [number, number] = [-40, 30]) => ({ origin: "own", paths: { "1": [start(first), markIn], "2": [start([0, 30]), markIn] } });
+  const close = (steps: unknown[] = []) => ({ origin: "own", paths: { "1": [...steps, markOut], "2": [markOut] } });
+  const ref = (over: Raw = {}): Raw => ({ origin: "figure", figure: "mp-90-proba", ...over });
+
+  it("берутся только шаги между «in» и «out» фигуры", () => {
+    const result = pair([open(), ref(), close()]);
+    expect(result.segments[1].paths["1"]).toMatchObject([{ kind: "line", to: [-40, 50] }, { mark: "stall" }, { kind: "line", to: [-30, 50] }]);
+    expect(result.segments[1].paths["2"]).toMatchObject([{ kind: "line", to: [0, 50] }, { mark: "stall" }, { kind: "line", to: [10, 50] }]);
+  });
+
+  it("вход — точка, где кайт стоит на «in» фигуры, а не её старт; сверяются обе координаты", () => {
+    expect(() => pair([open([-40, 10]), ref(), close()])).toThrow(/кайт «1» стоит в \[-40, 10\], а фигура MP 90 начинается в \[-40, 30\]/);
+    expect(() => pair([open([-39, 30]), ref(), close()])).toThrow(/нужна связка/);
+  });
+
+  it("расхождение со входом до 0,05 единицы прощается на любой координате, больше — нет", () => {
+    expect(pair([open([-40.05, 30]), ref(), close()]).segments).toHaveLength(3);
+    expect(pair([open([-40, 30.05]), ref(), close()]).segments).toHaveLength(3);
+    expect(() => pair([open([-40.06, 30]), ref(), close()])).toThrow(/нужна связка/);
+    expect(() => pair([open([-40, 29.94]), ref(), close()])).toThrow(/нужна связка/);
+  });
+
+  it("после фигуры кайт стоит в её выходе, а не во входе и не в конце её пути", () => {
+    expect(() => pair([open(), ref(), close([line([-30, 50])])])).toThrow(/отрезок нулевой длины/);
+    expect(pair([open(), ref(), close([line([-40, 30])])]).segments).toHaveLength(3);
+    expect(pair([open(), ref(), close([line([-30, 80])])]).segments).toHaveLength(3);
+  });
+
+  it("курс носа после фигуры и после своего шага известен: законцовка поворота сверяется с ним", () => {
+    // Фигура кончается слайдом вправо носом вверх: левая законцовка — слева.
+    const swing = (about: string) => ({ kind: "rotate", degrees: 180, direction: "ccw", about, to: [-38, 50] });
+    expect(pair([open(), ref(), close([swing("left-tip")])]).segments).toHaveLength(3);
+    expect(() => pair([open(), ref(), close([swing("right-tip")])])).toThrow(/это «left-tip», а записано «right-tip»/);
+    expect(() => pair([open(), ref(), close([line([-30, 60]), { kind: "rotate", degrees: 180, direction: "ccw", about: "right-tip", to: [-38, 60] }])])).toThrow(
+      /это «left-tip», а записано «right-tip»/,
+    );
+  });
+
+  it("длительности фигуры у каждого кайта свои; список длиннее пути отвергается", () => {
+    const result = pair([open(), ref({ seconds: { "1": [1, 2, 3], "2": [4, null, 6] } }), close()]);
+    expect(result.segments[1].paths["1"].map((step) => step.seconds)).toEqual([1, 2, 3]);
+    expect(result.segments[1].paths["2"].map((step) => step.seconds)).toEqual([4, undefined, 6]);
+    expect(pair([open(), ref({ seconds: { "2": [4, 5, 6] } }), close()]).segments[1].paths["1"].some((step) => "seconds" in step)).toBe(false);
+    expect(() => pair([open(), ref({ seconds: { "1": [1, 2, 3, 4] } }), close()])).toThrow(/seconds\.1: ожидается список из 3 значений/);
+    expect(() => pair([open(), ref({ seconds: { "1": [1, -2, 3] } }), close()])).toThrow(/seconds\.1\[1\]: длительность/);
+  });
+
+  it("отвергает фигуру, чьи кайты — не кайты рутины, и фигуру без снятой геометрии", () => {
+    expect(() => pair([open(), ref({ figure: "mp-91-chuzhie" }), close()])).toThrow(/кайты варианта «main» фигуры MP 91 — 1, 3, а кайты рутины — 1, 2/);
+    expect(() => pair([open(), ref({ figure: "mp-92-pusto" }), close()])).toThrow(/у фигуры MP 92 геометрия не снята/);
+  });
+
+  it("свой шаг без точки поворота или курса в остановке получает подсказку без «not_found»", () => {
+    const bad = (step: Raw) => () => pair([open(), ref(), close([step])]);
+    expect(bad({ kind: "rotate", degrees: 90, direction: "cw" })).toThrow(/\.about: обязательна точка поворота: center, left-tip, right-tip$/);
+    expect(bad({ kind: "mark", mark: "stall" })).toThrow(/\.nose: у остановки обязателен курс носа числом$/);
   });
 });
 

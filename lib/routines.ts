@@ -18,6 +18,8 @@ export const ROUTINE_SCHEMA = 1;
 const EXTENSION = ".json";
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const KEYS = ["schema", "name", "summary", "discipline", "kites", "segments"];
+// Номер кайта — ключ в `paths` и `seconds`.
+const KITE = /^[A-Za-z0-9]+$/;
 
 // Откуда взята часть рутины: фигура каталога, связка между фигурами или своя
 // работа автора. Это не `basis` шага: тот говорит, откуда на странице книги
@@ -188,7 +190,8 @@ function figureSegment(
     if (here === null) {
       fail(where, `кайт «${kite}» ещё не стоит в окне: до фигуры нужна своя часть с шагом «start»`);
     }
-    if (Math.hypot(here[0] - entry[0], here[1] - entry[1]) > TOLERANCE) {
+    // Запас — на двоичную запись сотых: 30,05 − 30 выходит чуть больше 0,05.
+    if (Math.hypot(here[0] - entry[0], here[1] - entry[1]) > TOLERANCE + 1e-9) {
       fail(where, `кайт «${kite}» стоит в ${show(here)}, а фигура ${figure.code} начинается в ${show(entry)}: между ними нужна связка`);
     }
     // Курс носа на входе — тот, что следует из пути самой фигуры.
@@ -230,7 +233,12 @@ export function parseRoutine(file: string, content: string, figures: Figure[]): 
   if (!Array.isArray(value.kites) || value.kites.length === 0) {
     fail(`${file}: kites`, "ожидается непустой список номеров кайтов");
   }
-  const kites = value.kites.map((item, index) => text(`${file}: kites[${index}]`, item));
+  const kites = value.kites.map((item, index) => {
+    if (typeof item !== "string" || !KITE.test(item)) {
+      fail(`${file}: kites[${index}]`, "номер кайта — строка из латинских букв и цифр");
+    }
+    return item;
+  });
   if (new Set(kites).size !== kites.length) {
     fail(`${file}: kites`, "номера кайтов повторяются");
   }
@@ -298,11 +306,13 @@ export function kiteSteps(routine: Routine, kite: string): Placed[] {
 }
 
 // Рутины каталога по имени файла. Каталога может не быть вовсе: пока в
-// репозитории рутин нет. Битый файл роняет сборку с именем файла.
-export function listRoutines(dir: string = ROUTINES_DIR, figures: Figure[] = listFigures()): Routine[] {
+// репозитории рутин нет. Битый файл роняет чтение с именем файла; сборка
+// рутины пока не читает, так что ловит его тест каталога.
+export function listRoutines(dir: string = ROUTINES_DIR, catalog?: Figure[]): Routine[] {
   if (!fs.existsSync(dir)) {
     return [];
   }
+  const figures = catalog ?? listFigures();
   const names: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.name.toLowerCase().endsWith(EXTENSION)) {

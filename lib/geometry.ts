@@ -435,9 +435,11 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       if ((mark === "stall") !== (value.nose !== undefined)) {
         fail(
           `${where}.nose`,
-          mark === "stall"
-            ? "у остановки обязателен курс носа с метки книги либо запись «not_found» с причиной"
-            : "курс носа записывается только у остановки",
+          mark !== "stall"
+            ? "курс носа записывается только у остановки"
+            : own
+              ? "у остановки обязателен курс носа числом"
+              : "у остановки обязателен курс носа с метки книги либо запись «not_found» с причиной"
         );
       }
       if (own && value.nose !== undefined && typeof value.nose !== "number") {
@@ -464,7 +466,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       // Точка поворота названа всегда: либо словом и тем, откуда оно взято,
       // либо записью, что книга её не называет. Молчаливого «вокруг центра» нет.
       if (value.about === undefined) {
-        fail(`${where}.about`, "обязательна точка поворота либо запись «not_found» с причиной");
+        fail(`${where}.about`, own ? `обязательна точка поворота: ${ROTATE_ABOUT.join(", ")}` : "обязательна точка поворота либо запись «not_found» с причиной");
       }
       const named = own || typeof value.about === "string";
       const about = named ? oneOf(`${where}.about`, value.about, ROTATE_ABOUT) : missing(`${where}.about`, value.about);
