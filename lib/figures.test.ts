@@ -244,8 +244,23 @@ describe("каталог репозитория", () => {
   });
 
   it("вторым в реестре стоит прежняя редакция — версия 2.2.1 на 108 страниц", () => {
-    expect(loadSources()).toHaveLength(2);
     expect(earlier).toMatchObject({ id: "iskcb", version: "2.2.1", pages: 108, dated: "2011-12-05" });
+  });
+
+  // Правила и судейская книга стоят после обеих редакций книги фигур: первый
+  // документ реестра страницы читают как действующую редакцию книги фигур.
+  it("после книги фигур в реестре — свод правил и судейская книга версии 3.0, и фигуры на них не ссылаются", () => {
+    expect(loadSources().map((item) => `${item.id}@${item.version}`)).toEqual([
+      "iskcb@3.0",
+      "iskcb@2.2.1",
+      "iskrb@3.0",
+      "iskjb@3.0",
+    ]);
+    expect(loadSources().slice(2)).toMatchObject([
+      { pages: 21, dated: "2017-04-01", landing: book.landing },
+      { pages: 35, dated: "2017-04-01", landing: book.landing },
+    ]);
+    expect([...new Set(read().map((item) => item.source.document))]).toEqual([book.id]);
   });
 
   // Версия 3.0 главная: прежняя редакция годится только там, где у версии 3.0

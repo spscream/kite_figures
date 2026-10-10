@@ -25,6 +25,32 @@
       "bytes": 1638773,
       "sha256": "a9ff65bf3204c8525592619231382a0bcb9f6e7542a8c97f9d99d1eb2cffb731",
       "checked_on": "2026-10-08"
+    },
+    {
+      "id": "iskrb",
+      "version": "3.0",
+      "title": "International Sport Kite Rules Book",
+      "dated": "2017-04-01",
+      "publisher": "International Rule Book Committee (IRBC)",
+      "url": "http://worldsportkite.com/wp-content/uploads/2017/04/ISK-Rules-Book-v3-2017-03-30final.pdf",
+      "landing": "http://worldsportkite.com/2017-isk-rules",
+      "pages": 21,
+      "bytes": 365502,
+      "sha256": "a9e089f5c283befd6eba1a43442b132216c2a6bf6cb39b985cf1dd0e7a97962a",
+      "checked_on": "2026-10-10"
+    },
+    {
+      "id": "iskjb",
+      "version": "3.0",
+      "title": "International Sport Kite Judges' Book",
+      "dated": "2017-04-01",
+      "publisher": "International Rule Book Committee (IRBC)",
+      "url": "http://worldsportkite.com/wp-content/uploads/2017/04/ISK-Judges-Book-v3-2017-03-30final.pdf",
+      "landing": "http://worldsportkite.com/2017-isk-rules",
+      "pages": 35,
+      "bytes": 1150379,
+      "sha256": "b22661d7f3f0f8be8eab97adf579d21259597bba6f4f6142a157c07c0c1753ea",
+      "checked_on": "2026-10-10"
     }
   ]
 }
