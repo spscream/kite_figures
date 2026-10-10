@@ -10,7 +10,7 @@
 export const GRID = { xMin: -100, xMax: 100, yMin: 0, yMax: 100 } as const;
 
 // Допуск на сведение дуги: координаты пишутся с двумя знаками после запятой.
-const TOLERANCE = 0.05;
+export const TOLERANCE = 0.05;
 
 export type Point = readonly [number, number];
 
@@ -91,6 +91,17 @@ export type Step =
       to?: Point;
       basis?: Basis;
     };
+
+// Шаг, записанный не со страницы книги, — связка или своя работа в рутине
+// (`lib/routines.ts`). Виды шагов и их поля те же; нет только полей о странице
+// первоисточника: за таким шагом страницы нет, и сказать о ней нечего.
+export const BOOK_FIELDS = ["basis", "unmarked", "kites", "about_basis", "word"] as const;
+export type OwnStep =
+  | { kind: "start"; at: Point }
+  | { kind: "line"; to: Point; nose: Nose; sync?: string }
+  | { kind: "arc"; to: Point; center: Point; direction: "cw" | "ccw"; sweep: number; nose: Nose; sync?: string }
+  | { kind: "mark"; mark: MarkName; style?: string; sync?: string; nose?: number }
+  | { kind: "rotate"; degrees: number; direction: "cw" | "ccw"; about: RotateAbout; to?: Point };
 
 // Поворот, который сам перемещает кайт: у него записана точка, куда пришёл нос.
 export type Swing = Extract<Step, { kind: "rotate" }> & { to: Point };
@@ -249,7 +260,7 @@ function courseVector(degrees: number): Point {
 }
 
 // Куда смотрит нос кайта в конце отрезка или дуги.
-function noseAfter(from: Point, step: Extract<Step, { kind: "line" | "arc" }>): Point {
+function noseAfter(from: Point, step: Extract<OwnStep, { kind: "line" | "arc" }>): Point {
   if (typeof step.nose === "number") {
     return courseVector(step.nose);
   }
@@ -322,9 +333,18 @@ function kitesOn(where: string, value: unknown): number {
 }
 
 // `heading` — куда смотрит нос перед шагом, если это следует из пути.
-function parseStep(where: string, raw: unknown, position: Point | null, heading: Point | null = null): Step {
+// `own` — шаг записан не со страницы книги: полей о первоисточнике и записей
+// «книга не показывает» у него нет.
+function parseStep(where: string, raw: unknown, position: Point | null, heading: Point | null = null, own = false): Step {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     fail(where, "ожидается объект");
+  }
+  if (own) {
+    for (const key of BOOK_FIELDS) {
+      if ((raw as Record<string, unknown>)[key] !== undefined) {
+        fail(`${where}.${key}`, "поле говорит о странице книги; у шага, записанного не с неё, его нет");
+      }
+    }
   }
   const kind = (raw as Record<string, unknown>).kind;
   switch (kind) {
@@ -342,6 +362,9 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       // кайт остаётся на той, с которой пришёл. Незаданной бывает одна из двух.
       const open = Array.isArray(value.to) && value.to.length === 2 ? value.to.map((part) => part === null) : [false, false];
       const unset = open[0] !== open[1] ? (open[0] ? 0 : 1) : undefined;
+      if (own && unset !== undefined) {
+        fail(`${where}.to`, "незаданной бывает только величина книги; у шага, записанного не с неё, обе координаты — числа");
+      }
       if ((unset !== undefined) !== (value.basis === UNSPECIFIED)) {
         fail(
           `${where}.basis`,
@@ -417,6 +440,9 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
             : "курс носа записывается только у остановки",
         );
       }
+      if (own && value.nose !== undefined && typeof value.nose !== "number") {
+        fail(`${where}.nose`, "курс носа в остановке, записанной не со страницы книги, — число");
+      }
       return {
         kind,
         mark,
@@ -440,9 +466,9 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       if (value.about === undefined) {
         fail(`${where}.about`, "обязательна точка поворота либо запись «not_found» с причиной");
       }
-      const named = typeof value.about === "string";
+      const named = own || typeof value.about === "string";
       const about = named ? oneOf(`${where}.about`, value.about, ROTATE_ABOUT) : missing(`${where}.about`, value.about);
-      if (named !== (value.about_basis !== undefined)) {
+      if (!own && named !== (value.about_basis !== undefined)) {
         fail(
           `${where}.about_basis`,
           named
@@ -455,7 +481,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
         degrees,
         direction,
         about,
-        ...(named ? { about_basis: oneOf(`${where}.about_basis`, value.about_basis, ABOUT_BASES) } : {}),
+        ...(named && !own ? { about_basis: oneOf(`${where}.about_basis`, value.about_basis, ABOUT_BASES) } : {}),
       };
       // Вокруг центра нос остаётся в своей точке сетки; вокруг законцовки кайт
       // переезжает, и куда — обязано быть сказано здесь же: иначе смещение
@@ -475,7 +501,7 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
       // Книга объявляет положение после поворота незаданным: оно зависит от
       // размаха кайта. Точки в данных тогда нет — нос уходит вокруг названной
       // законцовки на размах значка, которым кайт нарисован на схеме.
-      const open = typeof value.to === "object" && value.to !== null && !Array.isArray(value.to);
+      const open = !own && typeof value.to === "object" && value.to !== null && !Array.isArray(value.to);
       let to: Point;
       let basis: Basis;
       if (open) {
@@ -538,35 +564,30 @@ function parseStep(where: string, raw: unknown, position: Point | null, heading:
   }
 }
 
-function parseKite(where: string, raw: unknown): Kite {
-  const value = record(where, raw, ["id", "path", "color"]);
-  if (value.color !== undefined && (typeof value.color !== "number" || !Number.isInteger(value.color) || value.color < 1 || value.color > 5)) {
-    fail(`${where}.color`, "номер цвета кайта — целое от 1 до 5");
-  }
-  const id = text(`${where}.id`, value.id);
-  const path: Step[] = [];
-  let position: Point | null = null;
-  // Куда смотрит нос, пока это следует из пути: по нему сверяется законцовка.
-  // Шаг `unmarked` курса не задаёт: его порядок записан один из возможных.
-  let heading: Point | null = null;
-  // Отрезки и дуги между «in» и «out»: оцениваемая часть не бывает пустой.
-  let judged = 0;
-  const calls: MarkName[] = [];
-  list(`${where}.path`, value.path).forEach((item, index) => {
-    const at = `${where}.path[${index}]`;
-    const step = parseStep(at, item, position, heading);
-    if ((step.kind === "start") !== (index === 0)) {
-      fail(at, "путь начинается шагом «start», и такой шаг в нём один");
-    }
-    if (step.kind === "start") {
-      position = step.at;
-    } else if (step.kind === "line" || step.kind === "arc") {
-      heading = position === null || step.unmarked ? null : noseAfter(position, step);
-      position = step.to;
-      if (calls.join(",") === "in") {
-        judged += 1;
-      }
-    } else if (step.kind === "rotate") {
+// Шаг, записанный не со страницы книги: тот же разбор и те же проверки
+// геометрии, что у шага фигуры, без полей о первоисточнике.
+export function parseOwnStep(where: string, raw: unknown, pose: Pose): OwnStep {
+  const step = parseStep(where, raw, pose.position, pose.heading, true) as OwnStep & { basis?: unknown };
+  delete step.basis;
+  return step;
+}
+
+// Где нос кайта и куда он смотрит. `position` пуст до шага «start». `heading`
+// пуст, пока курс из пути не следует: шаг `unmarked` его не задаёт — порядок
+// такого шага записан один из возможных.
+export type Pose = { position: Point | null; heading: Point | null };
+
+export function poseAfter({ position, heading }: Pose, step: Step | OwnStep): Pose {
+  switch (step.kind) {
+    case "start":
+      return { position: step.at, heading };
+    case "line":
+    case "arc":
+      return {
+        position: step.to,
+        heading: position === null || ("unmarked" in step && step.unmarked) ? null : noseAfter(position, step),
+      };
+    case "rotate": {
       if (heading !== null) {
         // По часовой курс растёт.
         const angle = ((step.direction === "cw" ? step.degrees : -step.degrees) * Math.PI) / 180;
@@ -575,9 +596,34 @@ function parseKite(where: string, raw: unknown): Kite {
           heading[1] * Math.cos(angle) - heading[0] * Math.sin(angle),
         ];
       }
-      if (isSwing(step)) {
-        position = step.to;
-      }
+      return { position: step.to ?? position, heading };
+    }
+    default:
+      return { position, heading };
+  }
+}
+
+function parseKite(where: string, raw: unknown): Kite {
+  const value = record(where, raw, ["id", "path", "color"]);
+  if (value.color !== undefined && (typeof value.color !== "number" || !Number.isInteger(value.color) || value.color < 1 || value.color > 5)) {
+    fail(`${where}.color`, "номер цвета кайта — целое от 1 до 5");
+  }
+  const id = text(`${where}.id`, value.id);
+  const path: Step[] = [];
+  // По курсу носа сверяется законцовка поворота.
+  let pose: Pose = { position: null, heading: null };
+  // Отрезки и дуги между «in» и «out»: оцениваемая часть не бывает пустой.
+  let judged = 0;
+  const calls: MarkName[] = [];
+  list(`${where}.path`, value.path).forEach((item, index) => {
+    const at = `${where}.path[${index}]`;
+    const step = parseStep(at, item, pose.position, pose.heading);
+    if ((step.kind === "start") !== (index === 0)) {
+      fail(at, "путь начинается шагом «start», и такой шаг в нём один");
+    }
+    pose = poseAfter(pose, step);
+    if ((step.kind === "line" || step.kind === "arc") && calls.join(",") === "in") {
+      judged += 1;
     } else if (step.kind === "mark" && (step.mark === "in" || step.mark === "out")) {
       calls.push(step.mark);
     }
