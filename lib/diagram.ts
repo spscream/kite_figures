@@ -405,7 +405,7 @@ export function colorOf(kite: Kite, order: number): number {
 }
 
 // Посадка на оба конца крыла: севший двухстропный кайт стоит носом вверх.
-const ON_TIPS = ["two-point", "snap-two-point", "stall-two-point", "spin-two-point"];
+export const ON_TIPS = ["two-point", "snap-two-point", "stall-two-point", "spin-two-point"];
 
 // `rev` — фигура для четырёхстропного кайта (разделы Multi-line).
 export function drawVariant(variant: Variant, rev = false): Drawing {
