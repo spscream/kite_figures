@@ -512,6 +512,53 @@ h1 {
   stroke-dasharray: 1.6 1.2;
 }
 
+/* Кайты команды — своим цветом, как линии схемы, и с номером у значка: без
+   цвета их различает номер. */
+.p-k1 {
+  --p-tone: var(--k1);
+}
+
+.p-k2 {
+  --p-tone: var(--k2);
+}
+
+.p-k3 {
+  --p-tone: var(--k3);
+}
+
+.p-k4 {
+  --p-tone: var(--k4);
+}
+
+.p-k5 {
+  --p-tone: var(--k5);
+}
+
+.p-team.p-kite,
+.p-team.p-spot {
+  fill: var(--p-tone);
+  stroke-width: 1.1;
+}
+
+.p-team.p-unsure {
+  fill: var(--bg);
+  stroke: var(--p-tone);
+}
+
+.p-team.p-track {
+  stroke: var(--p-tone);
+}
+
+.p-tag {
+  fill: var(--p-tone, var(--accent));
+  stroke: var(--bg);
+  stroke-width: 1.4;
+  paint-order: stroke;
+  font-size: 5px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 .player {
   margin: 0.5rem 0;
 }

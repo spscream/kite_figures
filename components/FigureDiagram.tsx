@@ -238,19 +238,15 @@ export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
               </h2>
             )}
             <figure className="diagram">
-              {/* Путь одного кайта проигрывается поверх схемы; пары и команды — нет: там нужна одновременность. */}
-              {variant.kites.length === 1 ? (
-                <FigurePlayer
-                  path={variant.kites[0].path}
-                  rev={multiline}
-                  rows={describeKite(variant.kites[0]).map((line) => lineText(line, false))}
-                  viewBox={drawings[index].viewBox}
-                >
-                  {diagram}
-                </FigurePlayer>
-              ) : (
-                diagram
-              )}
+              {/* Путь проигрывается поверх схемы: у одного кайта — по строкам списка шагов, у пары и команды — по меткам одновременности. */}
+              <FigurePlayer
+                kites={variant.kites.map((kite, order) => ({ id: kite.id, path: kite.path, color: colorOf(kite, order) }))}
+                rev={multiline}
+                rows={variant.kites.length === 1 ? describeKite(variant.kites[0]).map((line) => lineText(line, false)) : []}
+                viewBox={drawings[index].viewBox}
+              >
+                {diagram}
+              </FigurePlayer>
               <figcaption>
                 <Legend drawing={drawings[index]} kites={variant.kites.map((kite, order) => ({ id: kite.id, color: colorOf(kite, order) }))} rev={multiline} />
                 {index === 0 && (

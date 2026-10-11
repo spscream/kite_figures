@@ -7,6 +7,8 @@
 // от −100 (левый край) до 100 (правый), ноль — горизонтальный центр окна;
 // `y` — от 0 (земля) до 100. Угол растёт против часовой стрелки.
 
+import { syncOf } from "./sync";
+
 export const GRID = { xMin: -100, xMax: 100, yMin: 0, yMax: 100 } as const;
 
 // Допуск на сведение дуги: координаты пишутся с двумя знаками после запятой.
@@ -712,6 +714,13 @@ function parseVariant(where: string, raw: unknown, pages: number): Variant {
   };
   if (value.path_kites !== undefined) {
     variant.path_kites = oneOf(`${where}.path_kites`, value.path_kites, ["book"] as const);
+  }
+  // Метка одновременности называет момент, только когда она парная и порядок
+  // меток у кайтов один: иначе сводить кайты не по чему.
+  try {
+    syncOf(kites);
+  } catch (error) {
+    fail(`${where}.kites`, (error as Error).message);
   }
   kites.forEach((kite, index) => {
     kite.path.forEach((step, at) => {

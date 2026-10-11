@@ -29,7 +29,7 @@
 // модулю надо сказать, какой кайт летит (`rev`).
 //
 // Одновременность кайтов (`sync`) здесь не учитывается: равная доля у двух
-// кайтов одной схемы — не один и тот же момент.
+// кайтов одной схемы — не один и тот же момент. Кайты сводит `lib/playback.ts`.
 
 import { along, noseAt, ON_TIPS } from "./diagram";
 import { isSwing, pivotOf, UNSPECIFIED, type Point, type Step, type Swing } from "./geometry";

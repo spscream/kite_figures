@@ -155,7 +155,7 @@ describe("parseGeometry", () => {
       { kind: "line", to: [40, 10], nose: 0 },
       { kind: "rotate", degrees: 180, direction: "cw", ...CENTER },
       { kind: "line", to: [40, 50], nose: "backward" },
-      { kind: "arc", to: [40, 50], center: [40, 70], direction: "ccw", sweep: 360, nose: "out", sync: "a" },
+      { kind: "arc", to: [40, 50], center: [40, 70], direction: "ccw", sweep: 360, nose: "out" },
       markOut,
     ]);
     expect(read.status).toBe("ok");

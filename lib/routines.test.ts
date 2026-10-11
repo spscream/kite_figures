@@ -200,8 +200,8 @@ describe("parseRoutine", () => {
         kites: ["1", "2"],
         segments: [
           { origin: "own", paths: { "1": [start([-50, 20]), markIn], "2": [start([50, 20]), markIn] } },
-          { origin: "own", paths: { "1": [line([-10, 20], { sync: "a" })], "2": [] } },
-          { origin: "own", paths: { "1": [markOut], "2": [line([10, 20], { sync: "a" }), markOut] } },
+          { origin: "own", paths: { "1": [line([-10, 20])], "2": [] } },
+          { origin: "own", paths: { "1": [markOut], "2": [line([10, 20]), markOut] } },
         ],
       }),
     );

@@ -9,6 +9,7 @@ import {
   frameAt,
   GAP_TEXT,
   HOLD,
+  NO_SYNC_TEXT,
   PACE_TEXT,
   paceOf,
   pause,
@@ -16,9 +17,15 @@ import {
   sceneOf,
   SPEED,
   START,
+  stopText,
+  TEAM_GAP_TEXT,
+  TEAM_PACE_TEXT,
+  teamFrameAt,
+  teamOf,
   tick,
   TURN_RATE,
 } from "./playback";
+import { syncOf } from "./sync";
 import { describeKite } from "./steps";
 
 const start = { kind: "start", at: [-50, 20] };
@@ -487,5 +494,258 @@ describe("каждый путь каталога с одним кайтом", ()
       const first = kite.path[0];
       expect(frameAt(sceneOf(kite.path, rev), START).pose.point, code).toEqual(first.kind === "start" ? first.at : null);
     }
+  });
+});
+
+// Пара или команда: пути разбираются одним вариантом, как у фигуры каталога.
+function crew(...paths: unknown[][]) {
+  const raw = {
+    status: "ok",
+    variants: [
+      {
+        id: "main",
+        kites: paths.map((steps, index) => ({ id: String(index + 1), path: steps })),
+        grid: { x: [0], y: [50] },
+        guides: { status: "not_found", reason: "на схеме их нет" },
+      },
+    ],
+    notes: ["для теста"],
+  };
+  const read = parseGeometry("g", raw, 125);
+  if (read.status !== "ok") {
+    throw new Error("геометрия не разобрана");
+  }
+  return read.variants[0].kites.map((kite, index) => ({ id: kite.id, path: kite.path, color: index + 1 }));
+}
+
+const rest = (row: number): Cursor => ({ row, t: 1, run: "rest" });
+const flying = (row: number, t: number): Cursor => ({ row, t, run: "step" });
+
+describe("проигрывание нескольких кайтов", () => {
+  // Первый кайт летит 30 единиц, второй — 60 и затем ещё 30; метки — на входе,
+  // в конце первого пролёта и на выходе.
+  const pair = () =>
+    teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20], sync: "a" }, { kind: "line", to: [-20, 80] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-10, 20], sync: "a" }, { kind: "line", to: [-10, 50] }, { ...markOut, sync: "out" }],
+      ),
+      false,
+    )!;
+
+  it("шаг показа — от общей метки до следующей; строка называет метку", () => {
+    const team = pair();
+    expect(team.rows.map((row) => row.labels)).toEqual([["in"], ["a"], ["out"]]);
+    expect(team.rows.map((_, index) => stopText(team, index))).toEqual([
+      "Начало — общая метка [in].",
+      "До общей метки [a]: кайты приходят к ней в один момент.",
+      "До общей метки [out]: кайты приходят к ней в один момент.",
+    ]);
+    // Шаг длится столько, сколько летит тот, кому дольше.
+    expect(team.rows.map((row) => row.seconds)).toEqual([0, 60 / SPEED, 60 / SPEED]);
+    expect(team.rows.every((row) => row.gaps.length === 0)).toBe(true);
+  });
+
+  it("к метке кайты приходят вместе: в конце шага каждый стоит в конце своего шага с этой меткой", () => {
+    const team = pair();
+    expect(teamFrameAt(team, rest(0)).kites.map((kite) => kite.pose.point)).toEqual([[-50, 20], [50, 20]]);
+    expect(teamFrameAt(team, rest(1)).kites.map((kite) => kite.pose.point)).toEqual([[-20, 20], [-10, 20]]);
+    expect(teamFrameAt(team, rest(2)).kites.map((kite) => kite.pose.point)).toEqual([[-20, 80], [-10, 50]]);
+  });
+
+  it("между двумя метками каждый кайт идёт со своей постоянной скоростью: в ту же долю шага — в той же доле своего пути", () => {
+    const team = pair();
+    for (const t of [0.25, 0.5, 0.75]) {
+      const [first, second] = teamFrameAt(team, flying(1, t)).kites.map((kite) => kite.pose.point!);
+      expect(first[0]).toBeCloseTo(-50 + 30 * t);
+      expect(second[0]).toBeCloseTo(50 - 60 * t);
+      const [third, fourth] = teamFrameAt(team, flying(2, t)).kites.map((kite) => kite.pose.point!);
+      expect(third[1]).toBeCloseTo(20 + 60 * t);
+      expect(fourth[1]).toBeCloseTo(20 + 30 * t);
+    }
+  });
+
+  it("шагает теми же кнопками, что один кайт: вперёд — к следующей метке, назад — к прошлой", () => {
+    const team = pair();
+    let at = forward(team, START);
+    expect(at).toEqual({ row: 1, t: 0, run: "step" });
+    at = tick(team, at, 1);
+    expect(at.row).toBe(1);
+    expect(at.t).toBeCloseTo(0.5);
+    at = tick(team, at, 5);
+    expect(at).toEqual(rest(1));
+    expect(back(forward(team, at, true))).toEqual(rest(1));
+    expect(tick(team, play(team, START), 100)).toEqual(rest(2));
+  });
+
+  it("встречные курсы не разводит: кайты, идущие навстречу по одной линии, в середине шага стоят в одной точке", () => {
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-30, 50] }, { ...markIn, sync: "in" }, { kind: "line", to: [30, 50] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [30, 50] }, { ...markIn, sync: "in" }, { kind: "line", to: [-30, 50] }, { ...markOut, sync: "out" }],
+      ),
+      false,
+    )!;
+    const [first, second] = teamFrameAt(team, flying(1, 0.5)).kites.map((kite) => kite.pose.point!);
+    expect(first[0]).toBeCloseTo(0);
+    expect(second[0]).toBeCloseTo(0);
+  });
+
+  it("до первой метки и после последней кайт идёт с условной скоростью сам по себе, и шаг показа это называет", () => {
+    // Вход без метки: первому до метки 30 единиц, второму — 60; после метки
+    // первому лететь ещё 60, второму — 30.
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, markIn, { kind: "line", to: [-20, 20], sync: "a" }, { kind: "line", to: [-20, 80] }, markOut],
+        [{ kind: "start", at: [50, 20] }, markIn, { kind: "line", to: [-10, 20], sync: "a" }, { kind: "line", to: [-10, 50] }, markOut],
+      ),
+      false,
+    )!;
+    expect(team.rows.map((row) => row.labels)).toEqual([[], ["a"], []]);
+    expect(team.rows.map((row) => row.gaps)).toEqual([[], ["loose"], ["loose"]]);
+    expect(stopText(team, 0)).toBe("Начало: до первой общей метки.");
+    expect(stopText(team, 2)).toBe("После последней общей метки — до конца путей.");
+    // Тот, кому до метки ближе, ждёт в точке старта и вылетает позже.
+    const [first, second] = teamFrameAt(team, flying(1, 0.25)).kites.map((kite) => kite.pose.point!);
+    expect(first).toEqual([-50, 20]);
+    expect(second[0]).toBeCloseTo(50 - 15);
+    expect(teamFrameAt(team, flying(1, 0.75)).kites[0].pose.point![0]).toBeCloseTo(-50 + 15);
+    expect(teamFrameAt(team, rest(1)).kites.map((kite) => kite.pose.point)).toEqual([[-20, 20], [-10, 20]]);
+    // После метки второй долетает раньше и стоит в конце пути.
+    const tail = teamFrameAt(team, flying(2, 0.75)).kites.map((kite) => kite.pose.point!);
+    expect(tail[0][1]).toBeCloseTo(20 + 45);
+    expect(tail[1]).toEqual([-10, 50]);
+  });
+
+  it("кайт, которому между метками лететь нечего, стоит и ждёт остальных", () => {
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20], sync: "a" }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [20, 20], sync: "a" }, { kind: "line", to: [20, 50] }, { ...markOut, sync: "out" }],
+      ),
+      false,
+    )!;
+    expect(teamFrameAt(team, flying(2, 0.5)).kites.map((kite) => kite.pose.point)).toEqual([[-20, 20], [20, 35]]);
+  });
+
+  it("вариант без единой метки не проигрывается, и об этом сказано словами", () => {
+    expect(
+      teamOf(
+        crew(
+          [{ kind: "start", at: [-50, 20] }, markIn, { kind: "line", to: [-20, 20] }, markOut],
+          [{ kind: "start", at: [50, 20] }, markIn, { kind: "line", to: [20, 20] }, markOut],
+        ),
+        false,
+      ),
+    ).toBeNull();
+    expect(NO_SYNC_TEXT).toMatch(/не проигрывается/);
+  });
+
+  it("на шаге, чей порядок книга не показала, кайта нет — остаётся линия; номер кайта стоит у значка", () => {
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20], unmarked: true }, { kind: "line", to: [-20, 50] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [20, 20] }, { kind: "line", to: [20, 50] }, { ...markOut, sync: "out" }],
+      ),
+      false,
+    );
+    // Вариант с `unmarked` обязан нести заметку — разбор без неё не пройдёт.
+    expect(team).not.toBeNull();
+    const [first, second] = teamFrameAt(team!, flying(1, 0.25)).kites;
+    expect(first.glyph).toBeNull();
+    expect(first.track).toBe("M-50 80L-20 80");
+    expect(first.tag).toBeNull();
+    expect(second.glyph?.kind).toBe("kite");
+    expect(second.track).toBe("");
+    expect(second.tag).not.toBeNull();
+    expect(team!.rows[1].gaps).toEqual(["order"]);
+  });
+
+  it("подписи не называют ни секунд, ни скорости", () => {
+    for (const text of [TEAM_PACE_TEXT, NO_SYNC_TEXT, ...Object.values(TEAM_GAP_TEXT)]) {
+      expect(text).not.toMatch(/\d/);
+    }
+  });
+});
+
+describe("проигрывание пар и команд каталога", () => {
+  const TEAMS = listFigures().flatMap((figure) =>
+    figure.geometry.status === "ok"
+      ? figure.geometry.variants
+          .filter((variant) => variant.kites.length > 1)
+          .map((variant) => ({
+            name: `${figure.code} ${variant.id}`,
+            code: figure.code,
+            variant,
+            team: teamOf(variant.kites.map((kite, index) => ({ id: kite.id, path: kite.path, color: index + 1 })), figure.discipline.startsWith("multi-line")),
+          }))
+      : [],
+  );
+  const played = TEAMS.filter((item) => item.team !== null);
+
+  it("проигрывается 71 вариант из 76; пять без меток — нет", () => {
+    expect(TEAMS).toHaveLength(76);
+    expect(played).toHaveLength(71);
+    expect(TEAMS.filter((item) => item.team === null).map((item) => item.code)).toEqual(["MT 02", "MT 03", "MT 05", "MT 06", "MT 12"]);
+  });
+
+  it("каждая метка — конец шага показа, и в этот момент у каждого кайта кончается шаг с этой меткой", () => {
+    for (const { name, variant, team } of played) {
+      const { meets, order } = syncOf(variant.kites);
+      expect(team!.rows.flatMap((row) => row.labels), name).toEqual(order);
+      team!.rows.forEach((row) => {
+        for (const label of row.labels) {
+          team!.kites.forEach((member, kite) => {
+            const { step } = meets[kite].find((meet) => meet.label === label)!;
+            const leg = member.legs.findIndex((item) => item.index === step);
+            expect(member.spans[leg][1], `${name}, кайт ${member.id}, метка ${label}`).toBeCloseTo(row.from + row.seconds, 6);
+          });
+        }
+      });
+    }
+  });
+
+  it("шаги каждого кайта идут подряд, без возврата во времени, и ни один шаг показа не пуст", () => {
+    for (const { name, team } of played) {
+      for (const member of team!.kites) {
+        expect(member.spans).toHaveLength(member.legs.length);
+        member.spans.forEach(([since, until], index) => {
+          expect(until, name).toBeGreaterThanOrEqual(since);
+          expect(since, name).toBeGreaterThanOrEqual(index > 0 ? member.spans[index - 1][1] - 1e-9 : -1e-9);
+        });
+      }
+      expect(team!.rows.slice(1).every((row) => row.seconds > 0), name).toBe(true);
+    }
+  });
+
+  it("кадр считается в любом месте каждого шага показа", () => {
+    for (const { name, team } of played) {
+      team!.rows.forEach((_, row) => {
+        for (const t of row === 0 ? [1] : [0, 0.3, 0.7, 1]) {
+          const frame = teamFrameAt(team!, { row, t, run: "rest" });
+          expect(frame.kites, name).toHaveLength(team!.kites.length);
+          for (const kite of frame.kites) {
+            expect(kite.glyph === null ? kite.track !== "" : !kite.glyph.d.includes("NaN"), `${name}, шаг ${row}, доля ${t}`).toBe(true);
+          }
+        }
+      });
+    }
+  });
+
+  // Замер, а не требование: где показ вынужден выбирать сам, раз метки молчат.
+  it("пролёты вне меток есть у 17 вариантов; в точке старта первой метки ждут девять кайтов — у MT 01, MT 04 и MT 07", () => {
+    const loose = played.filter(({ team }) => team!.rows.some((row) => row.gaps.includes("loose")));
+    expect(loose.map((item) => item.code)).toEqual([
+      ...["MP 01", "MP 03", "MP 04", "MP 06", "MP 07", "MP 08", "MP 09", "MP 10", "MP 11", "MP 12", "MP 13", "MP 14"],
+      ...["MT 01", "MT 04", "MT 07", "MT 08", "MT 11"],
+    ]);
+    const waiting = played.flatMap(({ code, team }) =>
+      team!.kites.filter((member) => (member.spans.find(([since, until]) => until > since)?.[0] ?? 0) > 1e-6).map(() => code),
+    );
+    expect(waiting).toEqual(["MT 01", "MT 01", "MT 01", "MT 04", "MT 04", "MT 04", "MT 07", "MT 07", "MT 07"]);
+  });
+
+  it("у 49 вариантов общих моментов два — вход и выход, и вся фигура идёт одним шагом показа", () => {
+    expect(played.filter(({ team }) => team!.rows.length === 2)).toHaveLength(49);
   });
 });
