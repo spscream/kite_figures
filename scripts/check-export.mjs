@@ -176,6 +176,9 @@ const ABOUT_WORDS = { center: " вокруг центра", "left-tip": " вок
 const ABOUT_DERIVED = " (выведено, книгой не названо)";
 const ABOUT_MISSING = " (точка поворота в книге не названа)";
 
+// Начало подписи под кнопками проигрывания — повторено, как и подписи шагов.
+const PACE_NOTE = "Темп условный: скорости книга не задаёт.";
+
 // Поворот, который сам перемещает кайт: у него записано, куда пришёл нос.
 function isSwing(step) {
   return step.kind === "rotate" && Array.isArray(step.to);
@@ -379,6 +382,54 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     const many = kites.length > 1;
     // Цвет кайта — по месту в списке, пока данные не назвали другой.
     const colorOf = (order) => kites[order].color ?? (order % 5) + 1;
+
+    // Проигрывание пути — только у варианта с одним кайтом: парам и командам
+    // нужна одновременность. Блок с кнопками собран скрытым и схему не
+    // заменяет: без JavaScript страница — та же схема. Темп назван условным,
+    // и времени в блоке нет: единственные числа — номер шага и его строка.
+    const stages = block.split('<div class="p-stage">').length - 1;
+    const players = block.match(/<div class="player"[^>]*>/g) ?? [];
+    if (many) {
+      if (stages > 0 || players.length > 0) {
+        say("есть проигрывание, а кайтов несколько");
+      }
+    } else {
+      if (stages !== 1 || !block.includes('<div class="p-stage"><svg class="d-svg"')) {
+        say("схема не обёрнута слоем проигрывания");
+      }
+      if (players.length !== 1 || players[0] !== '<div class="player" hidden="">') {
+        say("блок проигрывания не один или собран не скрытым");
+      }
+      const player = block.slice(block.indexOf('<div class="player"'), block.indexOf("<figcaption"));
+      const rows = kites[0].path.filter((step) => step.kind !== "mark" && (step.kind !== "rotate" || isSwing(step))).length;
+      if (!player.includes(`<b>Шаг 1 из ${rows}.</b>`)) {
+        say(`в проигрывании не ${rows} шагов`);
+      }
+      for (const name of ["В начало", "← Назад", "Вперёд →", "Весь путь"]) {
+        if (!player.includes(`>${name}</button>`)) {
+          say(`в проигрывании нет кнопки «${name}»`);
+        }
+      }
+      if (!player.includes(`<p class="note">${PACE_NOTE}`)) {
+        say("не сказано, что темп проигрывания условный");
+      }
+      // Строка шага — та же, что первая в списке под схемой.
+      const shown = player.match(/<p class="p-step"><b>[^<]*<\/b> (?:<!-- -->)?([^<]*)<\/p>/)?.[1];
+      const listed = block.match(/<ol><li>([^<]*)/)?.[1];
+      if (shown === undefined || shown.trim() !== listed?.trim()) {
+        say("строка шага в проигрывании не та, что первая в списке шагов");
+      }
+      if (block.includes('class="p-svg"')) {
+        say("слой проигрывания собран в страницу: без JavaScript на схеме был бы лишний кайт");
+      }
+      if (/<input|<progress|<meter/.test(player)) {
+        say("в блоке проигрывания есть шкала: времени там быть не должно");
+      }
+      const said = player.replace(/<p class="p-step">[\s\S]*?<\/p>/, "").replace(/<[^>]*>/g, "");
+      if (/\d/.test(said) || player.includes("<time")) {
+        say("в блоке проигрывания есть число помимо номера шага: времени там быть не должно");
+      }
+    }
 
     if (variant.team_size !== undefined && !block.includes(`<h2>Состав: ${variant.team_size}`)) {
       say(`нет заголовка «Состав: ${variant.team_size}»`);
@@ -1175,6 +1226,12 @@ function scripts(dir) {
 }
 if (!scripts(path.join(out, "_next")).some((file) => fs.readFileSync(file, "utf8").includes(`"/${INDEX_FILE}"`))) {
   problems.push(`клиентский код не обращается к /${INDEX_FILE}`);
+}
+
+// Проигрывание живёт в клиентском коде: блок с кнопками на странице собран
+// скрытым, и без этого кода его некому открыть.
+if (!scripts(path.join(out, "_next")).some((file) => /p-svg[\s\S]*p-unsure/.test(fs.readFileSync(file, "utf8")))) {
+  problems.push("в клиентском коде нет слоя проигрывания пути");
 }
 
 // В out/figures/ и out/disciplines/ — ровно по каталогу на фигуру и на

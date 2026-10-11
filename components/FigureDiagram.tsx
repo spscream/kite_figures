@@ -1,3 +1,4 @@
+import { FigurePlayer } from "@/components/FigurePlayer";
 import { colorOf, type Drawing, drawVariant, KITE_SHAPES, roomX, roomY, shape, type Shape, SHAPES, ticks, wordOf, WORDS } from "@/lib/diagram";
 import type { Variant } from "@/lib/geometry";
 import { describeKite, lineText, UNMARKED_TEXT } from "@/lib/steps";
@@ -212,6 +213,13 @@ export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
             : variants.length > 1
               ? `Вариант «${variant.id}»`
               : null;
+        const diagram = (
+          <Diagram
+            drawing={drawings[index]}
+            label={`Схема фигуры ${title}${heading ? `, ${heading.toLowerCase()}` : ""}`}
+            colors={variant.kites.map(colorOf)}
+          />
+        );
         return (
           <section key={variant.id} className="variant">
             {heading && (
@@ -228,11 +236,19 @@ export function FigureDiagrams({ title, variants, pageUrl, multiline }: Props) {
               </h2>
             )}
             <figure className="diagram">
-              <Diagram
-                drawing={drawings[index]}
-                label={`Схема фигуры ${title}${heading ? `, ${heading.toLowerCase()}` : ""}`}
-                colors={variant.kites.map(colorOf)}
-              />
+              {/* Путь одного кайта проигрывается поверх схемы; пары и команды — нет: там нужна одновременность. */}
+              {variant.kites.length === 1 ? (
+                <FigurePlayer
+                  path={variant.kites[0].path}
+                  rev={multiline}
+                  rows={describeKite(variant.kites[0]).map((line) => lineText(line, false))}
+                  viewBox={drawings[index].viewBox}
+                >
+                  {diagram}
+                </FigurePlayer>
+              ) : (
+                diagram
+              )}
               <figcaption>
                 <Legend drawing={drawings[index]} kites={variant.kites.map((kite, order) => ({ id: kite.id, color: colorOf(kite, order) }))} rev={multiline} />
                 {index === 0 && (

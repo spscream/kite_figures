@@ -84,7 +84,7 @@ export type Leg = {
 const UP: Point = [0, 1];
 
 // Поворот со смещением как дуга носа вокруг точки поворота.
-function swingArc(from: Point, step: Swing): Move {
+export function swingArc(from: Point, step: Swing): Move {
   return {
     kind: "arc",
     to: step.to,
