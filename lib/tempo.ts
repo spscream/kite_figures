@@ -34,7 +34,8 @@ export type Slot = {
   segment: number;
   kite: string;
   index: number;
-  // Шаг словами — теми же, что в списке шагов.
+  // Шаг словами — теми же, что в списке шагов, но без значков происхождения
+  // координаты (○ □ ◇): подпись поля называет шаг, а не разбирает его.
   text: string;
   // Длительность, записанная в рутине; `null` — темп шага не задан.
   seconds: number | null;
@@ -76,7 +77,9 @@ export function durationsOf(routine: Routine): Map<string, number> {
 // Поле ввода длительности: до четырёх цифр секунд и до трёх знаков после
 // запятой или точки. Границы — поля, а не правил: тысячная — точность, с
 // которой проверки сравнивают время, а больше 9999 с не длится ни одна рутина.
-const FIELD = /^\d{1,4}(?:[.,]\d{1,3})?$/;
+// Запятая без цифр за ней («4,») читается как целое: это число на полпути к
+// «4,5», и ошибкой посреди набора оно не становится.
+const FIELD = /^\d{1,4}(?:[.,]\d{0,3})?$/;
 
 // В поле записано не число секунд.
 export const BAD = "bad";
@@ -98,6 +101,12 @@ export function readField(text: string): number | null | typeof BAD {
 
 export function fieldText(seconds: number | null): string {
   return seconds === null ? "" : String(seconds).replace(".", ",");
+}
+
+// Что стоит в полях редактора, пока автор ничего не правил: длительность шага
+// из рутины, а у шага без неё — пусто. `bare` — все поля пусты.
+export function fieldsOf(slots: Slot[], bare = false): Record<string, string> {
+  return Object.fromEntries(slots.map((slot) => [slot.key, fieldText(bare ? null : slot.seconds)]));
 }
 
 // Та же рутина с другими длительностями: у шага из набора — его число, у
@@ -142,14 +151,16 @@ function put(object: Json, key: string, value: unknown): Json {
 // фигуры, на которую файл только ссылается. Меняется одно поле `seconds`: у
 // своего шага оно стоит у шага, у фигуры — списком у ссылки, по значению на
 // шаг, `null` — темп не задан; кайт, у которого не задано ничего, списка не
-// получает.
-export function fileWithDurations(file: unknown, routine: Routine, durations: Durations): Json {
+// получает. В файл идёт то же, что в рутину: длительность не у шага, который
+// длится, отбрасывается, не положительная — ошибка.
+export function fileWithDurations(file: unknown, routine: Routine, given: Durations): Json {
   if (!isRecord(file) || !Array.isArray(file.segments) || file.segments.length !== routine.segments.length) {
     throw new Error("файл рутины и разобранная рутина расходятся: число частей не то");
   }
+  const durations = durationsOf(withDurations(routine, given));
   const segments = file.segments.map((raw: unknown, at) => {
     const segment = routine.segments[at];
-    if (!isRecord(raw) || raw.origin !== segment.origin) {
+    if (!isRecord(raw) || raw.origin !== segment.origin || (segment.origin === "figure" && raw.figure !== segment.figure)) {
       throw new Error(`файл рутины и разобранная рутина расходятся: часть ${at + 1}`);
     }
     if (segment.origin === "figure") {
@@ -184,15 +195,28 @@ const flat = (value: unknown): string =>
           .join(", ")}}`
       : JSON.stringify(value);
 
-function segmentText(segment: unknown): string {
+// Кайты — в порядке списка `kites` рутины. Разбор JSON сам переставляет ключи
+// из одних цифр по возрастанию, так что порядок записи в файле до нас не
+// доходит; порядок списка кайтов — единственный, который можно вернуть.
+function byKite(value: Json, kites: unknown[]): [string, unknown][] {
+  const place = (kite: string) => (kites.includes(kite) ? kites.indexOf(kite) : kites.length);
+  return Object.entries(value).sort(([a], [b]) => place(a) - place(b));
+}
+
+function segmentText(segment: unknown, kites: unknown[]): string {
   if (!isRecord(segment)) {
     return `    ${flat(segment)}`;
   }
   const fields = Object.entries(segment).map(([key, value]) => {
+    if (key === "seconds" && isRecord(value)) {
+      return `"seconds": {${byKite(value, kites)
+        .map(([kite, list]) => `${JSON.stringify(kite)}: ${flat(list)}`)
+        .join(", ")}}`;
+    }
     if (key !== "paths" || !isRecord(value)) {
       return `${JSON.stringify(key)}: ${flat(value)}`;
     }
-    const paths = Object.entries(value).map(
+    const paths = byKite(value, kites).map(
       ([kite, steps]) =>
         `${JSON.stringify(kite)}: ${Array.isArray(steps) && steps.length > 0 ? `[\n${steps.map((step) => `      ${flat(step)}`).join(",\n")}\n    ]` : flat(steps)}`,
     );
@@ -202,12 +226,16 @@ function segmentText(segment: unknown): string {
 }
 
 // Текст файла рутины в том виде, в каком рутины лежат в `data/routines/`:
-// поле на строку, часть на строку, шаг своей части на строку. Файл каталога,
-// прочитанный и записанный обратно без правок, выходит тем же байт в байт —
+// поле на строку, часть на строку, шаг своей части на строку, кайты — в
+// порядке списка `kites`. Это и есть вид, в котором файл каталога записан:
+// прочитанный и записанный обратно без правок, он выходит тем же байт в байт —
 // это держит тест.
 export function routineFileText(file: Json): string {
+  const kites = Array.isArray(file.kites) ? file.kites : [];
   const fields = Object.entries(file).map(([key, value]) =>
-    key === "segments" && Array.isArray(value) ? `  "segments": [\n${value.map(segmentText).join(",\n")}\n  ]` : `  ${JSON.stringify(key)}: ${flat(value)}`,
+    key === "segments" && Array.isArray(value)
+      ? `  "segments": [\n${value.map((segment: unknown) => segmentText(segment, kites)).join(",\n")}\n  ]`
+      : `  ${JSON.stringify(key)}: ${flat(value)}`,
   );
   return `{\n${fields.join(",\n")}\n}\n`;
 }
@@ -270,7 +298,9 @@ export function timeText(judged: KiteTime | null, whole: Timetable["kites"][numb
 // своё время: кайт стоит в точке, пока оно идёт. `null` — у какого-то шага
 // длительность не задана либо не длится ни один: место кайта во времени тогда
 // неизвестно, и числа за автора функция не подставляет. `rev` — кайт
-// четырёхстропный.
+// четырёхстропный. Последняя секунда принимается с той точностью, с какой
+// время показано и сравнивается, — до тысячной: сумма длительностей в двоичной
+// записи бывает чуть меньше самой себя, округлённой.
 export function poseAtTime(routine: Routine, kite: string, seconds: number, rev: boolean): Pose | null {
   const path = routine.segments.flatMap((_, at) => stepsOf(routine, at, kite));
   if (path.some((step) => lasts(step) && step.seconds === undefined)) {
@@ -281,8 +311,8 @@ export function poseAtTime(routine: Routine, kite: string, seconds: number, rev:
   if (!(total > 0)) {
     return null;
   }
-  if (!(seconds >= 0 && seconds <= total)) {
+  if (!(seconds >= 0 && seconds <= total + 0.0015)) {
     throw new RangeError(`время — от 0 до ${total} с, получено ${seconds}`);
   }
-  return poseAt(path as Step[], seconds / total, rev, (leg) => weight(leg.index));
+  return poseAt(path as Step[], Math.min(1, seconds / total), rev, (leg) => weight(leg.index));
 }

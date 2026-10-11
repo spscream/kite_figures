@@ -4,7 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { checkRoutine, clock, findingText, judgedTimes, type State } from "@/lib/routine-checks";
 import type { Routine } from "@/lib/routines";
-import { BAD, fieldText, fileWithDurations, readField, routineFileText, type Slot, slotsOf, timetable, timeText, withDurations } from "@/lib/tempo";
+import { BAD, fieldsOf, fileWithDurations, readField, routineFileText, slotsOf, timetable, timeText, withDurations } from "@/lib/tempo";
 
 // Редактор длительностей рутины. Что длится, как читается поле и каким выходит
 // файл, решает `lib/tempo.ts`; находки считает `lib/routine-checks.ts`; здесь
@@ -43,12 +43,10 @@ type Props = {
   parts: string[];
 };
 
-const fieldsOf = (slots: Slot[], seconds: (slot: Slot) => number | null) => Object.fromEntries(slots.map((slot) => [slot.key, fieldText(seconds(slot))]));
-
 export function TempoEditor({ routine, file, fileName, parts }: Props) {
   const live = useSyncExternalStore(never, () => true, () => false);
   const slots = useMemo(() => slotsOf(routine), [routine]);
-  const [fields, setFields] = useState(() => fieldsOf(slots, (slot) => slot.seconds));
+  const [fields, setFields] = useState(() => fieldsOf(slots));
   const many = routine.kites.length > 1;
 
   const read = slots.map((slot) => ({ slot, value: readField(fields[slot.key] ?? "") }));
@@ -103,18 +101,19 @@ export function TempoEditor({ routine, file, fileName, parts }: Props) {
           );
         })}
         <div className="te-buttons">
-          <button type="button" onClick={() => setFields(fieldsOf(slots, (slot) => slot.seconds))}>
+          <button type="button" onClick={() => setFields(fieldsOf(slots))}>
             Вернуть длительности файла
           </button>
-          <button type="button" onClick={() => setFields(fieldsOf(slots, () => null))}>
+          <button type="button" onClick={() => setFields(fieldsOf(slots, true))}>
             Снять все длительности
           </button>
         </div>
       </section>
+      {/* Об ошибке в поле говорит само поле (`aria-invalid` и слова рядом); этот
+          абзац в живую область не входит, чтобы не звучать посреди набора числа. */}
+      {bad > 0 && <p className="te-bad">{`Полей, в которых записана не длительность, — ${bad}. ${BAD_TEXT} Пока они не исправлены, времени, проверок и файла нет.`}</p>}
       <div aria-live="polite">
-        {edited === null || table === null || text === null ? (
-          <p className="te-bad">{`Полей, в которых записана не длительность, — ${bad}. ${BAD_TEXT} Пока они не исправлены, времени, проверок и файла нет.`}</p>
-        ) : (
+        {edited !== null && table !== null && text !== null && (
           <>
             <section className="te-total">
               <h2>Время</h2>

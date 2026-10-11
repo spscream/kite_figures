@@ -1478,7 +1478,7 @@ for (const slug of routineSlugs) {
     problems.push(`${where} нет ссылки на страницу рутины`);
   }
   // Без JavaScript поля мертвы: блок собран скрытым, и страница говорит почему.
-  if (!/<noscript>.*?JavaScript.*?<\/noscript>/s.test(main)) {
+  if (!/<noscript>.*?Редактору нужен JavaScript.*?<\/noscript>/s.test(main)) {
     problems.push(`${where} не сказано, что редактору нужен JavaScript`);
   }
   const editor = main.match(/<div class="tempo" hidden="">(.*)$/s)?.[1];
@@ -1499,18 +1499,28 @@ for (const slug of routineSlugs) {
   const fields = [...editor.matchAll(/<input\b([^>]*)>/g)].map(([, attributes]) => ({
     id: attributes.match(/\bid="([^"]*)"/)?.[1] ?? "",
     value: attributes.match(/\bvalue="([^"]*)"/)?.[1] ?? "",
-    placeholder: /\bplaceholder=/.test(attributes),
+    // Всё, чем полю можно подсказать число или сделать его мёртвым.
+    extra: (attributes.match(/\b(placeholder|list|title|min|max|step|disabled|readonly)\b=/i) ?? [])[1],
   }));
   const told = (list) => list.map((field) => `${field.id}=«${field.value}»`).join(" ");
   if (told(fields) !== told(wanted)) {
     problems.push(`${where} поля длительностей — ${told(fields)}, а по данным — ${told(wanted)}`);
   }
-  if (fields.some((field) => field.placeholder)) {
-    problems.push(`${where} у поля длительности есть подсказка-значение: числа редактор не предлагает`);
+  for (const field of fields.filter((item) => item.extra)) {
+    problems.push(`${where} у поля ${field.id} есть «${field.extra}»: числа редактор не предлагает, и мёртвых полей в нём нет`);
+  }
+  // Полей вне скрытого блока на странице нет: без JavaScript они были бы мёртвыми.
+  if (count(main, /<(?:input|select|textarea|button)\b/g) !== count(editor, /<(?:input|select|textarea|button)\b/g)) {
+    problems.push(`${where} поле или кнопка стоит вне скрытого блока редактора`);
   }
   const labels = [...editor.matchAll(/<label for="([^"]*)">([^<]*)<\/label>/g)];
   if (labels.map((label) => label[1]).join(" ") !== wanted.map((field) => field.id).join(" ") || labels.some((label) => label[2].length < 5)) {
     problems.push(`${where} шаг назван словами не у каждого поля длительности`);
+  }
+  // У пары и команды подпись называет кайт — тот, чей это шаг.
+  const kiteOf = (id) => id.split("-")[2];
+  if (routine.kites.length > 1 && labels.some((label) => !label[2].startsWith(`Кайт ${kiteOf(label[1])}. `))) {
+    problems.push(`${where} подпись поля не называет кайт, чей это шаг`);
   }
   // Время каждого кайта: от IN до OUT и весь записанный путь.
   const sums = routine.kites.map((kite) => {
@@ -1565,9 +1575,11 @@ for (const slug of routineSlugs) {
       problems.push(`${where} вывод «${finding.label}» стоит у находки, чьё основание — не требование правил`);
     }
   }
-  const checksBlock = editor.match(/<section class="te-checks">(.*?)<\/section>/s)?.[1] ?? "";
-  if (/%|(?<![а-яё])(?:балл|очк[оиа]|оценк)/i.test(checksBlock.replace(/<[^>]*>/g, " "))) {
-    problems.push(`${where} в находках есть проценты или баллы: проверки — не оценка`);
+  // Ни в находках, ни рядом с ними: во всём блоке редактора, кроме текста файла
+  // рутины, который пишет автор.
+  const shown = editor.replace(/<textarea\b.*?<\/textarea>/gs, " ").replace(/<[^>]*>/g, " ");
+  if (/%|(?<![а-яё])(?:балл|очк[оиа]|оценк|рейтинг)/i.test(shown)) {
+    problems.push(`${where} в редакторе есть проценты, баллы или оценка: проверки — подсказки`);
   }
   // Исход проверки длительности — когда темп задан у каждого шага и время у
   // кайтов одно: тогда он следует из границ состава.
@@ -1584,10 +1596,12 @@ for (const slug of routineSlugs) {
   // как он лежит в репозитории, и текстом, и ссылкой на скачивание.
   const fileText = fs.readFileSync(path.join(routinesDir, `${slug}.json`), "utf8");
   if (editor.match(/<textarea class="te-file"[^>]*>(.*?)<\/textarea>/s)?.[1] !== escapeHtml(fileText)) {
-    problems.push(`${where} текст файла рутины не совпадает с data/routines/${slug}.json`);
+    problems.push(
+      `${where} текст файла рутины не совпадает с data/routines/${slug}.json: редактор отдаёт не тот файл либо файл записан не в том виде, в каком его отдаёт редактор (docs/routines.md, «Редактор длительностей»)`,
+    );
   }
-  const save = editor.match(/<a class="te-save" download="([^"]*)" href="([^"]*)">/);
-  if (save?.[1] !== `${slug}.json` || save[2] !== escapeHtml(`data:application/json;charset=utf-8,${encodeURIComponent(fileText)}`)) {
+  const save = editor.match(/<a class="te-save" download="([^"]*)" href="([^"]*)">([^<]*)<\/a>/);
+  if (save?.[1] !== `${slug}.json` || save[2] !== escapeHtml(`data:application/json;charset=utf-8,${encodeURIComponent(fileText)}`) || save[3] !== `Скачать ${slug}.json`) {
     problems.push(`${where} ссылка на скачивание отдаёт не файл data/routines/${slug}.json`);
   }
 }

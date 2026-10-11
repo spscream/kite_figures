@@ -10,6 +10,7 @@ import { listRoutines, parseRoutine, type Routine, ROUTINES_DIR } from "./routin
 import {
   BAD,
   durationsOf,
+  fieldsOf,
   fieldText,
   fileWithDurations,
   lasts,
@@ -46,6 +47,27 @@ const flight = (seconds: (number | undefined)[]) => {
   return file([own([start([-50, 40]), markIn, line([0, 40], { nose: 0, ...slide }), stall(hold), turn(spin), line([0, 0], { nose: 90, ...drop }), landing(land), markOut])]);
 };
 
+// Рутина вокруг одной фигуры каталога: каждый кайт стартует в её входе.
+function aroundFile(slug: string): Raw {
+  const figure = figures.find((item) => item.slug === slug)!;
+  const variant = figure.geometry.status === "ok" ? figure.geometry.variants[0] : undefined;
+  const kites = variant!.kites.map((kite) => kite.id);
+  const each = (steps: (kite: string) => unknown[]) => Object.fromEntries(kites.map((kite) => [kite, steps(kite)]));
+  const entry = (kite: string) => {
+    const first = variant!.kites.find((item) => item.id === kite)!.path[0];
+    return first.kind === "start" ? first.at : [0, 0];
+  };
+  return file(
+    [
+      { origin: "own", paths: each((kite) => [{ kind: "start", at: entry(kite) }, markIn]) },
+      { origin: "figure", figure: slug, variant: variant!.id },
+      { origin: "own", paths: each(() => [markOut]) },
+    ],
+    { discipline: figure.discipline, kites },
+  );
+}
+const around = (slug: string) => parse(aroundFile(slug));
+
 const raw = (slug: string) => JSON.parse(fs.readFileSync(path.join(ROUTINES_DIR, `${slug}.json`), "utf8")) as Raw;
 
 describe("шаги, которые длятся", () => {
@@ -66,6 +88,24 @@ describe("шаги, которые длятся", () => {
       "Прямая до (0; 0), нос вправо",
       "Посадка",
     ]);
+  });
+
+  it("взлёт и аксель длятся тоже; старт и вызовы — нет", () => {
+    expect(lasts({ kind: "mark", mark: "launch" })).toBe(true);
+    expect(lasts({ kind: "mark", mark: "axel" })).toBe(true);
+    expect(lasts({ kind: "mark", mark: "half-axel" })).toBe(true);
+    expect(lasts({ kind: "mark", mark: "in" })).toBe(false);
+    expect(lasts({ kind: "mark", mark: "out" })).toBe(false);
+    expect(lasts({ kind: "start", at: [0, 0] })).toBe(false);
+  });
+
+  it("шаг фигуры назван словами каталога: метка остановки — метка схемы книги, шаг без направления помечен", () => {
+    // MI 15 — остановки с меткой книги; MI 16 — шаг, чьё направление книга не показывает.
+    const texts = (slug: string) => slotsOf(around(slug)).map((slot) => slot.text);
+    expect(texts("mi-15-pivots").filter((text) => text.startsWith("Остановка")).every((text) => text.includes("на схеме книги кайт носом"))).toBe(true);
+    expect(texts("mi-15-pivots").some((text) => text.startsWith("Остановка"))).toBe(true);
+    expect(texts("mi-16-lollypop").filter((text) => text.endsWith("(направление в книге не показано)")).length).toBeGreaterThan(0);
+    expect(texts("mi-28-square").some((text) => text.includes("направление в книге не показано"))).toBe(false);
   });
 
   it("шаг без длительности остаётся без неё: числа за автора никто не подставляет", () => {
@@ -108,7 +148,10 @@ describe("поле длительности", () => {
     ["1e3", BAD],
     ["1,2345", BAD],
     ["10000", BAD],
-    ["1,", BAD],
+    ["4,", 4],
+    ["5.", 5],
+    ["0,", BAD],
+    ["1,,5", BAD],
     [",5", BAD],
     ["пять", BAD],
     ["Infinity", BAD],
@@ -120,6 +163,13 @@ describe("поле длительности", () => {
     expect(readField(fieldText(null))).toBeNull();
     expect(fieldText(1.5)).toBe("1,5");
     expect(readField(fieldText(1.5))).toBe(1.5);
+  });
+
+  it("в полях редактора — длительности рутины, а у шага без длительности пусто: числа туда никто не кладёт", () => {
+    const slots = slotsOf(parse(flight([4, undefined, 1.5, undefined, undefined])));
+    expect(fieldsOf(slots)).toEqual({ "0/1/2": "4", "0/1/3": "", "0/1/4": "1,5", "0/1/5": "", "0/1/6": "" });
+    expect(Object.values(fieldsOf(slots, true))).toEqual(["", "", "", "", ""]);
+    expect(Object.values(fieldsOf(slotsOf(parse(flight([undefined, undefined, undefined, undefined, undefined])))))).toEqual(["", "", "", "", ""]);
   });
 
   it("каждая длительность рутин каталога читается полем редактора как она есть", () => {
@@ -170,12 +220,17 @@ describe("рутина с другими длительностями", () => {
 });
 
 describe("файл рутины", () => {
-  it("файл каталога, записанный обратно без правок, — тот же байт в байт", () => {
+  // Требование к файлу каталога, а не только к редактору: рутина лежит в том
+  // виде, в каком редактор её отдаёт, — иначе правка одной длительности
+  // переписала бы в PR весь файл. Вид описан в `docs/routines.md`, раздел
+  // «Редактор длительностей».
+  it("файл каталога записан в том виде, в каком его отдаёт редактор: без правок он возвращается байт в байт", () => {
     expect(catalog.length).toBeGreaterThan(0);
     for (const routine of catalog) {
       const text = fs.readFileSync(path.join(ROUTINES_DIR, `${routine.slug}.json`), "utf8");
-      expect(routineFileText(JSON.parse(text) as Raw), routine.slug).toBe(text);
-      expect(routineFileText(fileWithDurations(JSON.parse(text), routine, durationsOf(routine))), routine.slug).toBe(text);
+      const hint = `data/routines/${routine.slug}.json записан не в том виде, в каком его отдаёт редактор длительностей (docs/routines.md)`;
+      expect(routineFileText(JSON.parse(text) as Raw), hint).toBe(text);
+      expect(routineFileText(fileWithDurations(JSON.parse(text), routine, durationsOf(routine))), hint).toBe(text);
     }
   });
 
@@ -223,7 +278,61 @@ describe("файл рутины", () => {
     expect(parseRoutine("proba.json", text, figures)).toEqual(withDurations(routine, durations));
   });
 
+  it("фигура пары: список длительностей — у того кайта, которому они заданы, по числу его шагов", () => {
+    const pair = figures.find((item) => item.discipline === "multi-line-pair" && item.geometry.status === "ok" && item.geometry.variants[0].kites.length === 2)!;
+    const source = aroundFile(pair.slug);
+    const routine = parse(source);
+    const [first, second] = routine.kites;
+    const steps = routine.segments[1].paths[second].length;
+    expect(steps).toBeGreaterThan(1);
+    const durations = new Map([[slotKey(1, second, steps - 1), 2.5]]);
+    const text = routineFileText(fileWithDurations(source, routine, durations));
+    expect(text).toContain(`"seconds": {${JSON.stringify(second)}: [${[...Array(steps - 1).fill("null"), "2.5"].join(", ")}]}`);
+    expect(text).not.toContain(`"seconds": {${JSON.stringify(first)}`);
+    expect(parseRoutine("proba.json", text, figures)).toEqual(withDurations(routine, durations));
+  });
+
+  it("кайты в файле идут в порядке списка kites, а не по возрастанию номеров", () => {
+    const text = [
+      "{",
+      '  "schema": 1,',
+      '  "name": "Пара",',
+      '  "discipline": "dual-line-pair",',
+      '  "kites": ["2", "1"],',
+      '  "segments": [',
+      '    {"origin": "own", "paths": {"2": [',
+      '      {"kind": "start", "at": [50, 40]},',
+      '      {"kind": "mark", "mark": "in"},',
+      '      {"kind": "line", "to": [0, 60], "seconds": 3},',
+      '      {"kind": "mark", "mark": "out"}',
+      '    ], "1": [',
+      '      {"kind": "start", "at": [-50, 40]},',
+      '      {"kind": "mark", "mark": "in"},',
+      '      {"kind": "line", "to": [0, 40], "seconds": 3},',
+      '      {"kind": "mark", "mark": "out"}',
+      "    ]}}",
+      "  ]",
+      "}",
+      "",
+    ].join("\n");
+    const routine = parseRoutine("para.json", text, figures);
+    expect(routineFileText(fileWithDurations(JSON.parse(text), routine, durationsOf(routine)))).toBe(text);
+  });
+
+  it("в файл идёт то же, что в рутину: длительность у старта и вызова отброшена, не положительная — ошибка", () => {
+    const source = flight([4, 2, 1.5, 3, 1]);
+    const routine = parse(source);
+    const text = routineFileText(fileWithDurations(source, routine, new Map([[slotKey(0, "1", 0), 5], [slotKey(0, "1", 1), 5], [slotKey(0, "1", 7), 5], [slotKey(0, "1", 3), 2]])));
+    expect(text.match(/"seconds"/g)).toHaveLength(1);
+    expect(parseRoutine("proba.json", text, figures)).toEqual(withDurations(routine, new Map([[slotKey(0, "1", 3), 2]])));
+    for (const value of [0, -1, Number.NaN, Infinity]) {
+      expect(() => fileWithDurations(source, routine, new Map([[slotKey(0, "1", 2), value]]))).toThrow(/длительность — положительное число секунд/);
+    }
+  });
+
   it("отказывается от файла, который не этой рутины", () => {
+    const other = aroundFile("mi-28-square");
+    expect(() => fileWithDurations({ ...other, segments: (other.segments as Raw[]).map((item) => (item.origin === "figure" ? { ...item, figure: "mi-20-lift" } : item)) }, around("mi-28-square"), new Map())).toThrow(/расходятся/);
     const routine = parse(flight([4, 2, 1.5, 3, 1]));
     expect(() => fileWithDurations(file([own([start([0, 0]), markIn]), own([line([10, 0]), markOut])]), routine, new Map())).toThrow(/расходятся/);
     expect(() => fileWithDurations(file([own([start([0, 0]), markIn, line([10, 0]), markOut])]), routine, new Map())).toThrow(/расходятся/);
@@ -296,6 +405,18 @@ describe("положение кайта в секунду рутины", () => {
     expect(poseAtTime(withDurations(routine, new Map()), "1", 0, true)).toBeNull();
     expect(() => at(12)).toThrow(/время — от 0 до 11.5 с/);
     expect(() => at(-1)).toThrow(RangeError);
+  });
+
+  it("последняя секунда принимается такой, какой её показывают проверки: округлённой до тысячной", () => {
+    // Сумма этих длительностей в двоичной записи — 49,199999999999996, а показано 49,2.
+    const proba = catalog.find((item) => item.slug === "proba")!;
+    const given = [6.4, 2, 7.5, 1.8, 4.2, 0.8, 2.8, 0.3, 0.7, 0.4, 2.9, 6.9, 6.8, 5.7];
+    const edited = withDurations(proba, new Map(slotsOf(proba).map((slot, index) => [slot.key, given[index]])));
+    const shown = judgedTimes(edited)[0]!.seconds;
+    expect(shown).toBe(49.2);
+    expect(timetable(edited).kites[0].total).toBeLessThan(shown);
+    expect(poseAtTime(edited, "1", shown, true)?.point).toEqual([0, 10]);
+    expect(() => poseAtTime(edited, "1", shown + 0.01, true)).toThrow(RangeError);
   });
 
   it("рутины каталога с полным темпом проходятся от первой секунды до последней", () => {
