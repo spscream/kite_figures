@@ -1737,10 +1737,10 @@ function elementRow(step, at) {
   if (apart(nose, course) <= 0.5 || apart(nose, course + 180) <= 0.5) {
     return apart(nose, course) <= 0.5 ? 1 : 2;
   }
-  if (Math.abs(dy) < 0.05) {
+  if (Math.abs(dy) <= 0.05 + 1e-9) {
     return nose === 0 ? 3 : nose === 180 ? 5 : 0;
   }
-  if (Math.abs(dx) < 0.05) {
+  if (Math.abs(dx) <= 0.05 + 1e-9) {
     return nose === 90 || nose === 270 ? 4 : 0;
   }
   return 6;
@@ -1765,9 +1765,21 @@ for (const slug of routineSlugs) {
   if (told(outside) !== told(OUTSIDE.map((row) => row.map(escapeHtml)))) {
     problems.push(`${where} таблица «чего в словаре нет» расходится с разбором: на странице строк ${outside.length}, в разборе ${OUTSIDE.length}, либо причина пересказана`);
   }
-  const editor = main.match(/<div class="tempo" hidden="">(.*)$/s)?.[1];
+  // Словарь под редактором — только текст: выбрать в нём нечего.
+  if (/<(?:input|select|button|textarea)\b/.test(dictionary)) {
+    problems.push(`${where} в таблицах словаря есть поле или кнопка`);
+  }
+  const editor = main.match(/<div class="tempo" hidden="">(.*?)<section class="el-dict">/s)?.[1];
   if (editor === undefined) {
+    problems.push(`${where} таблицы словаря стоят не под редактором`);
     continue;
+  }
+  // Рутину с новым шагом читает разбор, а ему нужны фигуры, на которые она
+  // ссылается: страница отдаёт их редактору вместе с рутиной.
+  for (const part of routine.segments.filter((item) => item.origin === "figure")) {
+    if (!html.includes(`\\"figures\\":[`) || !html.includes(`{\\"slug\\":\\"${part.figure}\\"`)) {
+      problems.push(`${where} редактору не отдана фигура ${part.figure}: рутину с новым шагом без неё не прочесть`);
+    }
   }
   const adding = editor.match(/<section class="el-add">(.*?)<\/section>/s)?.[1];
   if (adding === undefined) {
@@ -1798,13 +1810,19 @@ for (const slug of routineSlugs) {
   const parts = routineParts(routine);
   const wantedPlaces = [];
   const wantedNames = [];
+  const placeParts = [];
   for (const kite of routine.kites) {
     let at = null;
+    // После поворота, чьё смещение книга числом не задала, место кайта скрипт
+    // не считает: имя шага, которое от места зависит, он до следующей полной
+    // точки не сверяет — его держат тесты `lib/elements.test.ts`.
+    let blind = false;
     parts.forEach((part, index) => {
       const steps = part.paths[kite] ?? [];
       for (let order = 0; order <= steps.length; order += 1) {
         if (part.origin !== "figure" && at !== null) {
           wantedPlaces.push(`${index}/${kite}/${order}`);
+          placeParts.push(index + 1);
         }
         const step = steps[order];
         if (step === undefined) {
@@ -1812,15 +1830,19 @@ for (const slug of routineSlugs) {
         }
         if (takesTime(step)) {
           const row = elementRow(step, at);
-          wantedNames.push(`te-${index}-${kite}-${order}=${row === 0 ? "" : escapeHtml(DICTIONARY[row - 1]?.[1] ?? "")}`);
+          const placed = (step.kind === "line" && typeof step.nose === "number") || (step.kind === "mark" && step.mark !== "stall");
+          wantedNames.push(blind && placed ? null : `te-${index}-${kite}-${order}=${row === 0 ? "" : escapeHtml(DICTIONARY[row - 1]?.[1] ?? "")}`);
         }
         const to = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || step.kind === "rotate" ? step.to : undefined;
+        if (to !== undefined && to !== null) {
+          blind = !Array.isArray(to) || (blind && to.includes(null));
+        }
         at = Array.isArray(to) ? to.map((value, axis) => value ?? at?.[axis] ?? 0) : at;
       }
     });
   }
   const places = optionsOf(adding.match(/<select id="el-place">(.*?)<\/select>/s)?.[1] ?? "");
-  if (places.slice(1).map((option) => option.value).join(" ") !== wantedPlaces.join(" ") || places.slice(1).some((option) => option.text.length < 10)) {
+  if (places.slice(1).map((option) => option.value).join(" ") !== wantedPlaces.join(" ") || places.slice(1).some((option, index) => !option.text.includes(`Часть ${placeParts[index]}: `))) {
     problems.push(`${where} места для элемента — ${places.slice(1).map((option) => option.value).join(" ")}, а по данным — ${wantedPlaces.join(" ")}`);
   }
   // Заранее не выбрано ничего: ни элемент, ни место, и поля параметра нет, пока
@@ -1833,8 +1855,8 @@ for (const slug of routineSlugs) {
   if (count(adding, /<select\b/g) !== 2 || !/<button\b[^>]*\bid="el-put"[^>]*\bdisabled=""/.test(adding)) {
     problems.push(`${where} до выбора элемента в блоке есть поле параметра либо кнопка «Поставить в рутину» не заперта`);
   }
-  if (names.join(" ") !== wantedNames.join(" ")) {
-    problems.push(`${where} имена элементов у шагов — ${names.join(" ")}, а по данным — ${wantedNames.join(" ")}`);
+  if (names.length !== wantedNames.length || names.some((name, index) => wantedNames[index] !== null && name !== wantedNames[index])) {
+    problems.push(`${where} имена элементов у шагов — ${names.join(" ")}, а по данным — ${wantedNames.map((name) => name ?? "(не сверяется)").join(" ")}`);
   }
 }
 
@@ -1941,7 +1963,7 @@ if (routineSlugs.length > 0 && !scripts(path.join(out, "_next")).some((file) => 
 // её с новым шагом (его отказ словами).
 if (
   routineSlugs.some((slug) => routines.get(slug).discipline === ELEMENTS_FOR) &&
-  !scripts(path.join(out, "_next")).some((file) => ["el-put", "лежит на линии хода", "между ними нужна связка"].every((mark) => fs.readFileSync(file, "utf8").includes(mark)))
+  !scripts(path.join(out, "_next")).some((file) => ["el-put", "лежит на линии хода", "между ними нужна связка", "элемент, место или параметр не заданы", "шаги после нового редактор не правит"].every((mark) => fs.readFileSync(file, "utf8").includes(mark)))
 ) {
   problems.push("в клиентском коде редактора нет разворота элемента в шаг или разбора рутины");
 }

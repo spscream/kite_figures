@@ -181,6 +181,13 @@ describe("шаг → элемент", () => {
     expect(elementOf({ kind: "line", to: [30, 80], nose: "forward" }, AT)).toBe("forward");
   });
 
+  it("высота и вертикаль — те же с тем же запасом, с каким разбор прощает вход в фигуру", () => {
+    // Отступ ровно в запас: слайд, а не диагональ.
+    expect(elementOf({ kind: "line", to: [AT[0] + 30, AT[1] + 0.05], nose: 0 }, AT)).toBe("slide-horizontal");
+    expect(elementOf({ kind: "line", to: [AT[0] + 0.05, AT[1] + 30], nose: 90 }, AT)).toBe("slide-vertical");
+    expect(elementOf({ kind: "line", to: [AT[0] + 30, AT[1] + 0.06], nose: 0 }, AT)).toBe("diagonal");
+  });
+
   it("отрезок, которому определения имени не дают, — не элемент", () => {
     expect(elementOf({ kind: "line", to: [30, 50], nose: 45 }, AT)).toBeNull();
     expect(elementOf({ kind: "line", to: [0, 80], nose: 30 }, AT)).toBeNull();

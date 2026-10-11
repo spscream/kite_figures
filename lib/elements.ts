@@ -220,6 +220,7 @@ export const OUTSIDE: readonly { what: string; why: string; back: string }[] = [
 
 // Набор рассчитан на одиночника с четырёхстропным кайтом (разбор, раздел 6).
 export const ELEMENTS_FOR = "multi-line-individual";
+export const NO_ELEMENTS_TEXT = "Набор элементов рассчитан на одиночника с четырёхстропным кайтом; у рутины другого раздела его нет.";
 
 // Число в поле элемента: до четырёх цифр и до двух знаков после запятой или
 // точки — точность самих координат; минус — для левой половины окна. Запятая
@@ -274,6 +275,10 @@ function apart(a: number, b: number): number {
 // каким разбор словаря относил отрезки каталога к виду.
 const ON_COURSE = 0.5;
 
+// Две координаты — одна и та же: с тем же запасом, с каким разбор рутины
+// прощает расхождение точки входа фигуры.
+const same = (a: number, b: number): boolean => Math.abs(a - b) <= TOLERANCE + 1e-9;
+
 const round2 = (value: number): number => Math.round(value * 100) / 100 + 0;
 const show = (point: Point): string => `[${point.join(", ")}]`;
 
@@ -318,8 +323,8 @@ export function expand(id: ElementId, values: Values, position: Point): Raw[] {
     case "diagonal": {
       const to: Point = [number("x"), number("y")];
       const nose = number("nose");
-      if (Math.abs(to[0] - position[0]) < TOLERANCE || Math.abs(to[1] - position[1]) < TOLERANCE) {
-        throw new Error(`${def.name}: из ${show(position)} в ${show(to)} — не диагональ, точка лежит на той же ${Math.abs(to[0] - position[0]) < TOLERANCE ? "вертикали" : "высоте"}`);
+      if (same(to[0], position[0]) || same(to[1], position[1])) {
+        throw new Error(`${def.name}: из ${show(position)} в ${show(to)} — не диагональ, точка лежит на той же ${same(to[0], position[0]) ? "вертикали" : "высоте"}`);
       }
       const course = courseOf(position, to);
       if (apart(nose, course) <= ON_COURSE || apart(nose, course + 180) <= ON_COURSE) {
@@ -408,8 +413,8 @@ export function elementOf(step: Step | OwnStep, position: Point | null): Element
       if (apart(step.nose, course + 180) <= ON_COURSE) {
         return "backward";
       }
-      const level = Math.abs(step.to[1] - position[1]) < TOLERANCE;
-      const plumb = Math.abs(step.to[0] - position[0]) < TOLERANCE;
+      const level = same(step.to[1], position[1]);
+      const plumb = same(step.to[0], position[0]);
       if (level) {
         return step.nose === 0 ? "slide-horizontal" : step.nose === 180 ? "slide-inverted" : null;
       }

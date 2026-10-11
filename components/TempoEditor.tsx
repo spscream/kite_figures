@@ -2,8 +2,8 @@
 
 import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
 
-import { type Draft, type Editing, elementsOf, insertElement, placesOf, preview } from "@/lib/compose";
-import { type ElementDef, elementBy, ELEMENTS, ELEMENTS_FOR, fieldsOf as elementFields, OUTSIDE } from "@/lib/elements";
+import { chooseElement, type Editing, elementsOf, insertElement, NO_DRAFT, placesOf, preview, removeLast } from "@/lib/compose";
+import { type ElementDef, elementBy, ELEMENTS, ELEMENTS_FOR, fieldsOf as elementFields, NO_ELEMENTS_TEXT, OUTSIDE } from "@/lib/elements";
 import type { Figure } from "@/lib/figures";
 import { checkRoutine, clock, findingText, judgedTimes, type State } from "@/lib/routine-checks";
 import type { Routine } from "@/lib/routines";
@@ -41,10 +41,7 @@ export const STATE_TEXT: Record<State, string> = {
 
 export const BAD_TEXT = "Длительность — положительное число секунд, до 9999, не больше трёх знаков после запятой. Пустое поле — темп шага не задан.";
 export const NO_TEMPO_TEXT = "темп не задан";
-export const NO_ELEMENTS_TEXT = "Набор элементов рассчитан на одиночника с четырёхстропным кайтом; у рутины другого раздела его нет.";
 export const OUTSIDE_GROUP = "В словаре нет — причина в таблице под редактором";
-
-const NO_DRAFT: Draft = { element: "", place: "", values: {}, seconds: "" };
 
 type Props = {
   routine: Routine;
@@ -60,7 +57,7 @@ type Props = {
 
 export function TempoEditor({ routine: given, file: givenFile, fileName, parts, figures }: Props) {
   const live = useSyncExternalStore(never, () => true, () => false);
-  const [editing, setEditing] = useState<Editing>(() => ({ doc: { file: givenFile, routine: given }, fields: fieldsOf(slotsOf(given)) }));
+  const [editing, setEditing] = useState<Editing>(() => ({ doc: { file: givenFile, routine: given }, fields: fieldsOf(slotsOf(given)), added: [] }));
   const [draft, setDraft] = useState(NO_DRAFT);
   const { doc, fields } = editing;
   const { routine, file } = doc;
@@ -150,7 +147,7 @@ export function TempoEditor({ routine: given, file: givenFile, fileName, parts, 
             </p>
             <div className="el-form">
               <label htmlFor="el-kind">Элемент</label>
-              <select id="el-kind" value={draft.element} onChange={(event) => setDraft({ ...draft, element: event.target.value, values: {} })}>
+              <select id="el-kind" value={draft.element} onChange={(event) => setDraft(chooseElement(draft, event.target.value))}>
                 <option value="">— не выбран —</option>
                 <optgroup label="Словарь элементов">
                   {ELEMENTS.map((item) => (
@@ -221,7 +218,7 @@ export function TempoEditor({ routine: given, file: givenFile, fileName, parts, 
                 <ul className="el-steps">
                   {made.steps.map((step, index) => (
                     <li key={index}>
-                      <code>{stepJson(made.seconds === null ? step : { ...step, seconds: made.seconds })}</code>
+                      <code>{stepJson(step)}</code>
                       {` — ${made.words[index]}`}
                     </li>
                   ))}
@@ -240,9 +237,16 @@ export function TempoEditor({ routine: given, file: givenFile, fileName, parts, 
               >
                 Поставить в рутину
               </button>
-              {file !== givenFile && (
-                <button type="button" id="el-drop" onClick={() => setEditing({ doc: { file: givenFile, routine: given }, fields: fieldsOf(slotsOf(given)) })}>
-                  Вернуть рутину как в файле
+              {editing.added.length > 0 && (
+                <button
+                  type="button"
+                  id="el-drop"
+                  onClick={() => {
+                    setEditing(removeLast(editing, fileName, figures));
+                    setDraft({ ...draft, place: "" });
+                  }}
+                >
+                  Убрать последний поставленный элемент
                 </button>
               )}
             </div>

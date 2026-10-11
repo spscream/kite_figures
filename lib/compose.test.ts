@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { type Draft, type Editing, elementsOf, insertElement, placesOf, preview } from "./compose";
+import { BAD_FIELD_TEXT, chooseElement, type Draft, type Editing, elementsOf, insertElement, NO_DRAFT, placesOf, preview, removeLast } from "./compose";
 import { editorProps } from "./editor";
-import { ELEMENT_IDS, ELEMENTS, OUTSIDE } from "./elements";
+import { ELEMENT_IDS, ELEMENTS, NO_ELEMENTS_TEXT, OUTSIDE } from "./elements";
 import { listFigures } from "./figures";
 import { checkRoutine, judgedTimes } from "./routine-checks";
 import { parseRoutine } from "./routines";
@@ -16,7 +16,7 @@ import { fieldsOf, fileWithDurations, readField, routineFileText, slotsOf, withD
 const props = editorProps("proba")!;
 const { fileName, figures, parts } = props;
 
-const fresh = (): Editing => ({ doc: { file: props.file, routine: props.routine }, fields: fieldsOf(slotsOf(props.routine)) });
+const fresh = (): Editing => ({ doc: { file: props.file, routine: props.routine }, fields: fieldsOf(slotsOf(props.routine)), added: [] });
 
 // Что редактор отдаёт: рутина с длительностями из полей и текст её файла.
 function output(editing: Editing) {
@@ -168,8 +168,13 @@ describe("элемент встаёт в рутину каталога", () => {
     const high = at("5/1/4", { element: "landing", values: { style: "none" }, seconds: "" });
     expect(high.state === "bad" && high.message).toContain("посадка — на земле");
     // Не число в поле элемента и в поле длительности.
-    expect(at("5/1/4", { element: "stop", values: { nose: "вверх" }, seconds: "" }).state).toBe("bad");
-    expect(at("5/1/4", { element: "stop", values: { nose: "0" }, seconds: "0" }).state).toBe("bad");
+    for (const draft of [
+      { element: "stop", values: { nose: "вверх" }, seconds: "" },
+      { element: "stop", values: { nose: "22,125" }, seconds: "" },
+      { element: "stop", values: { nose: "0" }, seconds: "0" },
+    ]) {
+      expect(at("5/1/4", draft)).toEqual({ state: "bad", message: BAD_FIELD_TEXT });
+    }
     expect(() => insertElement(fresh(), places, { element: "landing", place: "5/1/4", values: { style: "none" }, seconds: "" }, fileName, figures)).toThrow("посадка — на земле");
   });
 
@@ -206,5 +211,71 @@ describe("элемент встаёт в рутину каталога", () => {
     expect(named(2)).toEqual(["полёт назад"]);
     expect(named(4)).toEqual(["полёт вперёд"]);
     expect(named(5)).toEqual(["слайд вертикальный", "поворот на месте", "остановка", "полёт назад", null]);
+  });
+
+  it("шаг, который уже стоит, после вставки остаётся тем же элементом — иначе отказ", () => {
+    const places = placesOf(props.routine, parts);
+    const at = (key: string, draft: Omit<Draft, "place">) => preview(fresh().doc, places, { ...draft, place: key }, fileName, figures);
+    // Перед подъёмом боком: из другой вертикали он стал бы диагональю.
+    const slid = at("5/1/0", { element: "forward", values: { x: "20", y: "30" }, seconds: "" });
+    expect(slid.state === "bad" && slid.message).toContain("записан элементом «слайд вертикальный», а за новым шагом читался бы как «диагональный полёт»");
+    // Перед спуском носом вверх: нос перестал бы лежать на линии хода.
+    const backed = at("5/1/3", { element: "slide-horizontal", values: { x: "20" }, seconds: "" });
+    expect(backed.state === "bad" && backed.message).toContain("записан элементом «полёт назад»");
+    // Перед посадкой: она осталась бы в воздухе.
+    let landed = put(fresh(), { element: "slide-vertical", values: { y: "0", nose: "90" }, seconds: "" }, beforeOut);
+    landed = put(landed, { element: "landing", values: { style: "none" }, seconds: "" }, (text) => text.startsWith("Часть 6: своя работа — после шага 5:"));
+    const spots = placesOf(landed.doc.routine, parts);
+    const lifted = preview(landed.doc, spots, { element: "forward", place: "5/1/5", values: { x: "0", y: "30" }, seconds: "" }, fileName, figures);
+    expect(lifted.state === "bad" && lifted.message).toContain("записан элементом «посадка», а за новым шагом не читался бы ни одним элементом словаря");
+    expect(() => insertElement(landed, spots, { element: "forward", place: "5/1/5", values: { x: "0", y: "30" }, seconds: "" }, fileName, figures)).toThrow("редактор не правит");
+    // Шаг, не меняющий места кайта, встаёт перед любым.
+    expect(at("5/1/0", { element: "stop", values: { nose: "90" }, seconds: "" }).state).toBe("ready");
+    expect(at("5/1/3", { element: "spin", values: { degrees: "90", direction: "cw" }, seconds: "" }).state).toBe("ready");
+  });
+
+  it("у рутины другого раздела элемент не встаёт", () => {
+    const places = placesOf(props.routine, parts);
+    const pair = { file: props.file, routine: { ...props.routine, discipline: "multi-line-pair" as const } };
+    const draft: Draft = { element: "stop", place: "5/1/4", values: { nose: "0" }, seconds: "" };
+    expect(preview(pair, places, draft, fileName, figures)).toEqual({ state: "bad", message: NO_ELEMENTS_TEXT });
+    expect(() => insertElement({ ...fresh(), doc: pair }, places, draft, fileName, figures)).toThrow(NO_ELEMENTS_TEXT);
+  });
+
+  it("длительность элемента записана в шаг файла, а не только в поле", () => {
+    const next = put(fresh(), { element: "stop", values: { nose: "0" }, seconds: "5" }, beforeOut);
+    expect(next.doc.routine.segments[5].paths["1"][4]).toEqual({ kind: "mark", mark: "stall", nose: 0, seconds: 5 });
+    // «Вернуть длительности файла» читает поля с рутины — у нового шага остаётся его число.
+    expect(fieldsOf(slotsOf(next.doc.routine))).toEqual(next.fields);
+    expect(next.fields["5/1/4"]).toBe("5");
+    expect(next.added).toEqual([{ segment: 5, kite: "1", index: 4, count: 1 }]);
+  });
+
+  it("последний поставленный элемент убирается, набранные длительности остаются", () => {
+    const editing = fresh();
+    editing.fields["1/1/0"] = "9";
+    editing.fields["5/1/3"] = "7";
+    let next = put(editing, { element: "stop", values: { nose: "90" }, seconds: "1" }, (text) => text.startsWith("Часть 6: своя работа — после шага 1:"));
+    next = put(next, { element: "stop", values: { nose: "0" }, seconds: "5" }, (text) => text.startsWith("Часть 6: своя работа — после шага 5:"));
+    expect(next.fields).toMatchObject({ "1/1/0": "9", "5/1/1": "1", "5/1/4": "7", "5/1/5": "5" });
+    const one = removeLast(next, fileName, figures);
+    expect(one.added).toHaveLength(1);
+    expect(one.fields).toMatchObject({ "1/1/0": "9", "5/1/1": "1", "5/1/4": "7" });
+    expect(one.fields["5/1/5"]).toBeUndefined();
+    const none = removeLast(one, fileName, figures);
+    expect(none.doc.file).toEqual(props.file);
+    expect(none.doc.routine).toEqual(props.routine);
+    expect(none.fields).toEqual(editing.fields);
+    expect(none.added).toEqual([]);
+    expect(removeLast(none, fileName, figures)).toBe(none);
+  });
+
+  it("форма элемента пуста: ни элемент, ни место, ни параметр, ни длительность заранее не стоят", () => {
+    expect(NO_DRAFT).toEqual({ element: "", place: "", values: {}, seconds: "" });
+    for (const def of ELEMENTS) {
+      // Выбор элемента параметров не заполняет и чужих не оставляет.
+      const draft = chooseElement({ element: "arc", place: "5/1/4", values: { cx: "1", nose: "in" }, seconds: "2" }, def.id);
+      expect(draft, def.id).toEqual({ element: def.id, place: "5/1/4", values: {}, seconds: "2" });
+    }
   });
 });
