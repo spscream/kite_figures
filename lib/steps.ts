@@ -3,7 +3,7 @@
 // вид остановки и посадки, одновременность). Формулировки свои и строятся из
 // тех же данных, что и чертёж.
 
-import { isSwing, type Basis, type Kite, type Point, type Step } from "./geometry";
+import { isSwing, type Basis, type Kite, type Point, type Step, type Swing } from "./geometry";
 
 // Пометка шага, которую читатель обязан увидеть: направление не показано
 // первоисточником либо координата взята не с подписанной линии сетки.
@@ -109,7 +109,9 @@ function turn(step: Extract<Step, { kind: "rotate" }>): string {
   return `оворот на ${num(step.degrees)}° ${DIRECTION[step.direction]}${about}${to}`;
 }
 
-function head(step: Step): string {
+// `ours` — шаг записан не со страницы книги (связка или своя работа в
+// рутине): курс носа в остановке у него — курс кайта, а не метка схемы книги.
+function head(step: Step, ours = false): string {
   switch (step.kind) {
     case "start":
       return `Точка ${point(step.at)}`;
@@ -127,7 +129,7 @@ function head(step: Step): string {
         (step.style ? STYLE[step.style] : "") +
         // Курс метки, которой книга рисует кайт в остановке; где метки нет,
         // строка о носе молчит.
-        (typeof step.nose === "number" ? `, на схеме книги кайт носом ${COURSE[step.nose] ?? `по курсу ${num(step.nose)}°`}` : "")
+        (typeof step.nose === "number" ? `, ${ours ? "" : "на схеме книги "}кайт носом ${COURSE[step.nose] ?? `по курсу ${num(step.nose)}°`}` : "")
       );
     case "rotate":
       // Поворот со смещением — перемещение, и строка у него своя.
@@ -135,13 +137,19 @@ function head(step: Step): string {
   }
 }
 
+// Шаг открывает свою строку: точка старта и всякое перемещение.
+export function startsLine(step: Step): step is Extract<Step, { kind: "start" | "line" | "arc" }> | Swing {
+  return step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step);
+}
+
 // Строка на каждое перемещение — отрезок, дугу и поворот, который сам
 // перемещает кайт; события в точке, куда оно привело (отметки и повороты на
-// месте), дописываются к нему же. Первая строка — точка старта.
-export function describeKite(kite: Kite): StepLine[] {
+// месте), дописываются к нему же. Первая строка — точка старта. `ours` — шаги
+// пути, записанные не со страницы книги; у фигуры каталога таких нет.
+export function describeKite(kite: Kite, ours?: ReadonlySet<Step>): StepLine[] {
   const lines: StepLine[] = [];
   for (const step of kite.path) {
-    if (step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step)) {
+    if (startsLine(step)) {
       const tags: Tag[] = [];
       if ((step.kind === "line" || step.kind === "arc") && step.unmarked) {
         tags.push("unmarked");
@@ -151,7 +159,7 @@ export function describeKite(kite: Kite): StepLine[] {
       }
       lines.push({ head: head(step), events: [], tags, sync: [] });
     } else {
-      lines[lines.length - 1].events.push(head(step));
+      lines[lines.length - 1].events.push(head(step, ours?.has(step)));
     }
     const line = lines[lines.length - 1];
     if ("sync" in step && step.sync !== undefined && !line.sync.includes(step.sync)) {

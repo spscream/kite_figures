@@ -412,9 +412,28 @@ export function colorOf(kite: Kite, order: number): number {
 // Посадка на оба конца крыла: севший двухстропный кайт стоит носом вверх.
 export const ON_TIPS = ["two-point", "snap-two-point", "stall-two-point", "spin-two-point"];
 
+// Кадр рутины — кусок длинного пути, а не целая фигура: кайт приходит в него
+// уже с курсом, вход и выход рутины в него могут не попасть, а где кадр
+// начинается и где кончается, на схеме надо сказать отдельно.
+export type FrameOptions = {
+  // Курс носа, с которым каждый кайт варианта пришёл в начало кадра; `null` —
+  // из пути он не следует.
+  entry: (Point | null)[];
+  // Номер кадра: он стоит там, где кадр начинается.
+  number: number;
+  // За кадром есть следующий: его номер со стрелкой стоит там, где кадр
+  // кончается.
+  more: boolean;
+  // Рутина пары или команды: кайт несёт свой цвет и номер и в кадре, где он
+  // один.
+  team: boolean;
+};
+
+export const frameLabel = (number: number) => `№${number}`;
+
 // `rev` — фигура для четырёхстропного кайта (разделы Multi-line).
-export function drawVariant(variant: Variant, rev = false): Drawing {
-  const solo = variant.kites.length === 1;
+export function drawVariant(variant: Variant, rev = false, frame?: FrameOptions): Drawing {
+  const solo = variant.kites.length === 1 && !frame?.team;
   const shapes: Drawing["shapes"] = {};
   const put = (name: Shape, tone: string, d: string) => {
     const list = (shapes[name] ??= []);
@@ -479,6 +498,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
   // Что подписать под землёй: взлёты и посадки.
   const grounded: { point: Point; text: string }[] = [];
   const wanted: { point: Point; toward: Point; text: string; tone: string; side?: -1 | 1 }[] = [];
+  const frameMarks: typeof wanted = [];
 
   // Линии сетки — те, что книга проводит на этой схеме: набор записан в
   // данных варианта и из пути не выводится.
@@ -501,10 +521,12 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
     let heading: Point = [1, 0];
     // Нос кайта в точке, куда привёл последний шаг, и следует ли он из пути:
     // до первого пролёта и после шага `unmarked` курс неизвестен.
-    let nose: Point = [0, 1];
+    let nose: Point = frame?.entry[order] ?? [0, 1];
     // Курс спуска севшего кайта: значок его стоит носом вверх.
     let flew: Point | undefined;
-    let known = false;
+    let known = (frame?.entry[order] ?? null) !== null;
+    // Где кайт стоит в начале кадра.
+    let first: Point | undefined;
     let d = "";
     const tone = solo ? "" : `k${colorOf(kite, order)}`;
     const moves = kite.path.filter((step): step is Move => step.kind === "line" || step.kind === "arc");
@@ -516,6 +538,7 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
       switch (step.kind) {
         case "start":
           here = step.at;
+          first = here;
           d = `M${at(here)}`;
           offGrid(step.basis, here);
           break;
@@ -525,7 +548,9 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
           const count = Math.max(2, Math.ceil(length(here, step) / 3));
           traces.push(Array.from({ length: count + 1 }, (_, i) => along(here, step, i / count).point));
           if (!step.unmarked) {
-            const edge = !solo ? "mid" : step === moves[0] ? "in" : step === moves[moves.length - 1] ? "out" : "mid";
+            // В кадре рутины первый проход — не от входа и последний — не к
+            // выходу: цвета стрелка не несёт.
+            const edge = !solo || frame ? "mid" : step === moves[0] ? "in" : step === moves[moves.length - 1] ? "out" : "mid";
             flown.push({ from: here, step, kite: order, tone, edge });
           }
           if (byBook && step.kites) {
@@ -673,7 +698,19 @@ export function drawVariant(variant: Variant, rev = false): Drawing {
       }
     });
     tracks.push({ id: kite.id, d });
+    // Начало и конец кадра — номером: свой там, где кадр начинается, следующий
+    // со стрелкой — там, где кончается. У пары и команды номер стоит один раз,
+    // у первого кайта, как «In» и «Out». Эти подписи идут после «In» и «Out» и
+    // уступают им место.
+    if (frame && order === 0 && first) {
+      const ahead = moves[0] ? along(first, moves[0], 0).heading : heading;
+      frameMarks.push({ point: first, toward: [-ahead[0], -ahead[1]], text: frameLabel(frame.number), tone: "t-frame" });
+      if (frame.more) {
+        frameMarks.push({ point: here, toward: heading, text: `→${frameLabel(frame.number + 1)}`, tone: "t-frame" });
+      }
+    }
   });
+  wanted.push(...frameMarks);
 
   // Вспомогательная линия — не путь: значков и стрелок на ней нет, но подписи
   // и стрелки её обходят, как обходят линии кайтов.

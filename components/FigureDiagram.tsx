@@ -49,7 +49,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 
 // Легенда у каждой схемы своя и называет ровно то, что на этой схеме есть:
 // лист с одним составом команды читается и в печати, без соседних.
-function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: { id: string; color: number }[]; rev: boolean }) {
+export function Legend({ drawing, kites, rev }: { drawing: Pick<Drawing, "shapes" | "labels" | "arrows" | "swings" | "guides">; kites: { id: string; color: number }[]; rev: boolean }) {
   const used = SHAPES.filter((name) => drawing.shapes[name]);
   // Слова подписей схемы — как в книге, по-английски; легенда их переводит.
   const words = [...new Set(drawing.labels.filter((label) => label.kind === "note").map((label) => wordOf(label.text)))].filter(
@@ -113,10 +113,12 @@ function Legend({ drawing, kites, rev }: { drawing: Drawing; kites: { id: string
   );
 }
 
-function Diagram({ drawing, label, colors }: { drawing: Drawing; label: string; colors: number[] }) {
+// `team` — схема кадра рутины пары или команды: штрих и цвет кайта остаются и
+// там, где он на схеме один.
+export function Diagram({ drawing, label, colors, team = false }: { drawing: Drawing; label: string; colors: number[]; team?: boolean }) {
   const { xs, ys, axes } = drawing.grid;
   const mid = `${axes.x ? "M0 0v100" : ""}${axes.y ? "M-100 50h200" : ""}`;
-  const many = drawing.tracks.length > 1;
+  const many = team || drawing.tracks.length > 1;
   const lines = [...xs.map((x) => `M${x} 0v100`), ...ys.map((y) => `M-100 ${100 - y}h200`)].join("");
   return (
     <svg className="d-svg" viewBox={drawing.viewBox} role="img" aria-label={label}>

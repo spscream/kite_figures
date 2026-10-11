@@ -7,3 +7,7 @@ export function sectionPath(discipline: string): string {
 export function figurePath(slug: string): string {
   return `/figures/${slug}/`;
 }
+
+export function routinePath(slug: string): string {
+  return `/routines/${slug}/`;
+}
