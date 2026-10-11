@@ -1,18 +1,16 @@
-import fs from "node:fs";
-import path from "node:path";
-
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ElementDictionary } from "@/components/ElementDictionary";
 import { TempoEditor } from "@/components/TempoEditor";
-import { figureTitle, listFigures } from "@/lib/figures";
+import { editorProps } from "@/lib/editor";
 import { routinePath } from "@/lib/paths";
-import { getRoutine, listRoutines, ROUTINES_DIR } from "@/lib/routines";
+import { getRoutine, listRoutines } from "@/lib/routines";
 
 type Props = { params: Promise<{ slug: string }> };
 
-// Редактор длительностей — по странице на рутину каталога `data/routines/`.
+// Редактор рутины (длительности и элементы словаря) — по странице на рутину каталога `data/routines/`.
 export const dynamicParams = false;
 
 export function generateStaticParams() {
@@ -24,22 +22,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return routine ? { title: `Длительности: ${routine.name}`, description: `Редактор длительностей шагов рутины «${routine.name}».` } : {};
 }
 
-const ORIGIN_TEXT = { own: "своя работа", link: "связка" } as const;
-
 export default async function TempoPage({ params }: Props) {
   const { slug } = await params;
-  const routine = getRoutine(slug);
-  if (!routine) {
+  // Автору возвращается его же файл: редактор меняет в нём длительности и
+  // ставит в него шаги элементов.
+  const props = editorProps(slug);
+  if (!props) {
     notFound();
   }
-  const fileName = `${slug}.json`;
-  // Автору возвращается его же файл: редактор меняет в нём одни длительности.
-  const file: unknown = JSON.parse(fs.readFileSync(path.join(ROUTINES_DIR, fileName), "utf8"));
-  const figures = listFigures();
-  const parts = routine.segments.map((segment, index) => {
-    const figure = segment.origin === "figure" ? figures.find((item) => item.slug === segment.figure) : undefined;
-    return `Часть ${index + 1}: ${segment.origin === "figure" ? `фигура ${figure ? figureTitle(figure) : segment.figure}` : ORIGIN_TEXT[segment.origin]}`;
-  });
+  const { routine } = props;
   return (
     <article>
       <nav className="crumbs" aria-label="Положение на сайте">
@@ -57,13 +48,18 @@ export default async function TempoPage({ params }: Props) {
         Редактор ничего не сохраняет: сайт — статические файлы. Правки живут, пока открыта страница; внизу — текст файла
         рутины с ними, его сохраняет сам автор. Проверки под полями — подсказки по условиям правил, а не судейская оценка.
       </p>
+      <p className="note">
+        Здесь же в рутину ставится элемент словаря: автор выбирает элемент, называет его параметры и получает шаг пути.
+        Какие элементы есть и чего среди них нет — в таблицах под редактором.
+      </p>
       <noscript>
         <p className="te-nojs">
           Редактору нужен JavaScript: без него поля ввода не показаны. Сама рутина со схемами и шагами читается и без него —
           на <a href={routinePath(slug)}>её странице</a>.
         </p>
       </noscript>
-      <TempoEditor routine={routine} file={file} fileName={fileName} parts={parts} />
+      <TempoEditor {...props} />
+      <ElementDictionary />
     </article>
   );
 }

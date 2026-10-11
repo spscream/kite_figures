@@ -49,7 +49,7 @@ export default async function RoutinePage({ params }: Props) {
       </p>
       <p className="note r-edit">
         <Link href={routineTempoPath(routine.slug)}>Редактор длительностей</Link>
-        {" — задать время каждого шага и получить файл рутины обратно; редактору нужен JavaScript."}
+        {" — задать время каждого шага, поставить в рутину элемент словаря и получить файл рутины обратно; редактору нужен JavaScript."}
       </p>
       <RoutineView name={routine.name} board={board} multiline={routine.discipline.startsWith("multi-line")} />
       {rules && (
