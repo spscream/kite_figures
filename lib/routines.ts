@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { DISCIPLINES, type Discipline, type Figure, listFigures } from "./figures";
 import { type OwnStep, parseOwnStep, type Point, type Pose, poseAfter, type Step, TOLERANCE } from "./geometry";
+import { syncOf } from "./sync";
 
 // Рутина — один длинный путь на каждый кайт, записанный теми же шагами, что и
 // путь фигуры. Формат файла описан в `docs/routines.md`; здесь — его проверка.
@@ -139,6 +140,13 @@ function ownSegment(where: string, value: Record<string, unknown>, kites: string
   }
   if (kites.every((kite) => result[kite].length === 0)) {
     fail(`${where}.paths`, "в части нет ни одного шага");
+  }
+  // Метка одновременности называет момент внутри своей части: у фигуры метки
+  // сверил её разбор, у связки и своей работы пара ищется здесь же.
+  try {
+    syncOf(kites.map((kite) => ({ id: kite, path: result[kite] })));
+  } catch (error) {
+    fail(`${where}.paths`, (error as Error).message);
   }
   return { origin: value.origin as "link" | "own", paths: result };
 }

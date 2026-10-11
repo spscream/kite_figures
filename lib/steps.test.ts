@@ -4,8 +4,10 @@ import { listFigures } from "./figures";
 import { isSwing, type Kite, parseGeometry } from "./geometry";
 import { describeKite, lineText } from "./steps";
 
-function kite(path: unknown[]): Kite {
-  const raw = { status: "ok", variants: [{ id: "main", kites: [{ id: "1", path }], grid: { x: [0], y: [50] }, guides: { status: "not_found", reason: "на схеме их нет" } }], notes: ["для теста"] };
+// `pair` — тот же путь летит и второй кайт: метке одновременности нужна пара.
+function kite(path: unknown[], pair = false): Kite {
+  const kites = [{ id: "1", path }, ...(pair ? [{ id: "2", path }] : [])];
+  const raw = { status: "ok", variants: [{ id: "main", kites, grid: { x: [0], y: [50] }, guides: { status: "not_found", reason: "на схеме их нет" } }], notes: ["для теста"] };
   const read = parseGeometry("g", raw, 125);
   if (read.status !== "ok") {
     throw new Error("геометрия не разобрана");
@@ -197,8 +199,9 @@ describe("describeKite", () => {
       { kind: "line", to: [0, 50], sync: "a" },
       { kind: "mark", mark: "out", sync: "out" },
     ];
-    expect(texts(path, true)).toEqual(["Точка (0; 10) — вход (IN) [in]", "Прямая до (0; 50) — выход (OUT) [a, out]"]);
-    expect(texts(path, false)).toEqual(["Точка (0; 10) — вход (IN)", "Прямая до (0; 50) — выход (OUT)"]);
+    const lines = describeKite(kite(path, true));
+    expect(lines.map((line) => lineText(line, true))).toEqual(["Точка (0; 10) — вход (IN) [in]", "Прямая до (0; 50) — выход (OUT) [a, out]"]);
+    expect(lines.map((line) => lineText(line, false))).toEqual(["Точка (0; 10) — вход (IN)", "Прямая до (0; 50) — выход (OUT)"]);
   });
 });
 

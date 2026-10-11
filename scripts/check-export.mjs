@@ -178,6 +178,49 @@ const ABOUT_MISSING = " (точка поворота в книге не назв
 
 // Начало подписи под кнопками проигрывания — повторено, как и подписи шагов.
 const PACE_NOTE = "Темп условный: скорости книга не задаёт.";
+// У пары и команды сразу за этим — чем сведены кайты.
+const TEAM_PACE_NOTE = " Шаг показа — от одной общей метки одновременности до следующей";
+const NO_SYNC_NOTE = "Этот вариант не проигрывается: общих меток одновременности в его данных нет";
+
+// Шаги показа пары или команды, посчитанные по данным: метки, которыми кончается
+// каждый, начиная с начала путей. Шаг показа кончается меткой, к которой хоть
+// одному кайту было что делать после прошлой; последний — концом путей, если за
+// последней меткой ещё что-то есть. Счёт верен, когда каждая метка стоит у
+// каждого кайта и порядок у всех один — так во всём каталоге; иначе `null`.
+function teamStops(kites) {
+  // Шаг, на который показ тратит время: пролёт, поворот, остановка, посадка, аксель.
+  const takes = (step) => step.kind === "line" || step.kind === "arc" || step.kind === "rotate" || ["stall", "landing", "axel", "half-axel"].includes(step.mark);
+  const cuts = kites.map((kite) => {
+    const found = [];
+    kite.path.forEach((step, index) => {
+      if (step.sync === undefined) {
+        return;
+      }
+      if (found.length > 0 && found[found.length - 1].label === step.sync) {
+        found[found.length - 1].step = index;
+      } else {
+        found.push({ label: step.sync, step: index });
+      }
+    });
+    return found;
+  });
+  const order = cuts[0].map((cut) => cut.label);
+  if (new Set(order).size !== order.length || cuts.some((list) => list.map((cut) => cut.label).join("\n") !== order.join("\n"))) {
+    return null;
+  }
+  const busy = (from, to) => kites.some((kite, index) => kite.path.slice(from(cuts[index]), to(cuts[index])).some(takes));
+  const stops = [[]];
+  order.forEach((label, at) => {
+    if (busy((list) => (at === 0 ? 0 : list[at - 1].step + 1), (list) => list[at].step + 1)) {
+      stops.push([]);
+    }
+    stops[stops.length - 1].push(label);
+  });
+  if (busy((list) => list[list.length - 1].step + 1, () => undefined)) {
+    stops.push([]);
+  }
+  return stops;
+}
 
 // Поворот, который сам перемещает кайт: у него записано, куда пришёл нос.
 function isSwing(step) {
@@ -383,26 +426,54 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
     // Цвет кайта — по месту в списке, пока данные не назвали другой.
     const colorOf = (order) => kites[order].color ?? (order % 5) + 1;
 
-    // Проигрывание пути — только у варианта с одним кайтом: парам и командам
-    // нужна одновременность. Блок с кнопками собран скрытым и схему не
-    // заменяет: без JavaScript страница — та же схема. Темп назван условным,
-    // и времени в блоке нет: единственные числа — номер шага и его строка.
+    // Проигрывание пути. У одного кайта шаг — строка списка шагов; у пары и
+    // команды — от одной общей метки одновременности до следующей; вариант с
+    // несколькими кайтами и без единой метки не проигрывается, и это сказано
+    // словами. Блок с кнопками собран скрытым и схему не заменяет: без
+    // JavaScript страница — та же схема. Темп назван условным, и времени в
+    // блоке нет: единственные числа — номер шага и его строка.
     const stages = block.split('<div class="p-stage">').length - 1;
     const players = block.match(/<div class="player"[^>]*>/g) ?? [];
-    if (many) {
-      if (stages > 0 || players.length > 0) {
-        say("есть проигрывание, а кайтов несколько");
+    if (stages !== 1 || !block.includes('<div class="p-stage"><svg class="d-svg"')) {
+      say("схема не обёрнута слоем проигрывания");
+    }
+    if (players.length !== 1 || players[0] !== '<div class="player" hidden="">') {
+      say("блок проигрывания не один или собран не скрытым");
+    }
+    if (block.includes('class="p-svg"')) {
+      say("слой проигрывания собран в страницу: без JavaScript на схеме был бы лишний кайт");
+    }
+    const player = block.slice(block.indexOf('<div class="player"'), block.indexOf("<figcaption"));
+    if (/<input|<progress|<meter/.test(player)) {
+      say("в блоке проигрывания есть шкала: времени там быть не должно");
+    }
+    const said = player.replace(/<p class="p-step">[\s\S]*?<\/p>/, "").replace(/<[^>]*>/g, "");
+    if (/\d/.test(said) || player.includes("<time")) {
+      say("в блоке проигрывания есть число помимо номера шага: времени там быть не должно");
+    }
+    const shown = player.match(/<p class="p-step"><b>[^<]*<\/b> (?:<!-- -->)?([^<]*)<\/p>/)?.[1];
+    const labelled = kites.some((kite) => kite.path.some((step) => step.sync !== undefined));
+    if (many && !labelled) {
+      if (!player.includes(NO_SYNC_NOTE) || player.includes("<button")) {
+        say("вариант без меток одновременности проигрывается либо не говорит, почему нет");
       }
     } else {
-      if (stages !== 1 || !block.includes('<div class="p-stage"><svg class="d-svg"')) {
-        say("схема не обёрнута слоем проигрывания");
+      let rows;
+      let first;
+      if (many) {
+        const stops = teamStops(kites);
+        if (stops === null) {
+          say("метки одновременности стоят не у каждого кайта или в разном порядке: шаги показа проверка сама не сочтёт");
+        } else {
+          rows = stops.length;
+          first = stops[0].length > 0 ? `Начало — общая метка [${stops[0].join(", ")}].` : "Начало: до первой общей метки.";
+        }
+      } else {
+        rows = kites[0].path.filter((step) => step.kind !== "mark" && (step.kind !== "rotate" || isSwing(step))).length;
+        // Строка шага — та же, что первая в списке под схемой.
+        first = block.match(/<ol><li>([^<]*)/)?.[1];
       }
-      if (players.length !== 1 || players[0] !== '<div class="player" hidden="">') {
-        say("блок проигрывания не один или собран не скрытым");
-      }
-      const player = block.slice(block.indexOf('<div class="player"'), block.indexOf("<figcaption"));
-      const rows = kites[0].path.filter((step) => step.kind !== "mark" && (step.kind !== "rotate" || isSwing(step))).length;
-      if (!player.includes(`<b>Шаг 1 из ${rows}.</b>`)) {
+      if (rows !== undefined && !player.includes(`<b>Шаг 1 из ${rows}.</b>`)) {
         say(`в проигрывании не ${rows} шагов`);
       }
       for (const name of ["В начало", "← Назад", "Вперёд →", "Весь путь"]) {
@@ -410,24 +481,11 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
           say(`в проигрывании нет кнопки «${name}»`);
         }
       }
-      if (!player.includes(`<p class="note">${PACE_NOTE}`)) {
-        say("не сказано, что темп проигрывания условный");
+      if (!player.includes(`<p class="note">${PACE_NOTE}${many ? TEAM_PACE_NOTE : ""}`) || (!many && player.includes(TEAM_PACE_NOTE))) {
+        say(many ? "не сказано, что темп условный и что кайты сведены по меткам" : "не сказано, что темп проигрывания условный");
       }
-      // Строка шага — та же, что первая в списке под схемой.
-      const shown = player.match(/<p class="p-step"><b>[^<]*<\/b> (?:<!-- -->)?([^<]*)<\/p>/)?.[1];
-      const listed = block.match(/<ol><li>([^<]*)/)?.[1];
-      if (shown === undefined || shown.trim() !== listed?.trim()) {
-        say("строка шага в проигрывании не та, что первая в списке шагов");
-      }
-      if (block.includes('class="p-svg"')) {
-        say("слой проигрывания собран в страницу: без JavaScript на схеме был бы лишний кайт");
-      }
-      if (/<input|<progress|<meter/.test(player)) {
-        say("в блоке проигрывания есть шкала: времени там быть не должно");
-      }
-      const said = player.replace(/<p class="p-step">[\s\S]*?<\/p>/, "").replace(/<[^>]*>/g, "");
-      if (/\d/.test(said) || player.includes("<time")) {
-        say("в блоке проигрывания есть число помимо номера шага: времени там быть не должно");
+      if (rows !== undefined && (shown === undefined || shown.trim() !== first?.trim())) {
+        say(many ? "первая строка проигрывания называет не те метки, что стоят в начале путей" : "строка шага в проигрывании не та, что первая в списке шагов");
       }
     }
 
@@ -1693,6 +1751,9 @@ if (!scripts(path.join(out, "_next")).some((file) => fs.readFileSync(file, "utf8
 // скрытым, и без этого кода его некому открыть.
 if (!scripts(path.join(out, "_next")).some((file) => /p-svg[\s\S]*p-unsure/.test(fs.readFileSync(file, "utf8")))) {
   problems.push("в клиентском коде нет слоя проигрывания пути");
+}
+if (!scripts(path.join(out, "_next")).some((file) => ["p-svg", "p-team", "p-tag"].every((name) => fs.readFileSync(file, "utf8").includes(name)))) {
+  problems.push("в клиентском коде нет слоя проигрывания пары и команды");
 }
 
 // Редактор длительностей собран скрытым; открывает его и считает находки
