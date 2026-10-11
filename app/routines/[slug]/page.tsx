@@ -7,6 +7,7 @@ import { sectionPath, sectionTitle } from "@/lib/catalog";
 import { listFigures } from "@/lib/figures";
 import { storyboard } from "@/lib/frames";
 import { getRoutine, listRoutines } from "@/lib/routines";
+import { routineTempoPath } from "@/lib/paths";
 import { loadSources } from "@/lib/sources";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -45,6 +46,10 @@ export default async function RoutinePage({ params }: Props) {
         <Link href={sectionPath(routine.discipline)}>{sectionTitle(routine.discipline)}</Link>
         {routine.kites.length > 1 ? `, кайтов — ${routine.kites.length}` : ""}
         {". Рутина — своя запись программы полёта: в книге фигур её нет. Время шагов записал автор рутины — ни книга фигур, ни правила длительности шага не называют."}
+      </p>
+      <p className="note r-edit">
+        <Link href={routineTempoPath(routine.slug)}>Редактор длительностей</Link>
+        {" — задать время каждого шага и получить файл рутины обратно; редактору нужен JavaScript."}
       </p>
       <RoutineView name={routine.name} board={board} multiline={routine.discipline.startsWith("multi-line")} />
       {rules && (

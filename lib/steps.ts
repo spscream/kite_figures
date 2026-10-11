@@ -137,6 +137,13 @@ function head(step: Step, ours = false): string {
   }
 }
 
+// Один шаг словами, сам по себе — не строка списка: так редактор длительностей
+// называет каждый шаг, у которого спрашивает время.
+export function stepText(step: Step, ours = false): string {
+  const text = head(step, ours);
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 // Шаг открывает свою строку: точка старта и всякое перемещение.
 export function startsLine(step: Step): step is Extract<Step, { kind: "start" | "line" | "arc" }> | Swing {
   return step.kind === "start" || step.kind === "line" || step.kind === "arc" || isSwing(step);

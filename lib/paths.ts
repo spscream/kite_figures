@@ -11,3 +11,8 @@ export function figurePath(slug: string): string {
 export function routinePath(slug: string): string {
   return `/routines/${slug}/`;
 }
+
+// Редактор длительностей рутины.
+export function routineTempoPath(slug: string): string {
+  return `/routines/${slug}/tempo/`;
+}

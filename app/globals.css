@@ -715,6 +715,119 @@ h1 {
   min-width: 3.2em;
 }
 
+/* Редактор длительностей рутины. Блок собран скрытым: без JavaScript его поля
+   мертвы, и открывает его только оживший клиентский код. */
+.tempo[hidden] {
+  display: none;
+}
+
+.te-nojs,
+.te-bad {
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--muted);
+  border-radius: 0.3rem;
+}
+
+.te-part h3 {
+  margin: 1rem 0 0;
+  font-size: 1.05rem;
+}
+
+.te-rows {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Строка шага: слова, поле, начало шага. На узком экране поле уходит под слова. */
+.te-rows li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.te-rows label {
+  flex: 1 1 16rem;
+}
+
+.te-field {
+  white-space: nowrap;
+}
+
+.te-field input {
+  width: 5.5em;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.3rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.te-field input[aria-invalid="true"] {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.te-at {
+  flex: 0 0 11.5em;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.te-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.te-buttons button {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.te-time,
+.te-findings {
+  padding-left: 1.2rem;
+}
+
+.te-findings li {
+  margin: 0.4rem 0;
+}
+
+/* Нарушение условия правил отличается не одним цветом: рамкой слева. */
+.te-findings .te-violation {
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--fg);
+}
+
+.te-file {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  white-space: pre;
+  overflow-x: auto;
+  resize: vertical;
+}
+
 @media print {
   :root {
     --bg: #ffffff;

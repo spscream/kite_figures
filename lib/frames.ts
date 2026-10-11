@@ -25,6 +25,7 @@ import { GRID, type Guide, isSwing, type Kite, type OwnStep, pivotOf, type Point
 import { legsOf } from "./pose";
 import { type Origin, type Routine, type Timed } from "./routines";
 import { describeKite, lineText, startsLine } from "./steps";
+import { lasts } from "./tempo";
 
 type Recorded = Timed<Step> | Timed<OwnStep>;
 
@@ -61,9 +62,6 @@ export type Clock = { kite: string; total: number | null; judged: number | null;
 export type Storyboard = { frames: Frame[]; clocks: Clock[] };
 
 const flies = (step: Recorded) => step.kind === "line" || step.kind === "arc" || (step.kind === "rotate" && step.to !== undefined);
-
-// У старта и вызовов длительности нет — так решает формат.
-const lasts = (step: Recorded) => step.kind !== "start" && !(step.kind === "mark" && (step.mark === "in" || step.mark === "out"));
 
 // Шаг, как его читает чертёж. `basis` чертежу нужен только затем, чтобы
 // поставить значок у координаты не с линии сетки; у своего шага этого поля нет,

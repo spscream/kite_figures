@@ -1433,6 +1433,179 @@ for (const slug of routineSlugs) {
   }
 }
 
+// Редактор длительностей: по странице на рутину. Поля, время, исход проверки
+// длительности и текст файла посчитаны здесь заново по файлу рутины, а не взяты
+// у lib/tempo.ts и lib/routine-checks.ts.
+//
+// 95 → «1 мин 35 с»: повторено, как и остальные подписи.
+function longClock(seconds) {
+  const say = (value) => String(Math.round(value * 1000) / 1000).replace(".", ",");
+  const total = Math.round(seconds * 1000) / 1000;
+  const minutes = Math.floor(total / 60);
+  const rest = Math.round((total - minutes * 60) * 1000) / 1000;
+  return minutes === 0 ? `${say(rest)} с` : rest === 0 ? `${minutes} мин` : `${minutes} мин ${say(rest)} с`;
+}
+const ofSteps = (count) => `у ${count} ${count % 10 === 1 && count % 100 !== 11 ? "шага" : "шагов"}`;
+// Наименьшее и наибольшее время технической рутины по составу, секунды.
+const ROUTINE_LIMITS = { individual: [60, 180], pair: [120, 240], team: [120, 240] };
+const STANDINGS = ["Правила требуют: ", "Правила называют критерием, меры не дают: ", "Наша мера, не правило: "];
+const FINDING_STATES = {
+  "te-ok": "Выполнено.",
+  "te-violation": "Нарушено.",
+  "te-unknown": "По записи не решить.",
+  "te-unchecked": "По записи не проверяется.",
+  "te-fact": "Число без вывода.",
+};
+
+for (const slug of routineSlugs) {
+  const routine = routines.get(slug);
+  const html = page(path.join("routines", slug, "tempo"));
+  if (html === null) {
+    continue;
+  }
+  const where = `на странице routines/${slug}/tempo/`;
+  expectSearch(where, html);
+  const main = mainOf(html);
+  if (!main.includes(`<h1>Длительности: ${escapeHtml(routine.name)}</h1>`)) {
+    problems.push(`${where} нет заголовка с названием рутины`);
+  }
+  // Со страницы рутины в редактор ведёт ссылка, из редактора — обратно.
+  const routinePage = page(path.join("routines", slug));
+  if (routinePage !== null && !anchors(mainOf(routinePage)).some((link) => link.href === `/routines/${slug}/tempo/`)) {
+    problems.push(`на странице routines/${slug}/ нет ссылки на редактор длительностей`);
+  }
+  if (!anchors(main).some((link) => link.href === `/routines/${slug}/`)) {
+    problems.push(`${where} нет ссылки на страницу рутины`);
+  }
+  // Без JavaScript поля мертвы: блок собран скрытым, и страница говорит почему.
+  if (!/<noscript>.*?Редактору нужен JavaScript.*?<\/noscript>/s.test(main)) {
+    problems.push(`${where} не сказано, что редактору нужен JavaScript`);
+  }
+  const editor = main.match(/<div class="tempo" hidden="">(.*)$/s)?.[1];
+  if (editor === undefined) {
+    problems.push(`${where} блок редактора не собран скрытым`);
+    continue;
+  }
+  // Поле — у каждого шага, который длится, и ни у какого другого; в поле —
+  // длительность из файла, а где её нет — пусто: числа за автора нет нигде.
+  const parts = routineParts(routine);
+  const wanted = parts.flatMap((part, index) =>
+    routine.kites.flatMap((kite) =>
+      (part.paths[kite] ?? []).flatMap((step, at) =>
+        takesTime(step) ? [{ id: `te-${index}-${kite}-${at}`, value: step.seconds === undefined ? "" : String(step.seconds).replace(".", ",") }] : [],
+      ),
+    ),
+  );
+  const fields = [...editor.matchAll(/<input\b([^>]*)>/g)].map(([, attributes]) => ({
+    id: attributes.match(/\bid="([^"]*)"/)?.[1] ?? "",
+    value: attributes.match(/\bvalue="([^"]*)"/)?.[1] ?? "",
+    // Всё, чем полю можно подсказать число или сделать его мёртвым.
+    extra: (attributes.match(/\b(placeholder|list|title|min|max|step|disabled|readonly)\b=/i) ?? [])[1],
+  }));
+  const told = (list) => list.map((field) => `${field.id}=«${field.value}»`).join(" ");
+  if (told(fields) !== told(wanted)) {
+    problems.push(`${where} поля длительностей — ${told(fields)}, а по данным — ${told(wanted)}`);
+  }
+  for (const field of fields.filter((item) => item.extra)) {
+    problems.push(`${where} у поля ${field.id} есть «${field.extra}»: числа редактор не предлагает, и мёртвых полей в нём нет`);
+  }
+  // Полей вне скрытого блока на странице нет: без JavaScript они были бы мёртвыми.
+  if (count(main, /<(?:input|select|textarea|button)\b/g) !== count(editor, /<(?:input|select|textarea|button)\b/g)) {
+    problems.push(`${where} поле или кнопка стоит вне скрытого блока редактора`);
+  }
+  const labels = [...editor.matchAll(/<label for="([^"]*)">([^<]*)<\/label>/g)];
+  if (labels.map((label) => label[1]).join(" ") !== wanted.map((field) => field.id).join(" ") || labels.some((label) => label[2].length < 5)) {
+    problems.push(`${where} шаг назван словами не у каждого поля длительности`);
+  }
+  // У пары и команды подпись называет кайт — тот, чей это шаг.
+  const kiteOf = (id) => id.split("-")[2];
+  if (routine.kites.length > 1 && labels.some((label) => !label[2].startsWith(`Кайт ${kiteOf(label[1])}. `))) {
+    problems.push(`${where} подпись поля не называет кайт, чей это шаг`);
+  }
+  // Время каждого кайта: от IN до OUT и весь записанный путь.
+  const sums = routine.kites.map((kite) => {
+    const sum = { judged: 0, untimedJudged: 0, whole: 0, untimed: 0 };
+    let judging = false;
+    for (const step of parts.flatMap((part) => part.paths[kite] ?? [])) {
+      if (step.kind === "mark" && (step.mark === "in" || step.mark === "out")) {
+        judging = step.mark === "in";
+      }
+      if (!takesTime(step)) {
+        continue;
+      }
+      if (step.seconds === undefined) {
+        sum.untimed += 1;
+        sum.untimedJudged += judging ? 1 : 0;
+      } else {
+        sum.whole += step.seconds;
+        sum.judged += judging ? step.seconds : 0;
+      }
+    }
+    return sum;
+  });
+  const saidTimes = [...(editor.match(/<ul class="te-time">(.*?)<\/ul>/s)?.[1] ?? "").matchAll(/<li>(.*?)<\/li>/gs)].map((match) => match[1]);
+  const wantedTimes = routine.kites.map((kite, order) => {
+    const sum = sums[order];
+    const between =
+      sum.untimedJudged === 0
+        ? `от IN до OUT — ${longClock(sum.judged)}`
+        : sum.judged === 0
+          ? `от IN до OUT длительность не задана ни у одного шага (шагов — ${sum.untimedJudged})`
+          : `от IN до OUT заданные шаги дают ${longClock(sum.judged)}, длительность не задана ${ofSteps(sum.untimedJudged)}`;
+    const whole = sum.untimed === 0 ? `весь записанный путь — ${longClock(sum.whole)}` : `весь записанный путь не складывается: длительность не задана ${ofSteps(sum.untimed)}`;
+    return `${routine.kites.length > 1 ? `Кайт ${kite}: ` : ""}${between}; ${whole}.`;
+  });
+  if (saidTimes.join(" ") !== wantedTimes.join(" ")) {
+    problems.push(`${where} о времени сказано «${saidTimes.join(" ")}», а по данным — «${wantedTimes.join(" ")}»`);
+  }
+  // Находки: у каждой — что проверка увидела и на чём она стоит; ни балла, ни
+  // доли в выводе нет.
+  const findings = [...(editor.match(/<ul class="te-findings">(.*?)<\/ul>/s)?.[1] ?? "").matchAll(/<li class="([^"]*)"><b>([^<]*)<\/b>(.*?)<\/li>/gs)].map(
+    ([, state, label, text]) => ({ state, label, text: text.replace(/<!-- -->/g, "").trim() }),
+  );
+  if (findings.length < 4) {
+    problems.push(`${where} находок проверок ${findings.length}: проверки рутины до страницы не дошли`);
+  }
+  for (const finding of findings) {
+    if (FINDING_STATES[finding.state] !== finding.label || !STANDINGS.some((standing) => finding.text.startsWith(standing))) {
+      problems.push(`${where} находка «${finding.label} ${finding.text.slice(0, 40)}…» без состояния или без основания`);
+    }
+    // Вывод «выполнено — нарушено» бывает только там, где правила требуют.
+    if ((finding.state === "te-ok" || finding.state === "te-violation") && !finding.text.startsWith(STANDINGS[0])) {
+      problems.push(`${where} вывод «${finding.label}» стоит у находки, чьё основание — не требование правил`);
+    }
+  }
+  // Ни в находках, ни рядом с ними: во всём блоке редактора, кроме текста файла
+  // рутины, который пишет автор.
+  const shown = editor.replace(/<textarea\b.*?<\/textarea>/gs, " ").replace(/<[^>]*>/g, " ");
+  if (/%|(?<![а-яё])(?:балл|очк[оиа]|оценк|рейтинг)/i.test(shown)) {
+    problems.push(`${where} в редакторе есть проценты, баллы или оценка: проверки — подсказки`);
+  }
+  // Исход проверки длительности — когда темп задан у каждого шага и время у
+  // кайтов одно: тогда он следует из границ состава.
+  const totals = sums.map((sum) => Math.round(sum.judged * 1000) / 1000);
+  const limits = ROUTINE_LIMITS[routine.discipline.split("-").at(-1)];
+  if (limits && sums.every((sum) => sum.untimedJudged === 0) && totals.every((total) => Math.abs(total - totals[0]) < 0.001)) {
+    const state = totals[0] < limits[0] || totals[0] > limits[1] ? "te-violation" : "te-ok";
+    const said = findings.find((finding) => finding.text.includes("техническая рутина"));
+    if (said?.state !== state) {
+      problems.push(`${where} проверка длительности говорит «${said?.label ?? "ничего"}», а по данным от IN до OUT ${longClock(totals[0])} при границах ${limits.join("–")} с`);
+    }
+  }
+  // Файл, который редактор отдаёт, пока в нём ничего не правили, — файл рутины
+  // как он лежит в репозитории, и текстом, и ссылкой на скачивание.
+  const fileText = fs.readFileSync(path.join(routinesDir, `${slug}.json`), "utf8");
+  if (editor.match(/<textarea class="te-file"[^>]*>(.*?)<\/textarea>/s)?.[1] !== escapeHtml(fileText)) {
+    problems.push(
+      `${where} текст файла рутины не совпадает с data/routines/${slug}.json: редактор отдаёт не тот файл либо файл записан не в том виде, в каком его отдаёт редактор (docs/routines.md, «Редактор длительностей»)`,
+    );
+  }
+  const save = editor.match(/<a class="te-save" download="([^"]*)" href="([^"]*)">([^<]*)<\/a>/);
+  if (save?.[1] !== `${slug}.json` || save[2] !== escapeHtml(`data:application/json;charset=utf-8,${encodeURIComponent(fileText)}`) || save[3] !== `Скачать ${slug}.json`) {
+    problems.push(`${where} ссылка на скачивание отдаёт не файл data/routines/${slug}.json`);
+  }
+}
+
 // Рутины на главной — своим списком, по ссылке на каждую.
 if (home !== null) {
   const list = mainOf(home).match(/<ul class="routine-list">(.*?)<\/ul>/s)?.[1] ?? "";
@@ -1520,6 +1693,12 @@ if (!scripts(path.join(out, "_next")).some((file) => fs.readFileSync(file, "utf8
 // скрытым, и без этого кода его некому открыть.
 if (!scripts(path.join(out, "_next")).some((file) => /p-svg[\s\S]*p-unsure/.test(fs.readFileSync(file, "utf8")))) {
   problems.push("в клиентском коде нет слоя проигрывания пути");
+}
+
+// Редактор длительностей собран скрытым; открывает его и считает находки
+// клиентский код.
+if (routineSlugs.length > 0 && !scripts(path.join(out, "_next")).some((file) => /te-findings[\s\S]*te-file/.test(fs.readFileSync(file, "utf8")))) {
+  problems.push("в клиентском коде нет редактора длительностей");
 }
 
 // В out/figures/ и out/disciplines/ — ровно по каталогу на фигуру и на
