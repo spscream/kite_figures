@@ -49,16 +49,16 @@ export type Gap = Doubt | "axel";
 export const GAPS: readonly Gap[] = ["order", "pivot", "span", "axel"];
 
 export const GAP_TEXT: Record<Gap, string> = {
-  order: "Порядок прохода этого шага книга не показывает: кайта на нём нет, выделена только линия.",
-  pivot: "Вокруг чего кайт поворачивается, книга не называет: значок повёрнут вокруг носа условно и обведён пунктиром.",
-  span: "Это место книга объявляет незаданным: значок стоит по размаху нашего значка кайта и обведён пунктиром.",
-  axel: "Аксель записан точкой: самого движения в данных нет, и здесь оно не показано.",
+  order: "Порядок прохода этого шага книга не показывает: пока шаг идёт, кайта на схеме нет, выделена только линия.",
+  pivot: "Вокруг чего кайт поворачивается, книга не называет: на повороте и после него значок обведён пунктиром, повёрнут он вокруг носа условно.",
+  span: "Это место книга объявляет незаданным: значок там стоит по размаху нашего значка кайта и обведён пунктиром.",
+  axel: "Аксель записан точкой: самого движения в данных нет, и здесь оно не показано — на акселе и после него значок стоит на месте и обведён пунктиром.",
 };
 
 // Подпись под кнопками: темп условный, и это сказано на странице.
 export const PACE_TEXT =
-  "Темп условный: скорости книга не задаёт. Кайт идёт с постоянной скоростью, остановка и поворот на месте показаны условной паузой, " +
-  "времени на экране нет: судить по этому показу о ритме нельзя, он показывает порядок шагов. " +
+  "Темп условный: скорости книга не задаёт. Кайт идёт с постоянной скоростью; сколько длятся остановка, посадка и поворот на месте, " +
+  "книга не говорит, и здесь они показаны условно. Времени на экране нет: судить по этому показу о ритме нельзя, он показывает порядок шагов. " +
   "На стыке шагов нос меняет курс скачком: как кайт доворачивает, книга не показывает.";
 
 // Строка шагов: перемещение и события в точке, куда оно привело. Первая строка
@@ -115,21 +115,27 @@ export function sceneOf(path: Step[], rev: boolean, pace: (leg: Leg) => number =
     }
     groups[groups.length - 1].push(leg);
   }
+  const opening = poseAt(path, 0, rev);
   const rows = groups.map((legs, index): Row => {
+    // Первая строка не проигрывается: кайт в ней стоит так, как его ставит
+    // доля пути ноль, и сомнения у неё — этой позы.
+    if (index === 0) {
+      return { legs, shares: [], seconds: 0, gaps: GAPS.filter((gap) => gap !== "axel" && opening.doubts.includes(gap)), track: "", unmarked: false };
+    }
     const weights = legs.map(pace);
     const seconds = weights.reduce((sum, weight) => sum + weight, 0);
     const first = legs[0];
     return {
       legs,
-      // Первая строка не проигрывается, и долей у неё нет.
-      shares: index > 0 ? sharesOf(legs, (leg) => weights[legs.indexOf(leg)]) : [],
+      // Строка, которой свой счёт времени не дал ни секунды, проходится сразу.
+      shares: seconds > 0 ? sharesOf(legs, (leg) => weights[legs.indexOf(leg)]) : [],
       seconds,
       gaps: gapsOf(legs),
-      track: index > 0 ? trackOfLeg(first) : "",
-      unmarked: index > 0 && "unmarked" in first.step && first.step.unmarked === true,
+      track: trackOfLeg(first),
+      unmarked: "unmarked" in first.step && first.step.unmarked === true,
     };
   });
-  return { rev, rows, opening: poseAt(path, 0, rev) };
+  return { rev, rows, opening };
 }
 
 // Где проигрывание: строка и пройденная её доля. `rest` — стоит, `step` —
@@ -203,12 +209,16 @@ export type Frame = {
   // кольцо в точке. Там, где порядок прохода книгой не показан, значка нет.
   glyph: { kind: "kite" | "spot"; d: string } | null;
   // Значок стоит условно: точка поворота не названа, место не задано либо
-  // идёт аксель, движения которого в данных нет.
+  // идёт аксель, движения которого в данных нет. В конце строки — если в ней
+  // было хоть одно из трёх: после акселя неизвестен и курс.
   unsure: boolean;
 };
 
 // Значок проигрывания крупнее значков схемы: он лежит поверх них.
 const SCALE = 1.25;
+// Кольцо там, где курс из пути не следует: крупнее значка выведенной координаты.
+const SPOT_R = 3;
+const spot = (x: number, y: number) => `M${x - SPOT_R} ${y}a${SPOT_R} ${SPOT_R} 0 1 0 ${2 * SPOT_R} 0a${SPOT_R} ${SPOT_R} 0 1 0 ${-2 * SPOT_R} 0`;
 
 // Что показать в этом месте проигрывания.
 export function frameAt(scene: Scene, at: Cursor): Frame {
@@ -231,7 +241,8 @@ export function frameAt(scene: Scene, at: Cursor): Frame {
     point === null
       ? null
       : nose === null
-        ? ({ kind: "spot", d: shape("derived", point[0], GRID.yMax - point[1]) } as const)
+        ? ({ kind: "spot", d: spot(point[0], GRID.yMax - point[1]) } as const)
         : ({ kind: "kite", d: shape("pass", point[0], GRID.yMax - point[1], nose, SCALE, scene.rev, true) } as const);
-  return { row, pose, glyph, unsure: axel || pose.doubts.includes("pivot") || pose.doubts.includes("span") };
+  const rested = at.row > 0 && leg === undefined && row.gaps.some((gap) => gap !== "order");
+  return { row, pose, glyph, unsure: rested || axel || pose.doubts.includes("pivot") || pose.doubts.includes("span") };
 }

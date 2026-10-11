@@ -536,7 +536,7 @@ h1 {
   cursor: pointer;
 }
 
-.p-buttons button:disabled {
+.p-buttons button[aria-disabled="true"] {
   color: var(--muted);
   cursor: default;
 }

@@ -120,6 +120,27 @@ describe("темп", () => {
     expect(scene.rows[1].legs.map(paceOf)).toEqual([60 / SPEED, HOLD, 90 / TURN_RATE, 0]);
   });
 
+  it("посадка — такая же условная пауза, как остановка", () => {
+    const scene = sceneOf(path({ kind: "start", at: [0, 30] }, markIn, { kind: "line", to: [0, 0] }, { kind: "mark", mark: "landing" }, markOut), true);
+    expect(scene.rows[1].legs.map(paceOf)).toEqual([1, HOLD, 0]);
+  });
+
+  it("MI 02: поворот со смещением идёт с той же скоростью носа, и линия у него есть", () => {
+    const row = catalog("MI 02").rows.find((item) => item.legs[0].step.kind === "rotate");
+    expect(row?.seconds).toBeCloseTo((row?.legs[0].length ?? 0) / SPEED, 9);
+    expect(row?.legs[0].length).toBeGreaterThan(0);
+    expect(row?.track).toMatch(/^M.+A/);
+  });
+
+  it("строка, которой свой счёт не дал времени, проходится сразу", () => {
+    const scene = sceneOf(path(start, markIn, { kind: "line", to: [10, 20] }, { kind: "line", to: [10, 50] }, markOut), true, (leg) =>
+      leg.index === 2 ? 0 : leg.length,
+    );
+    expect(scene.rows[1].shares).toEqual([]);
+    expect(frameAt(scene, { row: 1, t: 0, run: "all" }).pose.point).toEqual([10, 20]);
+    expect(tick(scene, play(scene, START), 1).row).toBe(2);
+  });
+
   it("свой счёт времени заменяет условный", () => {
     const scene = sceneOf(path(start, markIn, { kind: "line", to: [10, 20] }, markOut), true, (leg) => (leg.length > 0 ? 7 : 0));
     expect(scene.rows[1].seconds).toBe(7);
@@ -127,6 +148,8 @@ describe("темп", () => {
 
   it("в подписи сказано, что темп условный, и нет ни одного числа", () => {
     expect(PACE_TEXT).toContain("Темп условный");
+    expect(PACE_TEXT).toContain("Времени на экране нет");
+    expect(PACE_TEXT).toContain("нос меняет курс скачком");
     expect(PACE_TEXT).not.toMatch(/\d/);
   });
 });
@@ -162,6 +185,24 @@ describe("кадр", () => {
     // Нос четырёхстропного — середина передней кромки: первые две вершины.
     const [a, b] = [...(glyph?.d ?? "").matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])]);
     expect([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]).toEqual([-20, 80]);
+  });
+
+  it("силуэт — по виду кайта: у двухстропного дельта, у четырёхстропного кромка с парусом", () => {
+    const steps = path(start, markIn, { kind: "line", to: [10, 20] }, markOut);
+    const corners = (rev: boolean) => (frameAt(sceneOf(steps, rev), at(1, 0.5)).glyph?.d ?? "").split("L").length;
+    expect([corners(false), corners(true)]).toEqual([4, 5]);
+  });
+
+  it("DI 16: двухстропный в остановке стоит носом вверх, четырёхстропный по тому же пути — с курсом прихода", () => {
+    const found = SOLO.find((item) => item.code === "DI 16");
+    const steps = found?.kite.path ?? [];
+    const stalled = (rev: boolean) => {
+      const scene = sceneOf(steps, rev);
+      const index = scene.rows.findIndex((row) => row.legs.some((leg) => leg.step.kind === "mark" && leg.step.mark === "stall"));
+      return frameAt(scene, at(index, 1)).pose.nose;
+    };
+    expect(stalled(false)).toEqual([0, 1]);
+    expect(stalled(true)).not.toEqual([0, 1]);
   });
 
   it("севший кайт стоит на земле, а не под ней", () => {
@@ -217,6 +258,7 @@ describe("шаг вперёд и назад", () => {
     expect(back(at(2, 1))).toEqual(at(1, 1));
     expect(back({ row: 2, t: 0.4, run: "step" })).toEqual(at(1, 1));
     expect(back(START)).toEqual(START);
+    expect(back({ row: 2, t: 0.4, run: "rest" })).toEqual(at(1, 1));
   });
 
   it("без движения вперёд ставит кайт сразу в конец следующей строки", () => {
@@ -341,10 +383,65 @@ describe("чего книга не показала", () => {
     expect(frameAt(scene, at(1, 1)).glyph?.kind).toBe("spot");
   });
 
-  it("у каждой пометки есть слова для страницы", () => {
+  it("слова пометок — каждая о своём, и ни в одной нет чисел", () => {
+    expect(GAP_TEXT.order).toContain("Порядок прохода");
+    expect(GAP_TEXT.pivot).toContain("Вокруг чего кайт поворачивается");
+    expect(GAP_TEXT.span).toContain("незаданным");
+    expect(GAP_TEXT.axel).toContain("Аксель");
     for (const text of Object.values(GAP_TEXT)) {
-      expect(text.length).toBeGreaterThan(20);
+      expect(text).not.toMatch(/\d/);
     }
+  });
+
+  it("DI 20: после акселя кайт стоит с пометкой — курс после него из данных не следует", () => {
+    const scene = catalog("DI 20");
+    const index = scene.rows.findIndex((row) => row.gaps.includes("axel"));
+    expect(frameAt(scene, at(index, 1)).unsure).toBe(true);
+    expect(frameAt(scene, at(index, 0.01)).unsure).toBe(false);
+  });
+
+  it("полный аксель помечен так же, как половина", () => {
+    const scene = sceneOf(path(start, markIn, { kind: "line", to: [10, 20] }, { kind: "mark", mark: "axel" }, markOut), false);
+    expect(scene.rows[1].gaps).toEqual(["axel"]);
+    expect(frameAt(scene, at(1, 0.99)).unsure).toBe(true);
+  });
+
+  it("после поворота вокруг неназванной точки пометка остаётся и в покое, что бы ни стояло за поворотом", () => {
+    const scene = sceneOf(
+      path(start, markIn, { kind: "line", to: [10, 20], nose: 0 }, { kind: "rotate", degrees: 90, direction: "cw", ...UNNAMED }, markOut),
+      true,
+    );
+    expect(frameAt(scene, at(1, 1)).unsure).toBe(true);
+  });
+
+  it("строка без пометок в покое пометки не несёт", () => {
+    expect(frameAt(corner(), at(1, 1)).unsure).toBe(false);
+  });
+
+  it("MI 02: незаданное место помечено и в полёте, а не только в покое", () => {
+    const scene = catalog("MI 02");
+    const index = scene.rows.findIndex((row) => row.gaps.includes("span"));
+    expect(frameAt(scene, at(index, 0.5)).unsure).toBe(true);
+  });
+
+  it("DI 12: внутри пробега из двух шагов кайта нет ни на одном из них", () => {
+    const scene = catalog("DI 12");
+    const loose = scene.rows.flatMap((row, index) => (row.unmarked ? [index] : []));
+    expect(loose.length).toBe(2);
+    for (const index of loose) {
+      for (const t of [1e-9, 0.3, 0.7, 0.999999]) {
+        expect(frameAt(scene, at(index, t)).glyph).toBeNull();
+      }
+    }
+  });
+
+  it("шаг без показанного порядка первым в пути: старт несёт ту же пометку, что и кольцо на нём", () => {
+    const scene = sceneOf(
+      path(start, markIn, { kind: "arc", to: [-50, 20], center: [-30, 20], direction: "cw", sweep: 360, unmarked: true }, markOut),
+      true,
+    );
+    expect(scene.rows[0].gaps).toEqual(["order"]);
+    expect(corner().rows[0].gaps).toEqual([]);
   });
 });
 

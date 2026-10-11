@@ -413,6 +413,18 @@ function checkDiagrams(slug, html, raw, documentUrl, rev) {
       if (!player.includes(`<p class="note">${PACE_NOTE}`)) {
         say("не сказано, что темп проигрывания условный");
       }
+      // Строка шага — та же, что первая в списке под схемой.
+      const shown = player.match(/<p class="p-step"><b>[^<]*<\/b> (?:<!-- -->)?([^<]*)<\/p>/)?.[1];
+      const listed = block.match(/<ol><li>([^<]*)/)?.[1];
+      if (shown === undefined || shown.trim() !== listed?.trim()) {
+        say("строка шага в проигрывании не та, что первая в списке шагов");
+      }
+      if (block.includes('class="p-svg"')) {
+        say("слой проигрывания собран в страницу: без JavaScript на схеме был бы лишний кайт");
+      }
+      if (/<input|<progress|<meter/.test(player)) {
+        say("в блоке проигрывания есть шкала: времени там быть не должно");
+      }
       const said = player.replace(/<p class="p-step">[\s\S]*?<\/p>/, "").replace(/<[^>]*>/g, "");
       if (/\d/.test(said) || player.includes("<time")) {
         say("в блоке проигрывания есть число помимо номера шага: времени там быть не должно");

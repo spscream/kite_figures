@@ -73,26 +73,30 @@ export function FigurePlayer({ path, rev, rows, viewBox, children }: Props) {
         )}
       </div>
       <div className="player" hidden={!live}>
+        {/* Кнопка, которой сейчас некуда вести, остаётся в обходе с клавиатуры:
+            `disabled` снял бы с неё фокус прямо под пальцами. */}
         <div className="p-buttons" role="group" aria-label="Пролёт по шагам">
-          <button type="button" onClick={() => setCursor(START)} disabled={cursor.row === 0}>
+          <button type="button" onClick={() => setCursor(START)} aria-disabled={cursor.row === 0}>
             В начало
           </button>
-          <button type="button" onClick={() => setCursor(back)} disabled={cursor.row === 0}>
+          <button type="button" onClick={() => setCursor((at) => back(at))} aria-disabled={cursor.row === 0}>
             ← Назад
           </button>
-          <button type="button" onClick={() => setCursor((at) => forward(scene, at, still))} disabled={atEnd}>
+          <button type="button" onClick={() => setCursor((at) => forward(scene, at, still))} aria-disabled={atEnd}>
             Вперёд →
           </button>
-          {!still &&
-            (cursor.run === "all" ? (
-              <button type="button" onClick={() => setCursor(pause)}>
-                Пауза
-              </button>
-            ) : (
+          {/* Идущий путь можно остановить всегда — и когда движение отключили уже на лету. */}
+          {cursor.run === "all" ? (
+            <button type="button" onClick={() => setCursor(pause)}>
+              Пауза
+            </button>
+          ) : (
+            !still && (
               <button type="button" onClick={() => setCursor((at) => play(scene, at))}>
                 {atEnd ? "Сначала" : "Весь путь"}
               </button>
-            ))}
+            )
+          )}
         </div>
         <div className="p-now" aria-live="polite">
           <p className="p-step">
