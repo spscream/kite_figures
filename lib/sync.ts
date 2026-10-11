@@ -4,9 +4,10 @@
 //
 // Три условия, без которых метка момента не называет:
 // - метка стоит хотя бы у двух кайтов — у одного кайта сводить нечего;
-// - у одного кайта метка стоит один раз. Повтор допустим только подряд и без
-//   перемещения: пролёт и событие в точке, куда он привёл (посадка, остановка),
-//   несут одну метку — момент тогда наступает с концом последнего такого шага;
+// - у одного кайта метка стоит один раз. Повтор допустим только на соседнем
+//   шаге и без перемещения: пролёт и событие в точке, куда он привёл (посадка,
+//   остановка), несут одну метку — момент тогда наступает с концом последнего
+//   такого шага;
 // - порядок общих меток у кайтов один: момент, который у одного кайта раньше
 //   другого, у соседа не может быть позже.
 //
@@ -28,34 +29,28 @@ export type Sync = {
 
 type Flier = { id: string; path: readonly (Step | OwnStep)[] };
 
-// Шаг перемещает кайт: пролёт или поворот со смещением.
-const moves = (step: Step | OwnStep) => step.kind === "line" || step.kind === "arc" || (step.kind === "rotate" && step.to !== undefined);
+// Шаг с меткой перемещает кайт: пролёт. Поворот метки не несёт.
+const moves = (step: Step | OwnStep) => step.kind === "line" || step.kind === "arc";
 
 function meetsOf({ id, path }: Flier): Meet[] {
   const found: Meet[] = [];
-  // Летел ли кайт с тех пор, как метка стояла в прошлый раз.
-  let moved = true;
   path.forEach((step, index) => {
-    if (moves(step)) {
-      moved = true;
-    }
     const label = "sync" in step ? step.sync : undefined;
     if (label === undefined) {
       return;
     }
     const last = found[found.length - 1];
     const earlier = found.find((meet) => meet.label === label);
-    if (last !== undefined && last.label === label && !moved) {
+    if (last !== undefined && last.label === label && last.step === index - 1 && !moves(step)) {
       last.step = index;
     } else if (earlier !== undefined) {
       throw new Error(
-        `метка «${label}» у кайта «${id}» стоит на шагах ${earlier.step} и ${index}, а между ними кайт летит либо стоит другая метка: ` +
-          "один момент дважды не наступает",
+        `метка «${label}» у кайта «${id}» стоит на шагах ${earlier.step} и ${index}: повторить метку можно только на соседнем шаге, ` +
+          "который кайт не перемещает, — один момент дважды не наступает",
       );
     } else {
       found.push({ label, step: index });
     }
-    moved = false;
   });
   return found;
 }
@@ -91,6 +86,13 @@ export function syncOf(kites: readonly Flier[]): Sync {
   while (left.length > 0) {
     const next = left.findIndex((label) => [...before.get(label)!].every((earlier) => order.includes(earlier)));
     if (next < 0) {
+      // В круге — только метки, от которых ещё кто-то зависит.
+      for (let loose = 0; loose >= 0; ) {
+        loose = left.findIndex((label) => !left.some((later) => before.get(later)!.has(label)));
+        if (loose >= 0) {
+          left.splice(loose, 1);
+        }
+      }
       throw new Error(clash(kites, meets, left));
     }
     order.push(...left.splice(next, 1));

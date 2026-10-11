@@ -661,6 +661,65 @@ describe("проигрывание нескольких кайтов", () => {
     expect(team!.rows[1].gaps).toEqual(["order"]);
   });
 
+  it("в начале кайты стоят значком кайта с курсом первого пролёта, как у одного кайта, — и ждущий, и уже вошедший", () => {
+    const team = pair();
+    const solo = team.kites.map((member) => frameAt(member.scene, START).glyph);
+    expect(solo.map((glyph) => glyph?.kind)).toEqual(["kite", "kite"]);
+    expect(teamFrameAt(team, START).kites.map((kite) => kite.glyph)).toEqual(solo);
+  });
+
+  it("четырёхстропная команда летит своим силуэтом", () => {
+    const paths = crew(
+      [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20] }, { ...markOut, sync: "out" }],
+      [{ kind: "start", at: [50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [20, 20] }, { ...markOut, sync: "out" }],
+    );
+    const at = flying(1, 0.5);
+    expect(teamFrameAt(teamOf(paths, true)!, at).kites[0].glyph).toEqual(frameAt(sceneOf(paths[0].path, true), at).glyph);
+    expect(teamFrameAt(teamOf(paths, true)!, at).kites[0].glyph).not.toEqual(teamFrameAt(teamOf(paths, false)!, at).kites[0].glyph);
+  });
+
+  it("значок условен на акселе и после него — и пока кайт ждёт остальных посреди своей строки", () => {
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20] }, { kind: "mark", mark: "axel", sync: "a" }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [20, 20], sync: "a" }, { kind: "line", to: [20, 80] }, { ...markOut, sync: "out" }],
+      ),
+      false,
+    )!;
+    const unsure = (at: Cursor) => teamFrameAt(team, at).kites.map((kite) => kite.unsure);
+    expect(unsure(flying(1, 0.2))).toEqual([false, false]);
+    expect(unsure(flying(1, 0.99))).toEqual([true, false]);
+    expect(unsure(rest(1))).toEqual([true, false]);
+    expect(unsure(flying(2, 0.5))).toEqual([true, false]);
+    expect(unsure(rest(2))).toEqual([true, false]);
+  });
+
+  it("метка не у каждого кайта: её ждут те, у кого она есть; кайт без меток летит сам по себе с условной скоростью", () => {
+    // Первому до «a» 30 единиц, третьему — 90; у второго метки «a» нет, а
+    // четвёртый меток не несёт вовсе.
+    const team = teamOf(
+      crew(
+        [{ kind: "start", at: [-50, 20] }, { ...markIn, sync: "in" }, { kind: "line", to: [-20, 20], sync: "a" }, { kind: "line", to: [-20, 50] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [-50, 40] }, { ...markIn, sync: "in" }, { kind: "line", to: [10, 40] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [-50, 60] }, markIn, { kind: "line", to: [40, 60], sync: "a" }, { kind: "line", to: [40, 90] }, { ...markOut, sync: "out" }],
+        [{ kind: "start", at: [-50, 80] }, markIn, { kind: "line", to: [-20, 80] }, markOut],
+      ),
+      false,
+    )!;
+    expect(team.rows.map((row) => [row.from + row.seconds, row.labels])).toEqual([[0, ["in"]], [90 / SPEED, ["a"]], [120 / SPEED, ["out"]]]);
+    expect(team.rows.map((row) => row.gaps)).toEqual([[], ["loose"], []]);
+    const points = (at: Cursor) => teamFrameAt(team, at).kites.map((kite) => kite.pose.point!);
+    // Через треть первого шага: первый прошёл треть своих 30, второй — четверть
+    // своих 60 (ему до «out» 120 условных единиц времени), четвёртый долетел.
+    const early = points(flying(1, 1 / 3));
+    expect(early[0][0]).toBeCloseTo(-40);
+    expect(early[1][0]).toBeCloseTo(-35);
+    expect(early[2][0]).toBeCloseTo(-20);
+    expect(early[3]).toEqual([-20, 80]);
+    expect(points(flying(1, 1 / 6))[3][0]).toBeCloseTo(-35);
+    expect(points(rest(2))).toEqual([[-20, 50], [10, 40], [40, 90], [-20, 80]]);
+  });
+
   it("подписи не называют ни секунд, ни скорости", () => {
     for (const text of [TEAM_PACE_TEXT, NO_SYNC_TEXT, ...Object.values(TEAM_GAP_TEXT)]) {
       expect(text).not.toMatch(/\d/);

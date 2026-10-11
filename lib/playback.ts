@@ -469,11 +469,12 @@ export function teamFrameAt(team: Team, at: Cursor): TeamFrame {
       const [since, until] = spans[going];
       pose = poseOn(legs[going], Math.min(1, (time - since) / (until - since)));
       unsure = isAxel(legs[going]);
-    } else if (done >= 0) {
+    } else if (done >= 0 && rowOf[done] > 0) {
+      // В покое — как у одного кайта: конец пройденного, и значок условен, если
+      // в пройденной части строки книга чего-то не показала. Пока кайт не
+      // вышел из первой строки, он стоит так, как его ставит доля пути ноль.
       pose = poseOn(legs[done], 1);
-      // Строка пройдена целиком — как в покое после строки у одного кайта.
-      const whole = done + 1 >= legs.length || rowOf[done + 1] !== rowOf[done];
-      unsure = whole && rowOf[done] > 0 && scene.rows[rowOf[done]].gaps.some((gap) => gap !== "order");
+      unsure = gapsOf(legs.slice(rowOf.indexOf(rowOf[done]), done + 1)).some((gap) => gap !== "order");
     }
     const glyph = glyphOf(pose, team.rev);
     const { point, nose } = pose;
