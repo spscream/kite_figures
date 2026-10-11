@@ -113,6 +113,11 @@ function segment(from: Point, step: Move): string {
   return `A${radius} ${radius} 0 0 ${sweep} ${at(step.to)}`;
 }
 
+// Линия одного шага отдельным путём — тем же, каким он входит в линию кайта.
+export function trackOf(from: Point, step: Move): string {
+  return `M${at(from)}${segment(from, step)}`;
+}
+
 // Доли шага, где может встать значок кайта в пути, в порядке предпочтения.
 // Первая — не середина: когда кайт возвращается по той же линии, встречные
 // значки не ложатся один на другой.
