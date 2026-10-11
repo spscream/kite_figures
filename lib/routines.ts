@@ -305,9 +305,9 @@ export function kiteSteps(routine: Routine, kite: string): Placed[] {
   );
 }
 
-// Рутины каталога по имени файла. Каталога может не быть вовсе: пока в
-// репозитории рутин нет. Битый файл роняет чтение с именем файла; сборка
-// рутины пока не читает, так что ловит его тест каталога.
+// Рутины каталога по имени файла. Каталога может не быть вовсе — чтению это
+// не мешает, а сборку страниц пустой каталог роняет. Битый файл роняет чтение с именем файла — и тест
+// каталога, и сборку: страницы рутин строятся по этому списку.
 export function listRoutines(dir: string = ROUTINES_DIR, catalog?: Figure[]): Routine[] {
   if (!fs.existsSync(dir)) {
     return [];
@@ -324,4 +324,8 @@ export function listRoutines(dir: string = ROUTINES_DIR, catalog?: Figure[]): Ro
     names.push(entry.name);
   }
   return names.sort().map((name) => parseRoutine(name, fs.readFileSync(path.join(dir, name), "utf8"), figures));
+}
+
+export function getRoutine(slug: string, dir: string = ROUTINES_DIR): Routine | undefined {
+  return listRoutines(dir).find((routine) => routine.slug === slug);
 }

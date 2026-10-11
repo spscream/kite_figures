@@ -621,6 +621,100 @@ h1 {
   font-size: 0.9rem;
 }
 
+/* Страница рутины. Номер кадра на схеме — серый и не жирный: это наша
+   пометка, а не слово книги. */
+.d-label.t-frame {
+  fill: var(--muted);
+  font-size: 5.2px;
+  font-weight: 400;
+}
+
+/* Номер кадра на обзоре — ссылка: цветом ссылки, без подчёркивания — его
+   рвал бы ореол подписи. */
+.r-over a .t-frame {
+  fill: var(--accent);
+}
+
+/* Обзор: весь путь тонкой линией. Штрих кайта команды остаётся, толщина — нет. */
+.o-track {
+  fill: none;
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+
+.o-track.k0 {
+  stroke: var(--fg);
+}
+
+.o-track.k3 {
+  stroke-width: 1;
+}
+
+.o-swing {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 0.4;
+}
+
+.o-lead {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 0.25;
+}
+
+.routine-list {
+  padding-left: 1.2rem;
+}
+
+.routine-list .note {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.r-time,
+.r-toc {
+  padding-left: 1.2rem;
+}
+
+.r-toc {
+  list-style: none;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+/* Лента — столбец: по кадру в ряд при любой ширине. Мелкая подпись схемы на
+   телефоне в 360 пикселей уже около 7 пикселей; два кадра в ряд дали бы 3. */
+.r-frame {
+  margin: 1.5rem 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  break-inside: avoid;
+}
+
+.r-frame h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.steps h4 {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+}
+
+/* Время начала строки — колонкой слева, длительность — в конце строки. */
+.r-at,
+.r-span {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.r-at {
+  display: inline-block;
+  min-width: 3.2em;
+}
+
 @media print {
   :root {
     --bg: #ffffff;

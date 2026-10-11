@@ -912,6 +912,15 @@ function checkStyles() {
   if (!/\.d-derived,\.d-measured,\.d-unspecified\{[^}]*fill:var\(--bg\)/.test(css)) {
     problems.push("в стилях значок незаданной величины (.d-unspecified) не пустой");
   }
+  // Линии обзора рутины — линии: без своих правил пути залились бы чёрным.
+  for (const name of ["o-track", "o-swing", "o-lead"]) {
+    if (!new RegExp(`\\.${name}\\{[^}]*fill:none`).test(css)) {
+      problems.push(`в стилях линия обзора рутины (.${name}) не линия: нужен fill:none`);
+    }
+  }
+  if (!/\.o-track\.k0\{[^}]*stroke:var\(--fg\)/.test(css)) {
+    problems.push("в стилях у линии обзора одиночной рутины (.o-track.k0) нет обводки");
+  }
   if (css.includes("url(")) {
     problems.push("стили подключают внешний файл через url(): схемы рисуются из данных, без картинок");
   }
@@ -987,8 +996,10 @@ if (home !== null) {
     problems.push(`на главной не названо общее число фигур — «${countFigures(slugs.length)}»`);
   }
   // Карточка раздела — один пункт списка: ссылка с названием, число фигур и,
-  // если есть выведенные, их число.
-  const cards = [...main.matchAll(/<li>(.*?)<\/li>/gs)].map((match) => match[1]);
+  // если есть выведенные, их число. Список разделов на главной один; рутины
+  // стоят своим списком и сверяются ниже.
+  const sectionList = main.match(/<ul class="section-list">(.*?)<\/ul>/s)?.[1] ?? "";
+  const cards = [...sectionList.matchAll(/<li>(.*?)<\/li>/gs)].map((match) => match[1]);
   expectLinks(
     "на главной разделы",
     cards.flatMap(anchors),
@@ -1155,6 +1166,283 @@ for (const slug of slugs) {
 
 checkStyles();
 
+// Рутины: по странице на файл из `data/routines/`. Сколько на странице кадров,
+// линий, строк шагов и какое названо время, посчитано здесь заново, по файлу
+// рутины и файлам фигур, — а не взято у lib/frames.ts.
+const routinesDir = path.join(root, "data", "routines");
+const routineSlugs = fs.existsSync(routinesDir)
+  ? fs
+      .readdirSync(routinesDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+      .map((entry) => path.basename(entry.name, ".json"))
+      .sort()
+  : [];
+const routines = new Map(
+  routineSlugs.map((slug) => [slug, JSON.parse(fs.readFileSync(path.join(routinesDir, `${slug}.json`), "utf8"))]),
+);
+
+// Шаг перемещает кайт: отрезок, дуга или поворот со смещением. Такой шаг
+// открывает строку в списке шагов, а часть рутины с ним — свой кадр.
+// У поворота со смещением `to` в файле — точка либо запись о незаданной
+// величине (MI 02): перемещением он остаётся и там.
+const movesKite = (step) => isMove(step) || (step.kind === "rotate" && step.to !== undefined);
+// У старта и вызовов длительности нет.
+const takesTime = (step) => step.kind !== "start" && !(step.kind === "mark" && (step.mark === "in" || step.mark === "out"));
+
+// «1:07», с десятыми — «1:07,5»: повторено, как и остальные подписи.
+function clockText(seconds) {
+  const tenths = Math.round(seconds * 10);
+  const rest = tenths % 600;
+  return `${Math.floor(tenths / 600)}:${String(Math.floor(rest / 10)).padStart(2, "0")}${rest % 10 ? `,${rest % 10}` : ""}`;
+}
+const spanText = (seconds) => `${String(Math.round(seconds * 10) / 10).replace(".", ",")} с`;
+const NO_TEMPO = "темп не задан";
+
+// Шаги каждого кайта в каждой части рутины; у шага — длительность, когда она
+// записана. Ссылка на фигуру разворачивается в шаги между её «in» и «out».
+function routineParts(routine) {
+  return routine.segments.map((segment) => {
+    if (segment.origin !== "figure") {
+      return { origin: segment.origin, paths: segment.paths };
+    }
+    const figure = records.get(segment.figure);
+    const variants = figure?.geometry?.variants ?? [];
+    const variant = variants.find((item) => item.id === segment.variant) ?? variants[0];
+    const paths = {};
+    for (const kite of routine.kites) {
+      const steps = variant?.kites.find((item) => item.id === kite)?.path ?? [];
+      const from = steps.findIndex((step) => step.kind === "mark" && step.mark === "in");
+      const to = steps.findIndex((step) => step.kind === "mark" && step.mark === "out");
+      const given = segment.seconds?.[kite];
+      paths[kite] = steps.slice(from + 1, to).map((step, index) => {
+        const seconds = given?.[index] ?? undefined;
+        return seconds === undefined ? step : { ...step, seconds };
+      });
+    }
+    return { origin: "figure", figure: segment.figure, paths };
+  });
+}
+
+for (const slug of routineSlugs) {
+  const routine = routines.get(slug);
+  const html = page(path.join("routines", slug));
+  if (html === null) {
+    continue;
+  }
+  const where = `на странице routines/${slug}/`;
+  expectSearch(where, html);
+  const main = mainOf(html);
+  if (!main.includes(`<h1>${escapeHtml(routine.name)}</h1>`)) {
+    problems.push(`${where} нет заголовка «${routine.name}»`);
+  }
+  if (routine.summary !== undefined && !main.includes(`<p>${escapeHtml(routine.summary)}</p>`)) {
+    problems.push(`${where} нет описания`);
+  }
+  if (/<img\b/.test(main)) {
+    problems.push(`${where} есть картинка: схемы рисуются из данных`);
+  }
+  const many = routine.kites.length > 1;
+  const parts = routineParts(routine);
+  // Кадр — часть с перемещением; часть без него стоит в кадре перед ней, а до
+  // первого пролёта — в кадре после.
+  const frames = [];
+  let leading = [];
+  for (const part of parts) {
+    if (Object.values(part.paths).some((steps) => steps.some(movesKite))) {
+      frames.push([...leading, part]);
+      leading = [];
+    } else if (frames.length > 0) {
+      frames[frames.length - 1].push(part);
+    } else {
+      leading.push(part);
+    }
+  }
+  const blocks = [...main.matchAll(/<section class="r-frame" id="([^"]*)">(.*?)<\/section>(?=<section class="r-frame"|<\/section><section class="r-legend">)/gs)];
+  const ids = frames.map((_, index) => `kadr-${index + 1}`);
+  if (blocks.map((block) => block[1]).join(" ") !== ids.join(" ")) {
+    problems.push(`${where} кадры — «${blocks.map((block) => block[1]).join(" ")}», а по данным — «${ids.join(" ")}»`);
+    continue;
+  }
+  // Обзорная схема: линия на каждый кайт каждого кадра и номер кадра ссылкой
+  // на него; значков, стрелок и слов событий на ней нет.
+  const overview = main.match(/<svg class="d-svg r-over"[^>]*>(.*?)<\/svg>/s)?.[1];
+  if (overview === undefined) {
+    problems.push(`${where} нет обзорной схемы`);
+    continue;
+  }
+  let tracks = 0;
+  // Строки шагов каждого кайта в каждом кадре: когда строка начинается и
+  // сколько длится. Часы у каждого кайта свои и идут через все кадры.
+  const clocks = new Map(routine.kites.map((kite) => [kite, { now: 0, untimed: 0, judged: null, judging: false, line: 1 }]));
+  const expectedLists = frames.map((frame) => {
+    const lists = [];
+    for (const kite of routine.kites) {
+      const steps = frame.flatMap((part) => part.paths[kite] ?? []);
+      // Кайт без шагов в кадре — ещё не появился или стоит — в кадр не входит.
+      if (steps.length === 0) {
+        continue;
+      }
+      tracks += 1;
+      // Строка на точку старта и на каждое перемещение; у кадра, который путь
+      // продолжает, строка начала есть, только когда до первого перемещения в
+      // этой точке что-то происходит.
+      const clock = clocks.get(kite);
+      const lines = [];
+      for (const step of steps) {
+        if (step.kind === "start" || movesKite(step) || lines.length === 0) {
+          lines.push({ at: clock.now, seconds: 0 });
+        }
+        const line = lines[lines.length - 1];
+        // От IN до OUT — свой счёт: шаг без длительности вне этих вызовов
+        // его не портит.
+        if (step.kind === "mark" && (step.mark === "in" || step.mark === "out")) {
+          clock.judging = step.mark === "in";
+          clock.judged = step.mark === "in" ? 0 : clock.judged;
+        }
+        if (takesTime(step)) {
+          if (step.seconds === undefined) {
+            clock.untimed += 1;
+            clock.now = null;
+            line.seconds = null;
+            clock.judged = clock.judging ? null : clock.judged;
+          } else {
+            clock.now = clock.now === null ? null : clock.now + step.seconds;
+            line.seconds = line.seconds === null ? null : line.seconds + step.seconds;
+            clock.judged = clock.judging && clock.judged !== null ? clock.judged + step.seconds : clock.judged;
+          }
+        }
+      }
+      if (lines.length > 0) {
+        lists.push({ kite, first: clock.line, lines });
+        clock.line += lines.length;
+      }
+    }
+    return lists;
+  });
+  if (count(overview, /class="o-track /g) !== tracks) {
+    problems.push(`${where} на обзоре ${count(overview, /class="o-track /g)} линий, а кайтов в кадрах — ${tracks}`);
+  }
+  for (const name of ["d-in", "d-out", "d-stall", "d-pass", "d-turn", "d-axel", "d-arrow", "d-note"]) {
+    if (overview.includes(`class="${name}`)) {
+      problems.push(`${where} на обзоре есть «${name}»: на нём только линии и номера кадров`);
+    }
+  }
+  // От поворота со смещением на обзоре — только дуга, без наконечника стрелки.
+  if (/class="o-swing" d="[^"]*L/.test(overview)) {
+    problems.push(`${where} на обзоре у дуги поворота со смещением есть наконечник стрелки`);
+  }
+  // Линия кайта, который в кадре летит, — не точка.
+  const flown = count(overview, /class="o-track [^"]*" d="M[^"]*[LA]/g);
+  const flying = frames.reduce(
+    (sum, frame) => sum + routine.kites.filter((kite) => frame.some((part) => (part.paths[kite] ?? []).some((step) => isMove(step)))).length,
+    0,
+  );
+  if (flown < flying) {
+    problems.push(`${where} на обзоре линий с пролётом ${flown}, а кайтов с пролётом в кадрах — ${flying}`);
+  }
+  // Оглавление кадров: по ссылке на каждый, по порядку.
+  expectLinks(
+    `${where} оглавление кадров`,
+    anchors(main.match(/<ol class="r-toc">(.*?)<\/ol>/s)?.[1] ?? "").filter((link) => link.href.startsWith("#")),
+    ids.map((id, index) => ({ href: `#${id}`, text: `Кадр ${index + 1}` })),
+  );
+  expectLinks(
+    `${where} номера кадров на обзоре`,
+    anchors(overview).map(({ href, text }) => ({ href, text: text.replace(/<[^>]*>/g, "") })),
+    ids.map((id, index) => ({ href: `#${id}`, text: `№${index + 1}` })),
+  );
+  blocks.forEach(([, id, block], index) => {
+    const here = `${where} в кадре ${index + 1}`;
+    if (count(block, /<svg class="d-svg"/g) !== 1) {
+      problems.push(`${here} схем ${count(block, /<svg class="d-svg"/g)}, а должна быть одна`);
+    }
+    // Номер кадра стоит на его схеме, номер следующего — у всех, кроме последнего.
+    const marks = [...block.matchAll(/<text class="d-label t-frame"[^>]*>([^<]*)<\/text>/g)].map((match) => match[1]);
+    const expected = index + 1 < frames.length ? [`№${index + 1}`, `→№${index + 2}`] : [`№${index + 1}`];
+    if (marks.join(" ") !== expected.join(" ")) {
+      problems.push(`${here} номера кадров на схеме — «${marks.join(" ")}», а не «${expected.join(" ")}»`);
+    }
+    if (!block.includes(`<h3>Кадр ${index + 1}: `)) {
+      problems.push(`${here} заголовок не называет номер кадра`);
+    }
+    // Списки шагов: по списку на кайт, у которого в кадре есть строки; счёт
+    // строк сквозной, у каждой строки — когда она начинается и сколько длится.
+    const lists = [...block.matchAll(/(?:<h4>([^<]*)<\/h4>)?<ol class="r-steps" start="(\d+)">(.*?)<\/ol>/gs)].map(([, title, first, body]) => ({
+      title,
+      first: Number(first),
+      lines: [...body.matchAll(/<li><span class="r-at">([^<]*)<\/span>(.*?)<\/li>/gs)].map(([, at, rest]) => ({
+        at,
+        span: rest.match(/<span class="r-span">([^<]*)<\/span>$/)?.[1] ?? "",
+        text: rest.replace(/<span class="r-span">[^<]*<\/span>$/, "").replace(/<[^>]*>/g, "").trim(),
+      })),
+      items: count(body, /<li>/g),
+    }));
+    const told = (list) =>
+      `${many ? `${list.title ?? "без имени"}, ` : ""}с ${list.first}: ${list.lines.map((line) => `${line.at}${line.span ? ` (${line.span})` : ""}`).join(" | ")}`;
+    const wanted = expectedLists[index].map((list) => ({
+      title: many ? `Кайт ${list.kite}` : undefined,
+      first: list.first,
+      lines: list.lines.map((line) => ({
+        at: line.at === null ? "—" : clockText(line.at),
+        span: line.seconds === null ? NO_TEMPO : line.seconds === 0 ? "" : spanText(line.seconds),
+      })),
+    }));
+    if (lists.map(told).join("; ") !== wanted.map(told).join("; ")) {
+      problems.push(`${here} шаги со временем — «${lists.map(told).join("; ")}», а по данным — «${wanted.map(told).join("; ")}»`);
+    }
+    if (lists.some((list) => list.items !== list.lines.length) || count(block, /<li>/g) !== lists.reduce((sum, list) => sum + list.items, 0)) {
+      problems.push(`${here} отметка времени стоит не у каждой строки шагов`);
+    }
+    if (lists.some((list) => list.lines.some((line) => line.text.length < 5))) {
+      problems.push(`${here} есть строка шага без слов`);
+    }
+    // Кадр фигуры ведёт на её страницу; кадр своей работы на фигуры не ссылается.
+    expectLinks(
+      `${here} ссылки на фигуры`,
+      anchors(block).filter(isFigureLink),
+      frames[index].filter((part) => part.origin === "figure").map((part) => figureLink({ slug: part.figure, ...records.get(part.figure) })),
+    );
+    if (id !== ids[index]) {
+      problems.push(`${here} якорь «${id}»`);
+    }
+  });
+  // Время — сумма записанных длительностей, у каждого кайта своя; где у шага
+  // её нет, сумма не называется вовсе, а время от IN до OUT — когда оно
+  // известно и от всего пути отличается.
+  const times = [...(main.match(/<ul class="r-time">(.*?)<\/ul>/s)?.[1] ?? "").matchAll(/<li>(.*?)<\/li>/gs)].map((match) => match[1]);
+  const saidTimes = routine.kites.map((kite) => {
+    const clock = clocks.get(kite);
+    const { judged } = clock;
+    const whole =
+      clock.now === null
+        ? `время не складывается: у ${clock.untimed} ${clock.untimed % 10 === 1 && clock.untimed % 100 !== 11 ? "шага" : "шагов"} ${NO_TEMPO}`
+        : `весь записанный путь — ${clockText(clock.now)}`;
+    return `${many ? `Кайт ${kite}: ` : "Время: "}${judged === null || judged === clock.now ? whole : `от IN до OUT — ${clockText(judged)}, ${whole}`}.`;
+  });
+  if (times.join(" ") !== saidTimes.join(" ")) {
+    problems.push(`${where} о времени сказано «${times.join(" ")}», а по данным — «${saidTimes.join(" ")}»`);
+  }
+  // Обозначения — одним списком под лентой, и он не пуст.
+  if (!/<section class="r-legend">.*?<ul class="d-legend">\s*<li/s.test(main)) {
+    problems.push(`${where} под лентой нет обозначений`);
+  }
+  // Определение рутины сайт не пересказывает: ссылка ведёт на свод правил.
+  const rules = documents.find((item) => item.id === "iskrb");
+  if (rules && !anchors(main).some((link) => link.href === rules.url)) {
+    problems.push(`${where} нет ссылки на свод правил (${rules.url})`);
+  }
+}
+
+// Рутины на главной — своим списком, по ссылке на каждую.
+if (home !== null) {
+  const list = mainOf(home).match(/<ul class="routine-list">(.*?)<\/ul>/s)?.[1] ?? "";
+  expectLinks(
+    "на главной рутины",
+    anchors(list),
+    routineSlugs.map((slug) => ({ href: `/routines/${slug}/`, text: routines.get(slug).name })),
+  );
+}
+
 // Индекс поиска: запись на каждую фигуру в порядке каталога и ничего, кроме
 // строки выдачи. Геометрии и описаний в нём быть не должно — это каталог, а не
 // выгрузка.
@@ -1239,6 +1527,7 @@ if (!scripts(path.join(out, "_next")).some((file) => /p-svg[\s\S]*p-unsure/.test
 for (const [dir, expected] of [
   ["figures", slugs],
   ["disciplines", [...sections.keys()]],
+  ["routines", routineSlugs],
 ]) {
   const built = path.join(out, dir);
   for (const entry of fs.existsSync(built) ? fs.readdirSync(built, { withFileTypes: true }) : []) {
@@ -1255,5 +1544,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  `check-export: главная, ${sections.size} стр. разделов и ${slugs.length} стр. фигур на месте; индекс поиска — ${indexBytes} байт.`,
+  `check-export: главная, ${sections.size} стр. разделов, ${slugs.length} стр. фигур и ${routineSlugs.length} стр. рутин на месте; индекс поиска — ${indexBytes} байт.`,
 );

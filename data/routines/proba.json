@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "name": "Проба формата",
+  "summary": "Подъём с остановкой, полукруг, квадрат MI 28 и вертикальный слайд с поворотом. Это проба записи рутины, а не образец программы: путь и темп условные.",
+  "discipline": "multi-line-individual",
+  "kites": ["1"],
+  "segments": [
+    {"origin": "own", "paths": {"1": [
+      {"kind": "start", "at": [-60, 10]},
+      {"kind": "mark", "mark": "in"}
+    ]}},
+    {"origin": "own", "paths": {"1": [
+      {"kind": "line", "to": [-60, 50], "seconds": 4},
+      {"kind": "mark", "mark": "stall", "nose": 0, "seconds": 2},
+      {"kind": "arc", "to": [-30, 50], "center": [-45, 50], "direction": "cw", "sweep": 180, "nose": 0, "seconds": 5}
+    ]}},
+    {"origin": "link", "paths": {"1": [
+      {"kind": "line", "to": [-30, 10], "nose": 0, "seconds": 4}
+    ]}},
+    {"origin": "figure", "figure": "mi-28-square", "seconds": {"1": [6, 1.5, 6, 6, 6]}},
+    {"origin": "link", "paths": {"1": [
+      {"kind": "line", "to": [0, 10], "nose": 90, "seconds": 3}
+    ]}},
+    {"origin": "own", "paths": {"1": [
+      {"kind": "line", "to": [0, 60], "nose": 90, "seconds": 5},
+      {"kind": "rotate", "degrees": 90, "direction": "ccw", "about": "center", "seconds": 1.5},
+      {"kind": "mark", "mark": "stall", "nose": 0, "seconds": 2},
+      {"kind": "line", "to": [0, 10], "nose": 0, "seconds": 4},
+      {"kind": "mark", "mark": "out"}
+    ]}}
+  ]
+}
