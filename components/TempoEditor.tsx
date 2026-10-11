@@ -1,20 +1,28 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
 
+import { chooseElement, type Editing, elementsOf, insertElement, NO_DRAFT, placesOf, preview, removeLast } from "@/lib/compose";
+import { type ElementDef, elementBy, ELEMENTS, ELEMENTS_FOR, fieldsOf as elementFields, NO_ELEMENTS_TEXT, OUTSIDE } from "@/lib/elements";
+import type { Figure } from "@/lib/figures";
 import { checkRoutine, clock, findingText, judgedTimes, type State } from "@/lib/routine-checks";
 import type { Routine } from "@/lib/routines";
-import { BAD, fieldsOf, fileWithDurations, readField, routineFileText, slotsOf, timetable, timeText, withDurations } from "@/lib/tempo";
+import { BAD, fieldsOf, fileWithDurations, readField, routineFileText, slotsOf, stepJson, timetable, timeText, withDurations } from "@/lib/tempo";
 
-// Редактор длительностей рутины. Что длится, как читается поле и каким выходит
-// файл, решает `lib/tempo.ts`; находки считает `lib/routine-checks.ts`; здесь
-// поля ввода и разметка. Оформление — классы `te-*` в `app/globals.css`.
+// Редактор рутины: длительности шагов и элементы словаря. Что длится, как
+// читается поле и каким выходит файл, решает `lib/tempo.ts`; какие есть
+// элементы и в какие шаги они разворачиваются — `lib/elements.ts`; как элемент
+// встаёт в рутину — `lib/compose.ts`; находки считает `lib/routine-checks.ts`;
+// здесь поля ввода и разметка. Оформление — классы `te-*` и `el-*` в
+// `app/globals.css`.
 //
 // Редактор ничего не сохраняет: сайт — статические файлы. Он отдаёт текст файла
 // рутины, и кладёт его в `data/routines/` автор.
 //
 // Числа он не предлагает: в пустом поле нет ни значения, ни подсказки-числа, и
-// шаг с пустым полем остаётся шагом, чей темп не задан.
+// шаг с пустым полем остаётся шагом, чей темп не задан. То же у элемента: ни
+// элемент, ни место, ни один параметр не выбраны заранее, и пока задано не
+// всё, шагов нет.
 //
 // Без JavaScript поля мертвы, поэтому блок собран скрытым и открывается, когда
 // страница ожила; о том, что редактору нужен JavaScript, говорит сама страница.
@@ -33,6 +41,7 @@ export const STATE_TEXT: Record<State, string> = {
 
 export const BAD_TEXT = "Длительность — положительное число секунд, до 9999, не больше трёх знаков после запятой. Пустое поле — темп шага не задан.";
 export const NO_TEMPO_TEXT = "темп не задан";
+export const OUTSIDE_GROUP = "В словаре нет — причина в таблице под редактором";
 
 type Props = {
   routine: Routine;
@@ -41,13 +50,27 @@ type Props = {
   fileName: string;
   // Заголовок каждой части рутины, по её номеру в файле.
   parts: string[];
+  // Фигуры каталога, на которые рутина ссылается: с ними рутину с новым шагом
+  // читает разбор.
+  figures: Figure[];
 };
 
-export function TempoEditor({ routine, file, fileName, parts }: Props) {
+export function TempoEditor({ routine: given, file: givenFile, fileName, parts, figures }: Props) {
   const live = useSyncExternalStore(never, () => true, () => false);
+  const [editing, setEditing] = useState<Editing>(() => ({ doc: { file: givenFile, routine: given }, fields: fieldsOf(slotsOf(given)), added: [] }));
+  const [draft, setDraft] = useState(NO_DRAFT);
+  const { doc, fields } = editing;
+  const { routine, file } = doc;
+  const setFields = (change: (old: Record<string, string>) => Record<string, string>) => setEditing((old) => ({ ...old, fields: change(old.fields) }));
   const slots = useMemo(() => slotsOf(routine), [routine]);
-  const [fields, setFields] = useState(() => fieldsOf(slots));
   const many = routine.kites.length > 1;
+
+  // Словарь элементов: имя у шага, который им записан, и новый шаг из элемента.
+  const worded = routine.discipline === ELEMENTS_FOR;
+  const names = useMemo(() => (worded ? elementsOf(routine) : new Map<string, ElementDef>()), [worded, routine]);
+  const places = useMemo(() => (worded ? placesOf(routine, parts) : []), [worded, routine, parts]);
+  const chosen = elementBy(draft.element);
+  const made = worded ? preview(doc, places, draft, fileName, figures) : null;
 
   const read = slots.map((slot) => ({ slot, value: readField(fields[slot.key] ?? "") }));
   const bad = read.filter((item) => item.value === BAD).length;
@@ -77,6 +100,7 @@ export function TempoEditor({ routine, file, fileName, parts }: Props) {
                   return (
                     <li key={slot.key}>
                       <label htmlFor={id}>{`${many ? `Кайт ${slot.kite}. ` : ""}${slot.text}`}</label>
+                      {names.has(slot.key) && <span className="te-el">{names.get(slot.key)?.name}</span>}
                       <span className="te-field">
                         <input
                           id={id}
@@ -101,13 +125,133 @@ export function TempoEditor({ routine, file, fileName, parts }: Props) {
           );
         })}
         <div className="te-buttons">
-          <button type="button" onClick={() => setFields(fieldsOf(slots))}>
+          <button type="button" onClick={() => setFields(() => fieldsOf(slots))}>
             Вернуть длительности файла
           </button>
-          <button type="button" onClick={() => setFields(fieldsOf(slots, true))}>
+          <button type="button" onClick={() => setFields(() => fieldsOf(slots, true))}>
             Снять все длительности
           </button>
         </div>
+      </section>
+      <section className="el-add">
+        <h2>Добавить элемент</h2>
+        {!worded ? (
+          <p className="note">{NO_ELEMENTS_TEXT}</p>
+        ) : (
+          <>
+            <p className="note">
+              Элемент словаря встаёт в рутину шагом пути — в свою часть или в связку; шаги фигуры каталога не правятся. Ни
+              элемент, ни место, ни один параметр не выбраны заранее: пока задано не всё, шагов нет. Шаги после нового
+              остаются как записаны, и рутину с ним читает тот же разбор, что читает файл: не сошлась — шаг не встаёт, а
+              причина названа.
+            </p>
+            <div className="el-form">
+              <label htmlFor="el-kind">Элемент</label>
+              <select id="el-kind" value={draft.element} onChange={(event) => setDraft(chooseElement(draft, event.target.value))}>
+                <option value="">— не выбран —</option>
+                <optgroup label="Словарь элементов">
+                  {ELEMENTS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label={OUTSIDE_GROUP}>
+                  {OUTSIDE.map((item) => (
+                    <option key={item.what} disabled>
+                      {item.what}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+              <label htmlFor="el-place">Место в рутине</label>
+              <select id="el-place" value={draft.place} onChange={(event) => setDraft({ ...draft, place: event.target.value })}>
+                <option value="">— не выбрано —</option>
+                {places.map((place) => (
+                  <option key={place.key} value={place.key}>
+                    {place.text}
+                  </option>
+                ))}
+              </select>
+              {chosen &&
+                elementFields(chosen, draft.values).map((field) => {
+                  const id = `el-f-${field.key}`;
+                  const change = (value: string) => setDraft({ ...draft, values: { ...draft.values, [field.key]: value } });
+                  return (
+                    <Fragment key={field.key}>
+                      <label htmlFor={id}>{field.label}</label>
+                      {field.kind === "choice" ? (
+                        <select id={id} value={draft.values[field.key] ?? ""} onChange={(event) => change(event.target.value)}>
+                          <option value="">— не выбрано —</option>
+                          {field.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input id={id} type="text" autoComplete="off" size={7} value={draft.values[field.key] ?? ""} onChange={(event) => change(event.target.value)} />
+                      )}
+                    </Fragment>
+                  );
+                })}
+              {chosen && (
+                <>
+                  <label htmlFor="el-seconds">длительность, с; пустое поле — темп не задан</label>
+                  <input
+                    id="el-seconds"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    size={7}
+                    value={draft.seconds}
+                    onChange={(event) => setDraft({ ...draft, seconds: event.target.value })}
+                  />
+                </>
+              )}
+            </div>
+            <div aria-live="polite">
+              {chosen && <p className="note el-source">{`${chosen.name}: определение — ${chosen.source}.`}</p>}
+              {made?.state === "bad" && <p className="el-bad">{made.message}</p>}
+              {made?.state === "empty" && chosen && <p className="note el-wait">Шагов пока нет: задано не всё.</p>}
+              {made?.state === "ready" && (
+                <ul className="el-steps">
+                  {made.steps.map((step, index) => (
+                    <li key={index}>
+                      <code>{stepJson(step)}</code>
+                      {` — ${made.words[index]}`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="te-buttons">
+              <button
+                type="button"
+                id="el-put"
+                disabled={made?.state !== "ready"}
+                onClick={() => {
+                  setEditing(insertElement(editing, places, draft, fileName, figures));
+                  setDraft({ ...NO_DRAFT, element: draft.element });
+                }}
+              >
+                Поставить в рутину
+              </button>
+              {editing.added.length > 0 && (
+                <button
+                  type="button"
+                  id="el-drop"
+                  onClick={() => {
+                    setEditing(removeLast(editing, fileName, figures));
+                    setDraft({ ...draft, place: "" });
+                  }}
+                >
+                  Убрать последний поставленный элемент
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </section>
       {/* Об ошибке в поле говорит само поле (`aria-invalid` и слова рядом); этот
           абзац в живую область не входит, чтобы не звучать посреди набора числа. */}

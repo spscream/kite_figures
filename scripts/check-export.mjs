@@ -1571,7 +1571,7 @@ for (const slug of routineSlugs) {
   if (count(main, /<(?:input|select|textarea|button)\b/g) !== count(editor, /<(?:input|select|textarea|button)\b/g)) {
     problems.push(`${where} поле или кнопка стоит вне скрытого блока редактора`);
   }
-  const labels = [...editor.matchAll(/<label for="([^"]*)">([^<]*)<\/label>/g)];
+  const labels = [...editor.matchAll(/<label for="(te-[^"]*)">([^<]*)<\/label>/g)];
   if (labels.map((label) => label[1]).join(" ") !== wanted.map((field) => field.id).join(" ") || labels.some((label) => label[2].length < 5)) {
     problems.push(`${where} шаг назван словами не у каждого поля длительности`);
   }
@@ -1661,6 +1661,202 @@ for (const slug of routineSlugs) {
   const save = editor.match(/<a class="te-save" download="([^"]*)" href="([^"]*)">([^<]*)<\/a>/);
   if (save?.[1] !== `${slug}.json` || save[2] !== escapeHtml(`data:application/json;charset=utf-8,${encodeURIComponent(fileText)}`) || save[3] !== `Скачать ${slug}.json`) {
     problems.push(`${where} ссылка на скачивание отдаёт не файл data/routines/${slug}.json`);
+  }
+}
+
+// Словарь элементов в редакторе рутины. Что в словаре есть и чего в нём нет,
+// взято здесь из таблиц разбора `docs/routine-elements.md`, а не у
+// lib/elements.ts: страница сверяется с документом, по которому словарь
+// написан. Какой элемент записан шагом, посчитано здесь заново.
+function docTable(heading) {
+  const doc = fs.readFileSync(path.join(root, "docs", "routine-elements.md"), "utf8");
+  const lines = doc.slice(doc.indexOf(`### ${heading}\n`)).split("\n").slice(1);
+  const from = lines.findIndex((line) => line.startsWith("|"));
+  const rows = [];
+  for (const line of from === -1 ? [] : lines.slice(from)) {
+    if (!line.startsWith("|")) {
+      break;
+    }
+    rows.push(line.slice(1, -1).split("|").map((item) => item.trim()));
+  }
+  return rows.slice(2);
+}
+const DICTIONARY = docTable("Что вошло: двенадцать элементов");
+const OUTSIDE = docTable("Что осталось снаружи и почему");
+if (DICTIONARY.length !== 12 || OUTSIDE.length === 0) {
+  problems.push(`в docs/routine-elements.md элементов ${DICTIONARY.length}, строк об оставшемся снаружи ${OUTSIDE.length}: таблицы раздела 6 не читаются`);
+}
+// Набор рассчитан на одиночника с четырёхстропным кайтом (разбор, раздел 6).
+const ELEMENTS_FOR = "multi-line-individual";
+const NO_ELEMENTS = "Набор элементов рассчитан на одиночника с четырёхстропным кайтом; у рутины другого раздела его нет.";
+// Ячейка таблицы на странице: текст без тегов, как в разборе без обратных кавычек.
+const cellText = (html) => html.replace(/<!-- -->/g, "").replace(/<[^>]*>/g, "");
+const tableRows = (html) =>
+  [...(html.match(/<tbody>(.*?)<\/tbody>/s)?.[1] ?? "").matchAll(/<tr>(.*?)<\/tr>/gs)].map(([, row]) =>
+    [...row.matchAll(/<t[dh]\b[^>]*>(.*?)<\/t[dh]>/gs)].map(([, item]) => cellText(item)),
+  );
+const told = (rows) => rows.map((row) => row.join(" | ")).join(" ¦ ");
+const optionsOf = (html) =>
+  [...html.matchAll(/<option\b([^>]*)>([^<]*)<\/option>/g)].map(([, attributes, text]) => ({
+    value: attributes.match(/\bvalue="([^"]*)"/)?.[1],
+    disabled: /\bdisabled\b/.test(attributes),
+    selected: /\bselected\b/.test(attributes),
+    text,
+  }));
+
+// Номер строки словаря (с единицы), которой записан шаг; 0 — никакой. Курс —
+// 0 вверх, 90 вправо; нос числом на линии хода — тот же полёт, что нос словом.
+function elementRow(step, at) {
+  const ground = at !== null && Math.abs(at[1]) <= 0.05;
+  if (step.kind === "arc") {
+    return 7;
+  }
+  if (step.kind === "rotate") {
+    return typeof step.about !== "string" ? 0 : step.about === "center" ? 8 : Array.isArray(step.to) ? 9 : 0;
+  }
+  if (step.kind === "mark") {
+    return step.mark === "stall"
+      ? step.style === undefined && typeof step.nose === "number" ? 10 : 0
+      : step.mark === "launch"
+        ? ground ? 11 : 0
+        : step.mark === "landing" && (step.style === undefined || step.style === "leading-edge") && ground ? 12 : 0;
+  }
+  if (step.kind !== "line" || !Array.isArray(step.to) || step.to.includes(null)) {
+    return 0;
+  }
+  const nose = step.nose ?? "forward";
+  if (nose === "forward" || nose === "backward") {
+    return nose === "forward" ? 1 : 2;
+  }
+  if (typeof nose !== "number" || at === null) {
+    return 0;
+  }
+  const [dx, dy] = [step.to[0] - at[0], step.to[1] - at[1]];
+  const apart = (a, b) => Math.min(Math.abs(a - b) % 360, 360 - (Math.abs(a - b) % 360));
+  const course = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+  if (apart(nose, course) <= 0.5 || apart(nose, course + 180) <= 0.5) {
+    return apart(nose, course) <= 0.5 ? 1 : 2;
+  }
+  if (Math.abs(dy) <= 0.05 + 1e-9) {
+    return nose === 0 ? 3 : nose === 180 ? 5 : 0;
+  }
+  if (Math.abs(dx) <= 0.05 + 1e-9) {
+    return nose === 90 || nose === 270 ? 4 : 0;
+  }
+  return 6;
+}
+
+for (const slug of routineSlugs) {
+  const routine = routines.get(slug);
+  const html = page(path.join("routines", slug, "tempo"));
+  if (html === null) {
+    continue;
+  }
+  const where = `на странице routines/${slug}/tempo/`;
+  const main = mainOf(html);
+  // Таблицы словаря стоят на странице любой рутины и читаются без JavaScript.
+  const dictionary = main.match(/<section class="el-dict">(.*?)<\/section>/s)?.[1] ?? "";
+  const inside = tableRows(dictionary.match(/<table class="el-in">(.*?)<\/table>/s)?.[1] ?? "");
+  const wantedInside = DICTIONARY.map((row) => row.map((item) => item.replaceAll("`", "")));
+  if (told(inside) !== told(wantedInside.map((row) => row.map(escapeHtml)))) {
+    problems.push(`${where} таблица словаря — «${told(inside)}», а в разборе — «${told(wantedInside)}»`);
+  }
+  const outside = tableRows(dictionary.match(/<table class="el-out">(.*?)<\/table>/s)?.[1] ?? "");
+  if (told(outside) !== told(OUTSIDE.map((row) => row.map(escapeHtml)))) {
+    problems.push(`${where} таблица «чего в словаре нет» расходится с разбором: на странице строк ${outside.length}, в разборе ${OUTSIDE.length}, либо причина пересказана`);
+  }
+  // Словарь под редактором — только текст: выбрать в нём нечего.
+  if (/<(?:input|select|button|textarea)\b/.test(dictionary)) {
+    problems.push(`${where} в таблицах словаря есть поле или кнопка`);
+  }
+  const editor = main.match(/<div class="tempo" hidden="">(.*?)<section class="el-dict">/s)?.[1];
+  if (editor === undefined) {
+    problems.push(`${where} таблицы словаря стоят не под редактором`);
+    continue;
+  }
+  // Рутину с новым шагом читает разбор, а ему нужны фигуры, на которые она
+  // ссылается: страница отдаёт их редактору вместе с рутиной.
+  for (const part of routine.segments.filter((item) => item.origin === "figure")) {
+    if (!html.includes(`\\"figures\\":[`) || !html.includes(`{\\"slug\\":\\"${part.figure}\\"`)) {
+      problems.push(`${where} редактору не отдана фигура ${part.figure}: рутину с новым шагом без неё не прочесть`);
+    }
+  }
+  const adding = editor.match(/<section class="el-add">(.*?)<\/section>/s)?.[1];
+  if (adding === undefined) {
+    problems.push(`${where} в редакторе нет блока элементов`);
+    continue;
+  }
+  const names = [...editor.matchAll(/<label for="(te-[^"]*)">[^<]*<\/label>(?:<span class="te-el">([^<]*)<\/span>)?/g)].map(([, id, name]) => `${id}=${name ?? ""}`);
+  if (routine.discipline !== ELEMENTS_FOR) {
+    if (!adding.includes(escapeHtml(NO_ELEMENTS)) || /<select\b/.test(editor) || names.some((item) => !item.endsWith("="))) {
+      problems.push(`${where} словарь элементов показан у рутины раздела «${routine.discipline}», на который он не рассчитан, либо не сказано, что его нет`);
+    }
+    continue;
+  }
+  // В списке — двенадцать элементов разбора, под его именами и в его порядке;
+  // оставшееся снаружи видно в том же списке и не выбирается.
+  const kinds = adding.match(/<select id="el-kind">(.*?)<\/select>/s)?.[1] ?? "";
+  const groups = [...kinds.matchAll(/<optgroup label="([^"]*)">(.*?)<\/optgroup>/gs)].map(([, label, body]) => ({ label, options: optionsOf(body) }));
+  const offered = groups[0]?.options ?? [];
+  if (offered.map((option) => option.text).join(" | ") !== DICTIONARY.map((row) => escapeHtml(row[1])).join(" | ") || offered.some((option) => option.disabled || !option.value)) {
+    problems.push(`${where} в списке элементов — «${offered.map((option) => option.text).join(", ")}», а в разборе — «${DICTIONARY.map((row) => row[1]).join(", ")}»`);
+  }
+  const absent = groups[1]?.options ?? [];
+  if (groups.length !== 2 || absent.map((option) => option.text).join(" | ") !== OUTSIDE.map((row) => escapeHtml(row[0])).join(" | ") || absent.some((option) => !option.disabled)) {
+    problems.push(`${where} оставшееся снаружи словаря в списке элементов не показано как отсутствующее`);
+  }
+  // Места — в своих частях и связках, после старта кайта; в фигуру каталога
+  // элемент не встаёт.
+  const parts = routineParts(routine);
+  const wantedPlaces = [];
+  const wantedNames = [];
+  const placeParts = [];
+  for (const kite of routine.kites) {
+    let at = null;
+    // После поворота, чьё смещение книга числом не задала, место кайта скрипт
+    // не считает: имя шага, которое от места зависит, он до следующей полной
+    // точки не сверяет — его держат тесты `lib/elements.test.ts`.
+    let blind = false;
+    parts.forEach((part, index) => {
+      const steps = part.paths[kite] ?? [];
+      for (let order = 0; order <= steps.length; order += 1) {
+        if (part.origin !== "figure" && at !== null) {
+          wantedPlaces.push(`${index}/${kite}/${order}`);
+          placeParts.push(index + 1);
+        }
+        const step = steps[order];
+        if (step === undefined) {
+          continue;
+        }
+        if (takesTime(step)) {
+          const row = elementRow(step, at);
+          const placed = (step.kind === "line" && typeof step.nose === "number") || (step.kind === "mark" && step.mark !== "stall");
+          wantedNames.push(blind && placed ? null : `te-${index}-${kite}-${order}=${row === 0 ? "" : escapeHtml(DICTIONARY[row - 1]?.[1] ?? "")}`);
+        }
+        const to = step.kind === "start" ? step.at : step.kind === "line" || step.kind === "arc" || step.kind === "rotate" ? step.to : undefined;
+        if (to !== undefined && to !== null) {
+          blind = !Array.isArray(to) || (blind && to.includes(null));
+        }
+        at = Array.isArray(to) ? to.map((value, axis) => value ?? at?.[axis] ?? 0) : at;
+      }
+    });
+  }
+  const places = optionsOf(adding.match(/<select id="el-place">(.*?)<\/select>/s)?.[1] ?? "");
+  if (places.slice(1).map((option) => option.value).join(" ") !== wantedPlaces.join(" ") || places.slice(1).some((option, index) => !option.text.includes(`Часть ${placeParts[index]}: `))) {
+    problems.push(`${where} места для элемента — ${places.slice(1).map((option) => option.value).join(" ")}, а по данным — ${wantedPlaces.join(" ")}`);
+  }
+  // Заранее не выбрано ничего: ни элемент, ни место, и поля параметра нет, пока
+  // элемент не выбран (лишнее поле ввода ловит сверка полей длительности выше).
+  for (const [name, list] of [["элемент", optionsOf(kinds)], ["место", places]]) {
+    if (list[0]?.value !== "" || list.some((option, index) => option.selected && index !== 0)) {
+      problems.push(`${where} ${name} выбран заранее: первым в списке должно стоять пустое значение, и только оно может быть выбрано`);
+    }
+  }
+  if (count(adding, /<select\b/g) !== 2 || !/<button\b[^>]*\bid="el-put"[^>]*\bdisabled=""/.test(adding)) {
+    problems.push(`${where} до выбора элемента в блоке есть поле параметра либо кнопка «Поставить в рутину» не заперта`);
+  }
+  if (names.length !== wantedNames.length || names.some((name, index) => wantedNames[index] !== null && name !== wantedNames[index])) {
+    problems.push(`${where} имена элементов у шагов — ${names.join(" ")}, а по данным — ${wantedNames.map((name) => name ?? "(не сверяется)").join(" ")}`);
   }
 }
 
@@ -1760,6 +1956,16 @@ if (!scripts(path.join(out, "_next")).some((file) => ["p-svg", "p-team", "p-tag"
 // клиентский код.
 if (routineSlugs.length > 0 && !scripts(path.join(out, "_next")).some((file) => /te-findings[\s\S]*te-file/.test(fs.readFileSync(file, "utf8")))) {
   problems.push("в клиентском коде нет редактора длительностей");
+}
+
+// Элемент ставит в рутину клиентский код: в одном куске с кнопкой лежат и
+// разворот элемента в шаг (его отказ словами), и разбор рутины, который читает
+// её с новым шагом (его отказ словами).
+if (
+  routineSlugs.some((slug) => routines.get(slug).discipline === ELEMENTS_FOR) &&
+  !scripts(path.join(out, "_next")).some((file) => ["el-put", "лежит на линии хода", "между ними нужна связка", "элемент, место или параметр не заданы", "шаги после нового редактор не правит"].every((mark) => fs.readFileSync(file, "utf8").includes(mark)))
+) {
+  problems.push("в клиентском коде редактора нет разворота элемента в шаг или разбора рутины");
 }
 
 // В out/figures/ и out/disciplines/ — ровно по каталогу на фигуру и на

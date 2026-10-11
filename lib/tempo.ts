@@ -186,6 +186,9 @@ export function fileWithDurations(file: unknown, routine: Routine, given: Durati
   return { ...file, segments };
 }
 
+// Значение одной строкой — так в файле рутины записан шаг.
+export const stepJson = (value: unknown): string => flat(value);
+
 const flat = (value: unknown): string =>
   Array.isArray(value)
     ? `[${value.map(flat).join(", ")}]`

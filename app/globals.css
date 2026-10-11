@@ -902,3 +902,70 @@ h1 {
     fill: var(--d-stall);
   }
 }
+
+/* Элементы словаря в редакторе рутины: имя элемента у шага, форма нового
+   элемента и таблицы словаря под редактором. */
+.te-el {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.el-form {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 0.4rem 0.75rem;
+  align-items: baseline;
+  margin: 0.5rem 0;
+}
+
+.el-form select,
+.el-form input {
+  justify-self: start;
+  max-width: 100%;
+  font: inherit;
+}
+
+.el-bad {
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--muted);
+  border-radius: 0.3rem;
+}
+
+.el-steps {
+  padding-left: 1.2rem;
+}
+
+.el-steps code {
+  overflow-wrap: anywhere;
+}
+
+.el-dict table {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.el-dict th,
+.el-dict td {
+  padding: 0.3rem 0.5rem;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  font-weight: normal;
+}
+
+.el-dict thead th,
+.el-dict tbody th {
+  font-weight: 600;
+}
+
+@media (max-width: 40rem) {
+  .el-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .el-dict {
+    overflow-x: auto;
+  }
+}
