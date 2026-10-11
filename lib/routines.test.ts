@@ -464,6 +464,61 @@ describe("docs/routines.md", () => {
   });
 });
 
+// Остановка, поворот на месте, посадка, взлёт и аксель занимают время, а длины
+// пути у них нет: вывести их длительность не из чего, её записывает автор.
+describe("длительность у шага без длины пути", () => {
+  const still: [string, Raw][] = [
+    ["остановка", { kind: "mark", mark: "stall", nose: 0 }],
+    ["поворот на месте", { kind: "rotate", degrees: 90, direction: "cw", about: "center" }],
+    ["посадка", { kind: "mark", mark: "landing" }],
+    ["взлёт", { kind: "mark", mark: "launch" }],
+    ["аксель", { kind: "mark", mark: "axel" }],
+  ];
+
+  it.each(still)("свой шаг: %s несёт длительность, а без неё остаётся без неё", (_label, step) => {
+    const path = (item: Raw) => segments([own([start([-50, 0]), markIn, line([0, 0], { nose: 0, seconds: 4 }), item, markOut])]).segments[0].paths["1"][3];
+    expect(path({ ...step, seconds: 2.5 })).toMatchObject({ ...step, seconds: 2.5 });
+    expect(path(step)).not.toHaveProperty("seconds");
+    expect(() => path({ ...step, seconds: 0 })).toThrow(/\.seconds: длительность — положительное число секунд/);
+  });
+
+  it("шаг фигуры: повороты на месте и посадка MI 09 получают длительность из списка у ссылки", () => {
+    const tower = figures.find((item) => item.slug === "mi-09-clock-tower")!;
+    const body = tower.geometry.status === "ok" ? tower.geometry.variants[0].kites[0].path.slice(2, -1) : [];
+    expect(body.map((step) => (step.kind === "mark" ? step.mark : step.kind))).toEqual(["line", "rotate", "line", "rotate", "line", "landing"]);
+    const result = segments([
+      own([start([0, 80]), markIn]),
+      { origin: "figure", figure: "mi-09-clock-tower", seconds: { "1": [3, 2, null, 2.5, 3, 1.5] } },
+      own([markOut]),
+    ]);
+    expect(result.segments[1].paths["1"].map((step) => [step.kind === "mark" ? step.mark : step.kind, step.seconds])).toEqual([
+      ["line", 3],
+      ["rotate", 2],
+      ["line", undefined],
+      ["rotate", 2.5],
+      ["line", 3],
+      ["landing", 1.5],
+    ]);
+  });
+
+  it("остановка фигуры получает длительность так же", () => {
+    const stalled = figures.find(
+      (item) => item.discipline === "multi-line-individual" && item.geometry.status === "ok" && item.geometry.variants.length === 1 && item.geometry.variants[0].kites[0].path.some((step) => step.kind === "mark" && step.mark === "stall"),
+    )!;
+    const path = stalled.geometry.status === "ok" ? stalled.geometry.variants[0].kites[0].path : [];
+    const entry = path[0].kind === "start" ? path[0].at : null;
+    const body = path.slice(path.findIndex((step) => step.kind === "mark" && step.mark === "in") + 1, path.findIndex((step) => step.kind === "mark" && step.mark === "out"));
+    const at = body.findIndex((step) => step.kind === "mark" && step.mark === "stall");
+    expect(at).toBeGreaterThanOrEqual(0);
+    const result = segments([
+      own([start(entry as [number, number]), markIn]),
+      { origin: "figure", figure: stalled.slug, seconds: { "1": body.map((_, index) => (index === at ? 2 : null)) } },
+      own([markOut]),
+    ]);
+    expect(result.segments[1].paths["1"][at]).toMatchObject({ kind: "mark", mark: "stall", seconds: 2 });
+  });
+});
+
 describe("время остаётся в рутине", () => {
   it("шаг фигуры длительности не принимает", () => {
     const path = [start([0, 20]), markIn, line([10, 20], { seconds: 4 }), markOut];
