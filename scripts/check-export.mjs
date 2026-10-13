@@ -1968,6 +1968,47 @@ if (
   problems.push("в клиентском коде редактора нет разворота элемента в шаг или разбора рутины");
 }
 
+// Счётчик посещений Umami стоит в <head> каждой собранной страницы, включая
+// 404.html — её веб-сервер отдаёт на несуществующий адрес. Значения повторены
+// намеренно: скрипт сверяет страницу с тем, что должно на ней быть, а не с
+// тем, что написано в app/layout.tsx. Без data-domains заход считала бы и
+// локальная сборка; два тега — два захода на каждый просмотр.
+const COUNTER = {
+  src: "https://stats.malaev.net/script.js",
+  "data-website-id": "9120e1c7-dac4-4664-8719-91f6d56ecbb1",
+  "data-domains": "kites.malaev.net",
+};
+function pages(dir) {
+  return fs.existsSync(dir)
+    ? fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const file = path.join(dir, entry.name);
+        return entry.isDirectory() ? pages(file) : entry.name.endsWith(".html") ? [file] : [];
+      })
+    : [];
+}
+for (const file of pages(out)) {
+  const where = path.relative(root, file);
+  const html = fs.readFileSync(file, "utf8");
+  const tags = [...html.matchAll(/<script\b[^>]*>/g)].map(([tag]) => tag).filter((tag) => tag.includes(`src="${COUNTER.src}"`));
+  if (tags.length !== 1) {
+    problems.push(`${where}: тегов счётчика посещений ${tags.length}, а должен быть один`);
+    continue;
+  }
+  const [tag] = tags;
+  if (html.indexOf(tag) > html.indexOf("</head>")) {
+    problems.push(`${where}: тег счётчика посещений стоит не в <head>`);
+  }
+  for (const [name, value] of Object.entries(COUNTER)) {
+    if (!tag.includes(` ${name}="${value}"`)) {
+      problems.push(`${where}: в теге счётчика посещений нет ${name}="${value}"`);
+    }
+  }
+  // Без defer или async скрипт с чужого хоста задержал бы разбор страницы.
+  if (!/\sdefer(=""|\s|>)/.test(tag)) {
+    problems.push(`${where}: тег счётчика посещений без defer`);
+  }
+}
+
 // В out/figures/ и out/disciplines/ — ровно по каталогу на фигуру и на
 // раздел: лишнее — это страница, у которой больше нет данных.
 for (const [dir, expected] of [
